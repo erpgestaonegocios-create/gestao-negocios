@@ -39,12 +39,14 @@
   .btn-logout { background:none; border:1px solid var(--border); border-radius:5px; color:var(--text2); font-size:11px; padding:5px 10px; cursor:pointer; transition:all 0.2s; }
   .btn-logout:hover { border-color:var(--danger); color:var(--danger); }
   .layout { display:flex; flex:1; }
-  .sidebar { width:220px; background:var(--surface); border-right:1px solid var(--border); padding:20px 0; flex-shrink:0; }
-  .sidebar-label { font-size:10px; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase; padding:0 20px; margin:16px 0 8px; }
-  .menu-item { display:flex; align-items:center; gap:10px; padding:10px 20px; cursor:pointer; font-size:13px; color:var(--text2); transition:all 0.15s; border-left:2px solid transparent; }
+
+  /* SIDEBAR */
+  .sidebar { width:230px; background:var(--surface); border-right:1px solid var(--border); padding:12px 0 20px; flex-shrink:0; overflow-y:auto; }
+  .sidebar-label { font-size:10px; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase; padding:0 20px; margin:14px 0 6px; }
+  .menu-item { display:flex; align-items:center; gap:10px; padding:9px 20px; cursor:pointer; font-size:13px; color:var(--text2); transition:all 0.15s; border-left:2px solid transparent; }
   .menu-item:hover { background:var(--surface2); color:var(--text); }
   .menu-item.active { background:rgba(107,127,215,0.12); color:var(--accent); border-left-color:var(--accent); }
-  .menu-icon { font-size:15px; }
+  .menu-icon { font-size:15px; width:20px; text-align:center; }
   .content { flex:1; padding:28px; overflow-y:auto; }
 
   /* PANELS */
@@ -104,7 +106,7 @@
   .access-item { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface2); border-radius:6px; border:1px solid var(--border); cursor:pointer; transition:all 0.15s; }
   .access-item:hover { border-color:var(--accent); }
   .access-item.selected { border-color:var(--accent); background:rgba(107,127,215,0.1); }
-  .access-item input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
+  .access-item input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; flex-shrink:0; }
   .access-item label { font-size:13px; color:var(--text2); cursor:pointer; }
   .access-item.selected label { color:var(--text); }
 
@@ -115,11 +117,20 @@
   .perfil-card-name { font-size:15px; font-weight:600; }
   .perfil-menus { display:flex; flex-wrap:wrap; gap:6px; }
   .menu-tag { padding:3px 9px; background:rgba(107,127,215,0.12); color:var(--accent); border-radius:20px; font-size:11px; }
+
+  /* INFO CARD */
   .info-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px 24px; margin-bottom:16px; display:flex; align-items:flex-start; gap:16px; }
   .info-card-icon { font-size:24px; margin-top:2px; }
   .info-card-body { flex:1; }
   .info-card-title { font-size:14px; font-weight:600; margin-bottom:4px; }
   .info-card-desc { font-size:12px; color:var(--text3); line-height:1.6; }
+
+  /* PLACEHOLDER PANELS */
+  .placeholder-box { background:var(--surface); border:1px dashed var(--border); border-radius:10px; padding:60px 40px; text-align:center; }
+  .placeholder-icon { font-size:40px; margin-bottom:16px; }
+  .placeholder-title { font-size:16px; font-weight:600; margin-bottom:8px; }
+  .placeholder-desc { font-size:13px; color:var(--text3); line-height:1.6; }
+
   .section-label { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:12px; }
   .loading { text-align:center; padding:40px; color:var(--text3); font-size:13px; }
   .empty { text-align:center; padding:40px; color:var(--text3); font-size:13px; }
@@ -156,53 +167,11 @@
     </div>
   </div>
   <div class="layout">
-    <nav class="sidebar">
-      <div class="sidebar-label">Sistema</div>
-      <div class="menu-item active" onclick="showPanel('usuarios')" id="menu-usuarios">
-        <span class="menu-icon">👤</span> Gestão de Usuários
-      </div>
-      <div class="menu-item" onclick="showPanel('acessos')" id="menu-acessos">
-        <span class="menu-icon">🔐</span> Gestão de Acessos
-      </div>
+    <nav class="sidebar" id="sidebar">
+      <!-- gerado dinamicamente -->
     </nav>
-    <div class="content">
-
-      <!-- PAINEL USUARIOS -->
-      <div class="panel active" id="panel-usuarios">
-        <div class="panel-header">
-          <span class="panel-title">Gestão de Usuários</span>
-          <button class="btn-new" onclick="openModalUsuario('new')">+ Novo Usuário</button>
-        </div>
-        <div class="tbl-wrap">
-          <table>
-            <thead>
-              <tr><th>#</th><th>Usuário</th><th>Nome</th><th>Perfil</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr>
-            </thead>
-            <tbody id="tbl-usuarios">
-              <tr><td colspan="8" class="loading">Carregando...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- PAINEL ACESSOS -->
-      <div class="panel" id="panel-acessos">
-        <div class="panel-header">
-          <span class="panel-title">Gestão de Acessos</span>
-        </div>
-        <div class="info-card">
-          <div class="info-card-icon">ℹ️</div>
-          <div class="info-card-body">
-            <div class="info-card-title">Como funciona</div>
-            <div class="info-card-desc">Cada perfil de negócio possui menus padrão pré-configurados. Ao criar um usuário, ele herda automaticamente todos os menus do perfil. O botão <strong>Acessos</strong> na lista de usuários permite restringir quais menus aquele usuário específico pode ver.</div>
-          </div>
-        </div>
-        <div class="section-label" style="margin-top:8px;">Perfis e seus menus padrão</div>
-        <div class="perfil-grid" id="perfil-grid">
-          <div class="loading">Carregando perfis...</div>
-        </div>
-      </div>
-
+    <div class="content" id="content-area">
+      <!-- painéis gerados dinamicamente -->
     </div>
   </div>
 </div>
@@ -284,16 +253,60 @@ let currentUser = null;
 let editingUserId = null;
 let accessUserId = null;
 let accessUserPerfil = null;
+let activePanelId = null;
+
+// Definição completa de todos os menus do sistema
+const MENUS_SISTEMA = [
+  {
+    grupo: 'Administração',
+    nivel: 'master_sistema', // só para master do sistema
+    itens: [
+      { id: 'usuarios',   icon: '👤', label: 'Gestão de Usuários' },
+      { id: 'acessos',    icon: '🔐', label: 'Gestão de Acessos' },
+    ]
+  },
+  {
+    grupo: 'Cadastros',
+    nivel: 'todos',
+    itens: [
+      { id: 'clientes',      icon: '🧑‍🤝‍🧑', label: 'Clientes',      func: 'clientes' },
+      { id: 'fornecedores',  icon: '🚚',      label: 'Fornecedores',  func: 'fornecedores' },
+      { id: 'produtos',      icon: '📦',      label: 'Produtos',      func: 'produtos' },
+      { id: 'servicos',      icon: '🛠️',      label: 'Serviços',      func: 'servicos' },
+    ]
+  },
+  {
+    grupo: 'Operacional',
+    nivel: 'todos',
+    itens: [
+      { id: 'estoque',       icon: '🏭', label: 'Controle de Estoque', func: 'estoque' },
+      { id: 'agendamentos',  icon: '📅', label: 'Agendamentos',        func: 'agendamentos' },
+    ]
+  },
+  {
+    grupo: 'Financeiro',
+    nivel: 'todos',
+    itens: [
+      { id: 'financeiro',    icon: '💰', label: 'Financeiro',  func: 'financeiro' },
+      { id: 'relatorios',    icon: '📊', label: 'Relatórios',  func: 'relatorios' },
+    ]
+  }
+];
 
 async function api(path, opts = {}) {
   const res = await fetch(SUPA_URL + '/rest/v1/' + path, { headers: { ...hdrs, ...(opts.headers||{}) }, ...opts });
-  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.message || e.hint || 'Erro na requisição'); }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.message || e.hint || 'Erro'); }
   if (res.status === 204) return null;
   return res.json();
 }
 
 function showMsg(el, txt, type) { el.textContent = txt; el.className = 'msg ' + type; el.style.display = 'block'; }
 function showModalMsg(el, txt, type) { el.textContent = txt; el.className = 'modal-msg ' + type; el.style.display = 'block'; }
+function nivelLabel(n) { return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário'; }
+function perfilLabel(c) {
+  const m={master:'Master Sistema',padaria:'Padaria',clinica:'Clínica Médica',petshop:'Petshop',academia:'Academia',hospital:'Hospital'};
+  return m[c]||c||'-';
+}
 
 // ===== LOGIN =====
 async function doLogin() {
@@ -310,12 +323,12 @@ async function doLogin() {
     if (u.senha !== pass) { showMsg(msg, 'Dados de login inválidos', 'error'); return; }
     currentUser = u;
     showMsg(msg, 'Login realizado com sucesso!', 'success');
-    setTimeout(() => {
+    setTimeout(async () => {
       document.getElementById('screen-login').style.display = 'none';
       document.getElementById('screen-main').style.display = 'flex';
-      document.getElementById('top-username').textContent = u.usuario;
+      document.getElementById('top-username').textContent = u.nome || u.usuario;
       document.getElementById('top-avatar').textContent = (u.nome || u.usuario)[0].toUpperCase();
-      carregarUsuarios();
+      await construirInterface();
     }, 800);
   } catch(e) { showMsg(msg, 'Erro de conexão: ' + e.message, 'error'); }
 }
@@ -330,20 +343,130 @@ function doLogout() {
   document.getElementById('inp-user').value = '';
   document.getElementById('inp-pass').value = '';
   document.getElementById('login-msg').style.display = 'none';
+  document.getElementById('sidebar').innerHTML = '';
+  document.getElementById('content-area').innerHTML = '';
+}
+
+// ===== CONSTRUIR INTERFACE POR PERFIL =====
+async function construirInterface() {
+  const isMasterSistema = currentUser.nivel === 'master_sistema';
+  let funcPermitidas = new Set();
+
+  if (!isMasterSistema) {
+    // Busca acessos específicos do usuário
+    const acessos = await api('usuario_acessos?usuario_id=eq.' + currentUser.id + '&ativo=eq.true&select=funcionalidade').catch(()=>[]);
+    (acessos||[]).forEach(a => funcPermitidas.add(a.funcionalidade));
+  }
+
+  const sidebar = document.getElementById('sidebar');
+  const contentArea = document.getElementById('content-area');
+  sidebar.innerHTML = '';
+  contentArea.innerHTML = '';
+
+  let primeiroMenu = null;
+
+  MENUS_SISTEMA.forEach(grupo => {
+    // Master sistema vê tudo; outros veem só o que for permitido ou do grupo 'todos'
+    const itensVisiveis = grupo.itens.filter(item => {
+      if (isMasterSistema) return true;
+      if (grupo.nivel === 'master_sistema') return false;
+      if (item.func) return funcPermitidas.has(item.func);
+      return false;
+    });
+
+    if (itensVisiveis.length === 0) return;
+
+    // Label do grupo
+    const lbl = document.createElement('div');
+    lbl.className = 'sidebar-label';
+    lbl.textContent = grupo.grupo;
+    sidebar.appendChild(lbl);
+
+    itensVisiveis.forEach(item => {
+      if (!primeiroMenu) primeiroMenu = item.id;
+      const el = document.createElement('div');
+      el.className = 'menu-item';
+      el.id = 'menu-' + item.id;
+      el.innerHTML = `<span class="menu-icon">${item.icon}</span> ${item.label}`;
+      el.onclick = () => showPanel(item.id);
+      sidebar.appendChild(el);
+
+      // Criar painel correspondente
+      const panel = document.createElement('div');
+      panel.className = 'panel';
+      panel.id = 'panel-' + item.id;
+      panel.innerHTML = renderPanel(item.id);
+      contentArea.appendChild(panel);
+    });
+  });
+
+  // Mostrar primeiro painel
+  if (primeiroMenu) showPanel(primeiroMenu);
+}
+
+function renderPanel(id) {
+  switch(id) {
+    case 'usuarios': return `
+      <div class="panel-header">
+        <span class="panel-title">Gestão de Usuários</span>
+        <button class="btn-new" onclick="openModalUsuario('new')">+ Novo Usuário</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Usuário</th><th>Nome</th><th>Perfil</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="tbl-usuarios"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
+        </table>
+      </div>`;
+
+    case 'acessos': return `
+      <div class="panel-header"><span class="panel-title">Gestão de Acessos</span></div>
+      <div class="info-card">
+        <div class="info-card-icon">ℹ️</div>
+        <div class="info-card-body">
+          <div class="info-card-title">Como funciona</div>
+          <div class="info-card-desc">Cada perfil tem menus padrão pré-configurados. Ao criar um usuário ele herda todos os menus do perfil. Use o botão <strong>Acessos</strong> na lista de usuários para restringir menus individualmente.</div>
+        </div>
+      </div>
+      <div class="section-label" style="margin-top:8px;">Perfis e seus menus padrão</div>
+      <div class="perfil-grid" id="perfil-grid"><div class="loading">Carregando...</div></div>`;
+
+    default:
+      const labels = {
+        clientes:'Clientes', fornecedores:'Fornecedores', produtos:'Produtos',
+        servicos:'Serviços', estoque:'Controle de Estoque',
+        agendamentos:'Agendamentos', financeiro:'Financeiro', relatorios:'Relatórios'
+      };
+      const icons = {
+        clientes:'🧑‍🤝‍🧑', fornecedores:'🚚', produtos:'📦', servicos:'🛠️',
+        estoque:'🏭', agendamentos:'📅', financeiro:'💰', relatorios:'📊'
+      };
+      return `
+        <div class="panel-header"><span class="panel-title">${labels[id]||id}</span></div>
+        <div class="placeholder-box">
+          <div class="placeholder-icon">${icons[id]||'📋'}</div>
+          <div class="placeholder-title">${labels[id]||id}</div>
+          <div class="placeholder-desc">Este módulo será construído na próxima etapa do desenvolvimento.<br>A estrutura e menus já estão configurados e prontos.</div>
+        </div>`;
+  }
 }
 
 // ===== NAVEGAÇÃO =====
 function showPanel(name) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-  document.getElementById('panel-' + name).classList.add('active');
-  document.getElementById('menu-' + name).classList.add('active');
-  if (name === 'acessos') carregarPerfis();
+  const panel = document.getElementById('panel-' + name);
+  const menu  = document.getElementById('menu-' + name);
+  if (panel) panel.classList.add('active');
+  if (menu)  menu.classList.add('active');
+  activePanelId = name;
+  if (name === 'usuarios') carregarUsuarios();
+  if (name === 'acessos')  carregarPerfis();
 }
 
 // ===== USUÁRIOS =====
 async function carregarUsuarios() {
   const tbody = document.getElementById('tbl-usuarios');
+  if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="8" class="loading">Carregando...</td></tr>';
   try {
     const data = await api('usuarios?select=*&order=id.asc');
@@ -361,7 +484,7 @@ async function carregarUsuarios() {
           <div class="action-btns">
             <button class="btn-sm btn-edit" onclick="openModalUsuario('edit',${u.id})">Editar</button>
             ${u.nivel !== 'master_sistema' && u.perfil && u.perfil !== 'master'
-              ? `<button class="btn-sm btn-access" onclick="openModalAcessos(${u.id},'${u.perfil}','${u.nome||u.usuario}')">Acessos</button>`
+              ? `<button class="btn-sm btn-access" onclick="openModalAcessos(${u.id},'${u.perfil}','${(u.nome||u.usuario).replace(/'/g,"\\'")}')">Acessos</button>`
               : ''}
             ${u.ativo
               ? `<button class="btn-sm btn-deact" onclick="toggleAtivo(${u.id},false)">Desativar</button>`
@@ -371,9 +494,6 @@ async function carregarUsuarios() {
       </tr>`).join('');
   } catch(e) { tbody.innerHTML = `<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`; }
 }
-
-function nivelLabel(n) { return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário'; }
-function perfilLabel(c) { const m={master:'Master Sistema',padaria:'Padaria',clinica:'Clínica Médica',petshop:'Petshop',academia:'Academia',hospital:'Hospital'}; return m[c]||c||'-'; }
 
 async function toggleAtivo(id, ativo) {
   try {
@@ -389,10 +509,12 @@ function openModalUsuario(mode, id) {
   if (mode === 'new') {
     document.getElementById('modal-user-titulo').textContent = 'Novo Usuário';
     document.getElementById('modal-user-sub').textContent = 'Preencha os dados do novo usuário';
-    ['m-usuario','m-nome','m-empresa'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('m-usuario').value = '';
+    document.getElementById('m-nome').value = '';
     document.getElementById('m-senha').value = '';
     document.getElementById('m-nivel').value = 'usuario';
     document.getElementById('m-perfil').value = '';
+    document.getElementById('m-empresa').value = '';
     document.getElementById('m-usuario').disabled = false;
   } else {
     document.getElementById('modal-user-titulo').textContent = 'Editar Usuário';
@@ -492,7 +614,7 @@ async function salvarAcessos() {
   msgEl.style.display = 'none';
   const selecionados = [...document.querySelectorAll('#access-checkboxes input[type=checkbox]')].filter(c=>c.checked).map(c=>c.value);
   try {
-    await api('usuario_acessos?usuario_id=eq.'+accessUserId, { method:'DELETE', headers:{...hdrs, 'Prefer':''} });
+    await api('usuario_acessos?usuario_id=eq.'+accessUserId, { method:'DELETE', headers:{...hdrs,'Prefer':''} });
     if (selecionados.length) {
       await api('usuario_acessos', { method:'POST', body:JSON.stringify(selecionados.map(f=>({usuario_id:accessUserId, funcionalidade:f, ativo:true}))) });
     }
@@ -504,6 +626,7 @@ async function salvarAcessos() {
 // ===== PERFIS =====
 async function carregarPerfis() {
   const grid = document.getElementById('perfil-grid');
+  if (!grid) return;
   grid.innerHTML = '<div class="loading">Carregando...</div>';
   try {
     const [perfis, funcs] = await Promise.all([
