@@ -97,22 +97,16 @@
 
   /* FORM GRID */
   .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  .form-grid .col-1 { grid-column: span 1; }
-  .form-grid .col-2 { grid-column: span 2; }
+  .col-1 { grid-column: span 1; }
+  .col-2 { grid-column: span 2; }
   .form-section { font-size:11px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:span 2; margin-top:8px; }
   .mfield label { display:block; font-size:11px; color:var(--text2); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:5px; }
   .mfield label .req { color:var(--danger); margin-left:2px; }
-  .mfield input, .mfield select, .mfield textarea {
-    width:100%; padding:9px 12px; background:var(--surface2);
-    border:1px solid var(--border); border-radius:6px;
-    color:var(--text); font-size:13px; outline:none; font-family:var(--font);
-    transition:border-color 0.2s;
-  }
+  .mfield input, .mfield select, .mfield textarea { width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none; font-family:var(--font); transition:border-color 0.2s; }
   .mfield input:focus, .mfield select:focus, .mfield textarea:focus { border-color:var(--accent); }
-  .mfield input.error-field { border-color:var(--danger); }
   .mfield select option { background:var(--surface2); }
   .mfield textarea { resize:vertical; min-height:70px; }
-  .mfield .field-hint { font-size:11px; color:var(--text3); margin-top:4px; }
+  .mfield .field-hint { font-size:11px; color:var(--text3); margin-top:4px; min-height:16px; }
   .mfield .field-hint.loading { color:var(--warn); }
   .mfield .field-hint.ok { color:var(--success); }
   .mfield .field-hint.err { color:var(--danger); }
@@ -144,6 +138,18 @@
   .perfil-menus { display:flex; flex-wrap:wrap; gap:6px; }
   .menu-tag { padding:3px 9px; background:rgba(107,127,215,0.12); color:var(--accent); border-radius:20px; font-size:11px; }
 
+  /* TABELA DE MENUS POR PERFIL */
+  .menus-table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-top:20px; }
+  .menus-table-wrap table { width:100%; border-collapse:collapse; }
+  .menus-table-wrap thead { background:var(--surface2); }
+  .menus-table-wrap th { padding:10px 16px; text-align:center; font-size:11px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; font-weight:600; }
+  .menus-table-wrap th:first-child { text-align:left; }
+  .menus-table-wrap td { padding:10px 16px; font-size:13px; border-top:1px solid var(--border); color:var(--text2); text-align:center; }
+  .menus-table-wrap td:first-child { text-align:left; color:var(--text); font-weight:500; }
+  .menus-table-wrap tr:hover td { background:var(--surface2); }
+  .check-yes { color:var(--success); font-size:16px; }
+  .check-no  { color:var(--danger);  font-size:16px; }
+
   .info-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px 24px; margin-bottom:16px; display:flex; align-items:flex-start; gap:16px; }
   .info-card-icon { font-size:24px; margin-top:2px; }
   .info-card-body { flex:1; }
@@ -158,7 +164,7 @@
   .section-label { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:12px; }
   .loading { text-align:center; padding:40px; color:var(--text3); font-size:13px; }
   .empty { text-align:center; padding:40px; color:var(--text3); font-size:13px; }
-  .total-badge { font-size:12px; color:var(--text3); margin-left:8px; }
+  .total-badge { font-size:12px; color:var(--text3); margin-left:8px; font-weight:400; }
 </style>
 </head>
 <body>
@@ -199,32 +205,21 @@
 
 <!-- MODAL USUÁRIO -->
 <div class="modal-overlay" id="modal-usuario">
-  <div class="modal">
+  <div class="modal" style="width:500px">
     <div class="modal-title" id="modal-user-titulo">Novo Usuário</div>
     <div class="modal-sub" id="modal-user-sub">Preencha os dados do novo usuário</div>
-    <div class="modal-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-      <div class="mfield" style="grid-column:span 2">
-        <label>Usuário <span class="req">*</span></label>
-        <input type="text" id="m-usuario" placeholder="ex: joao.silva">
-      </div>
-      <div class="mfield" style="grid-column:span 2">
-        <label>Nome Completo</label>
-        <input type="text" id="m-nome" placeholder="ex: João da Silva">
-      </div>
-      <div class="mfield">
-        <label>Senha <span class="req">*</span></label>
-        <input type="password" id="m-senha" placeholder="••••••••">
-      </div>
-      <div class="mfield">
-        <label>Nível <span class="req">*</span></label>
+    <div class="form-grid">
+      <div class="mfield col-2"><label>Usuário <span class="req">*</span></label><input type="text" id="m-usuario" placeholder="ex: joao.silva"></div>
+      <div class="mfield col-2"><label>Nome Completo</label><input type="text" id="m-nome" placeholder="ex: João da Silva"></div>
+      <div class="mfield col-1"><label>Senha <span class="req">*</span></label><input type="password" id="m-senha" placeholder="••••••••"></div>
+      <div class="mfield col-1"><label>Nível <span class="req">*</span></label>
         <select id="m-nivel">
           <option value="usuario">Usuário</option>
           <option value="master_empresa">Master de Empresa</option>
           <option value="master_sistema">Master do Sistema</option>
         </select>
       </div>
-      <div class="mfield">
-        <label>Perfil</label>
+      <div class="mfield col-1"><label>Perfil</label>
         <select id="m-perfil">
           <option value="">Selecione...</option>
           <option value="master">Master Sistema</option>
@@ -235,10 +230,7 @@
           <option value="hospital">Hospital</option>
         </select>
       </div>
-      <div class="mfield">
-        <label>Empresa</label>
-        <input type="text" id="m-empresa" placeholder="Nome da empresa">
-      </div>
+      <div class="mfield col-1"><label>Empresa</label><input type="text" id="m-empresa" placeholder="Nome da empresa"></div>
     </div>
     <div class="modal-msg" id="modal-user-msg"></div>
     <div class="modal-actions">
@@ -250,7 +242,7 @@
 
 <!-- MODAL ACESSOS -->
 <div class="modal-overlay" id="modal-acessos">
-  <div class="modal">
+  <div class="modal" style="width:500px">
     <div class="modal-title" id="modal-access-titulo">Gerenciar Acessos</div>
     <div class="modal-sub" id="modal-access-sub"></div>
     <div class="access-section-title">Funcionalidades disponíveis no perfil</div>
@@ -272,20 +264,16 @@
 
       <div class="form-section">Dados Pessoais</div>
 
-      <div class="mfield col-2">
-        <label>Nome Completo <span class="req">*</span></label>
+      <div class="mfield col-2"><label>Nome Completo <span class="req">*</span></label>
         <input type="text" id="cli-nome" placeholder="Nome completo do cliente">
       </div>
-      <div class="mfield col-1">
-        <label>CPF</label>
+      <div class="mfield col-1"><label>CPF</label>
         <input type="text" id="cli-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
       </div>
-      <div class="mfield col-1">
-        <label>Data de Nascimento</label>
+      <div class="mfield col-1"><label>Data de Nascimento</label>
         <input type="date" id="cli-nasc">
       </div>
-      <div class="mfield col-1">
-        <label>Sexo</label>
+      <div class="mfield col-1"><label>Sexo</label>
         <select id="cli-sexo">
           <option value="">Selecione...</option>
           <option value="M">Masculino</option>
@@ -293,53 +281,46 @@
           <option value="O">Outro</option>
         </select>
       </div>
-      <div class="mfield col-1">
-        <label>Telefone</label>
+      <div class="mfield col-1"><label>Telefone</label>
         <input type="text" id="cli-tel" placeholder="(00) 00000-0000" maxlength="15" oninput="mascaraTel(this)">
       </div>
-      <div class="mfield col-2">
-        <label>E-mail</label>
+      <div class="mfield col-2"><label>E-mail</label>
         <input type="email" id="cli-email" placeholder="email@exemplo.com">
       </div>
 
       <div class="form-section">Endereço</div>
 
-      <div class="mfield col-1">
-        <label>CEP <span class="req">*</span></label>
+      <div class="mfield col-1"><label>CEP <span class="req">*</span></label>
         <input type="text" id="cli-cep" placeholder="00000-000" maxlength="9" oninput="mascaraCEP(this)" onblur="buscarCEP()">
         <div class="field-hint" id="cep-hint"></div>
       </div>
       <div class="mfield col-1"></div>
 
-      <div class="mfield col-2">
-        <label>Endereço</label>
+      <div class="mfield col-2"><label>Endereço</label>
         <input type="text" id="cli-end" placeholder="Rua, Avenida...">
       </div>
-      <div class="mfield col-1">
-        <label>Número</label>
+      <div class="mfield col-1"><label>Número</label>
         <input type="text" id="cli-num" placeholder="Nº">
       </div>
-      <div class="mfield col-1">
-        <label>Bairro</label>
+      <div class="mfield col-1"><label>Complemento</label>
+        <input type="text" id="cli-comp" placeholder="Apto, Bloco, Sala...">
+      </div>
+      <div class="mfield col-2"><label>Bairro</label>
         <input type="text" id="cli-bairro" placeholder="Bairro">
       </div>
-      <div class="mfield col-1">
-        <label>Cidade</label>
+      <div class="mfield col-1"><label>Cidade</label>
         <input type="text" id="cli-cidade" placeholder="Cidade">
       </div>
-      <div class="mfield col-1">
-        <label>Estado</label>
-        <input type="text" id="cli-estado" placeholder="UF" maxlength="2">
+      <div class="mfield col-1"><label>Estado</label>
+        <input type="text" id="cli-estado" placeholder="UF" maxlength="2" style="text-transform:uppercase">
       </div>
-      <div class="mfield col-2">
-        <label>País</label>
-        <input type="text" id="cli-pais" placeholder="País" value="Brasil">
+      <div class="mfield col-2"><label>País</label>
+        <input type="text" id="cli-pais" placeholder="País">
       </div>
 
       <div class="form-section">Informações Adicionais</div>
 
-      <div class="mfield col-2">
-        <label>Observações</label>
+      <div class="mfield col-2"><label>Observações</label>
         <textarea id="cli-obs" placeholder="Observações relevantes sobre o cliente..."></textarea>
       </div>
     </div>
@@ -354,14 +335,11 @@
 <script>
 const SUPA_URL = 'https://uqigoyedyaltwjmfysnu.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaWdveWVkeWFsdHdqbWZ5c251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjY2MjcsImV4cCI6MjA5MjY0MjYyN30.EtTJIzn-OITNfp2uraLgSM0HH7ZLLjewa4l0zOggutI';
-const hdrs = { 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Content-Type':'application/json', 'Prefer':'return=representation' };
+const hdrs = { 'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation' };
 
-let currentUser = null;
-let editingUserId = null;
-let editingClienteId = null;
-let accessUserId = null;
-let accessUserPerfil = null;
+let currentUser=null, editingUserId=null, editingClienteId=null, accessUserId=null, accessUserPerfil=null;
 
+// Menus do sistema com mapeamento de funcionalidade
 const MENUS_SISTEMA = [
   { grupo:'Administração', nivel:'master_sistema', itens:[
     { id:'usuarios',  icon:'👤', label:'Gestão de Usuários' },
@@ -383,56 +361,64 @@ const MENUS_SISTEMA = [
   ]}
 ];
 
-async function api(path, opts={}) {
-  const res = await fetch(SUPA_URL+'/rest/v1/'+path, { headers:{...hdrs,...(opts.headers||{})}, ...opts });
-  if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.message||e.hint||'Erro'); }
-  if (res.status===204) return null;
+// Menus padrão de cada perfil (para exibir quadro e para herança automática)
+const PERFIL_MENUS = {
+  padaria:  ['clientes','fornecedores','produtos','estoque','financeiro','relatorios'],
+  clinica:  ['clientes','fornecedores','servicos','agendamentos','financeiro','relatorios'],
+  petshop:  ['clientes','fornecedores','produtos','servicos','estoque','agendamentos','financeiro','relatorios'],
+  academia: ['clientes','fornecedores','servicos','agendamentos','financeiro','relatorios'],
+  hospital: ['clientes','fornecedores','produtos','servicos','estoque','agendamentos','financeiro','relatorios']
+};
+
+const TODOS_MENUS = [
+  { func:'clientes',     label:'Cadastro de Clientes' },
+  { func:'fornecedores', label:'Cadastro de Fornecedores' },
+  { func:'produtos',     label:'Cadastro de Produtos' },
+  { func:'servicos',     label:'Cadastro de Serviços' },
+  { func:'estoque',      label:'Controle de Estoque' },
+  { func:'agendamentos', label:'Agendamentos' },
+  { func:'financeiro',   label:'Financeiro' },
+  { func:'relatorios',   label:'Relatórios' }
+];
+
+const PERFIS_LABEL = { padaria:'Padaria', clinica:'Clínica', petshop:'Petshop', academia:'Academia', hospital:'Hospital' };
+
+async function api(path,opts={}){
+  const res=await fetch(SUPA_URL+'/rest/v1/'+path,{headers:{...hdrs,...(opts.headers||{})},...opts});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.message||e.hint||'Erro');}
+  if(res.status===204) return null;
   return res.json();
 }
-function showMsg(el,txt,type){ el.textContent=txt; el.className='msg '+type; el.style.display='block'; }
-function showModalMsg(el,txt,type){ el.textContent=txt; el.className='modal-msg '+type; el.style.display='block'; }
-function nivelLabel(n){ return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário'; }
-function perfilLabel(c){ const m={master:'Master Sistema',padaria:'Padaria',clinica:'Clínica Médica',petshop:'Petshop',academia:'Academia',hospital:'Hospital'}; return m[c]||c||'-'; }
-function sexoLabel(s){ return s==='M'?'Masculino':s==='F'?'Feminino':s==='O'?'Outro':'-'; }
+function showMsg(el,txt,type){el.textContent=txt;el.className='msg '+type;el.style.display='block';}
+function showModalMsg(el,txt,type){el.textContent=txt;el.className='modal-msg '+type;el.style.display='block';}
+function nivelLabel(n){return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário';}
+function perfilLabel(c){const m={master:'Master Sistema',padaria:'Padaria',clinica:'Clínica Médica',petshop:'Petshop',academia:'Academia',hospital:'Hospital'};return m[c]||c||'-';}
 
 /* ===== MÁSCARAS ===== */
-function mascaraCPF(el){
-  let v=el.value.replace(/\D/g,'');
-  v=v.replace(/(\d{3})(\d)/,'$1.$2');
-  v=v.replace(/(\d{3})(\d)/,'$1.$2');
-  v=v.replace(/(\d{3})(\d{1,2})$/,'$1-$2');
-  el.value=v;
-}
-function mascaraTel(el){
-  let v=el.value.replace(/\D/g,'');
-  if(v.length<=10) v=v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3');
-  else v=v.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3');
-  el.value=v.trim().replace(/-$/,'');
-}
-function mascaraCEP(el){
-  let v=el.value.replace(/\D/g,'');
-  v=v.replace(/(\d{5})(\d)/,'$1-$2');
-  el.value=v;
-}
+function mascaraCPF(el){let v=el.value.replace(/\D/g,'');v=v.replace(/(\d{3})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
+function mascaraTel(el){let v=el.value.replace(/\D/g,'');if(v.length<=10)v=v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3');else v=v.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3');el.value=v.trim().replace(/-$/,'');}
+function mascaraCEP(el){let v=el.value.replace(/\D/g,'');v=v.replace(/(\d{5})(\d)/,'$1-$2');el.value=v;}
 
 /* ===== BUSCA CEP ===== */
 async function buscarCEP(){
   const cep=document.getElementById('cli-cep').value.replace(/\D/g,'');
   const hint=document.getElementById('cep-hint');
-  if(cep.length!==8){ hint.textContent=''; return; }
-  hint.className='field-hint loading'; hint.textContent='Buscando CEP...';
+  if(cep.length!==8){hint.textContent='';return;}
+  hint.className='field-hint loading';hint.textContent='Buscando CEP...';
   try{
     const r=await fetch('https://viacep.com.br/ws/'+cep+'/json/');
     const d=await r.json();
-    if(d.erro){ hint.className='field-hint err'; hint.textContent='CEP inválido'; return; }
+    if(d.erro){hint.className='field-hint err';hint.textContent='CEP inválido';return;}
     document.getElementById('cli-end').value=d.logradouro||'';
     document.getElementById('cli-bairro').value=d.bairro||'';
     document.getElementById('cli-cidade').value=d.localidade||'';
     document.getElementById('cli-estado').value=d.uf||'';
     document.getElementById('cli-pais').value='Brasil';
+    document.getElementById('cli-comp').value='';
+    document.getElementById('cli-num').value='';
     document.getElementById('cli-num').focus();
-    hint.className='field-hint ok'; hint.textContent='✓ CEP encontrado';
-  }catch(e){ hint.className='field-hint err'; hint.textContent='Erro ao buscar CEP'; }
+    hint.className='field-hint ok';hint.textContent='✓ CEP encontrado';
+  }catch(e){hint.className='field-hint err';hint.textContent='Erro ao buscar CEP';}
 }
 
 /* ===== LOGIN ===== */
@@ -441,13 +427,13 @@ async function doLogin(){
   const pass=document.getElementById('inp-pass').value.trim();
   const msg=document.getElementById('login-msg');
   msg.style.display='none';
-  if(!user){ showMsg(msg,'Usuário não informado','error'); return; }
-  if(!pass){ showMsg(msg,'Senha não informada','error'); return; }
+  if(!user){showMsg(msg,'Usuário não informado','error');return;}
+  if(!pass){showMsg(msg,'Senha não informada','error');return;}
   try{
     const data=await api('usuarios?usuario=eq.'+encodeURIComponent(user)+'&ativo=eq.true&select=*');
-    if(!data||!data.length){ showMsg(msg,'Dados de login inválidos','error'); return; }
+    if(!data||!data.length){showMsg(msg,'Dados de login inválidos','error');return;}
     const u=data[0];
-    if(u.senha!==pass){ showMsg(msg,'Dados de login inválidos','error'); return; }
+    if(u.senha!==pass){showMsg(msg,'Dados de login inválidos','error');return;}
     currentUser=u;
     showMsg(msg,'Login realizado com sucesso!','success');
     setTimeout(async()=>{
@@ -457,10 +443,10 @@ async function doLogin(){
       document.getElementById('top-avatar').textContent=(u.nome||u.usuario)[0].toUpperCase();
       await construirInterface();
     },800);
-  }catch(e){ showMsg(msg,'Erro de conexão: '+e.message,'error'); }
+  }catch(e){showMsg(msg,'Erro de conexão: '+e.message,'error');}
 }
-document.getElementById('inp-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
-document.getElementById('inp-user').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('inp-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('inp-user').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 
 function doLogout(){
   currentUser=null;
@@ -476,15 +462,30 @@ function doLogout(){
 /* ===== INTERFACE DINÂMICA ===== */
 async function construirInterface(){
   const isMaster=currentUser.nivel==='master_sistema';
+  const isMasterEmpresa=currentUser.nivel==='master_empresa';
   let funcPermitidas=new Set();
-  if(!isMaster){
+
+  if(isMasterEmpresa && currentUser.perfil && currentUser.perfil!=='master'){
+    // Master de empresa herda TODOS os menus do seu perfil automaticamente
+    const menosPerfil = PERFIL_MENUS[currentUser.perfil]||[];
+    menosPerfil.forEach(f=>funcPermitidas.add(f));
+    // Verifica se há acessos customizados no banco; se existirem, usa eles
+    const acessosBanco=await api('usuario_acessos?usuario_id=eq.'+currentUser.id+'&ativo=eq.true&select=funcionalidade').catch(()=>[]);
+    if(acessosBanco && acessosBanco.length>0){
+      funcPermitidas=new Set();
+      acessosBanco.forEach(a=>funcPermitidas.add(a.funcionalidade));
+    }
+  } else if(!isMaster){
+    // Usuário comum — usa apenas acessos definidos pelo master da empresa
     const acessos=await api('usuario_acessos?usuario_id=eq.'+currentUser.id+'&ativo=eq.true&select=funcionalidade').catch(()=>[]);
     (acessos||[]).forEach(a=>funcPermitidas.add(a.funcionalidade));
   }
+
   const sidebar=document.getElementById('sidebar');
   const contentArea=document.getElementById('content-area');
   sidebar.innerHTML=''; contentArea.innerHTML='';
   let primeiroMenu=null;
+
   MENUS_SISTEMA.forEach(grupo=>{
     const itensVisiveis=grupo.itens.filter(item=>{
       if(isMaster) return true;
@@ -508,12 +509,17 @@ async function construirInterface(){
       contentArea.appendChild(panel);
     });
   });
+
   if(primeiroMenu) showPanel(primeiroMenu);
+  else {
+    contentArea.innerHTML=`<div class="placeholder-box"><div class="placeholder-icon">🔒</div><div class="placeholder-title">Sem acessos configurados</div><div class="placeholder-desc">Nenhum menu foi liberado para o seu usuário ainda.<br>Entre em contato com o administrador do sistema.</div></div>`;
+  }
 }
 
 function renderPanel(id){
   const labels={clientes:'Clientes',fornecedores:'Fornecedores',produtos:'Produtos',servicos:'Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
   const icons={clientes:'🧑‍🤝‍🧑',fornecedores:'🚚',produtos:'📦',servicos:'🛠️',estoque:'🏭',agendamentos:'📅',financeiro:'💰',relatorios:'📊'};
+
   switch(id){
     case 'usuarios': return `
       <div class="panel-header">
@@ -531,11 +537,35 @@ function renderPanel(id){
         <div class="info-card-icon">ℹ️</div>
         <div class="info-card-body">
           <div class="info-card-title">Como funciona</div>
-          <div class="info-card-desc">Cada perfil tem menus padrão pré-configurados. Ao criar um usuário ele herda todos os menus do perfil. Use o botão <strong>Acessos</strong> na lista de usuários para restringir menus individualmente.</div>
+          <div class="info-card-desc">Cada perfil de negócio possui menus padrão pré-configurados conforme o quadro abaixo. Ao criar um usuário, ele herda automaticamente todos os menus do seu perfil. O botão <strong>Acessos</strong> na lista de usuários permite restringir menus individualmente.</div>
         </div>
       </div>
-      <div class="section-label" style="margin-top:8px;">Perfis e seus menus padrão</div>
-      <div class="perfil-grid" id="perfil-grid"><div class="loading">Carregando...</div></div>`;
+      <div class="section-label">Menus sugeridos por perfil</div>
+      <div class="menus-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Menu</th>
+              <th>Padaria</th>
+              <th>Clínica</th>
+              <th>Petshop</th>
+              <th>Academia</th>
+              <th>Hospital</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${TODOS_MENUS.map(m=>`
+              <tr>
+                <td>${m.label}</td>
+                ${['padaria','clinica','petshop','academia','hospital'].map(p=>
+                  `<td>${PERFIL_MENUS[p]&&PERFIL_MENUS[p].includes(m.func)
+                    ?'<span class="check-yes">✔</span>'
+                    :'<span class="check-no">✘</span>'}</td>`
+                ).join('')}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
 
     case 'clientes': return `
       <div class="panel-header">
@@ -569,9 +599,8 @@ function showPanel(name){
   const menu=document.getElementById('menu-'+name);
   if(panel) panel.classList.add('active');
   if(menu)  menu.classList.add('active');
-  if(name==='usuarios')  carregarUsuarios();
-  if(name==='acessos')   carregarPerfis();
-  if(name==='clientes')  carregarClientes();
+  if(name==='usuarios') carregarUsuarios();
+  if(name==='clientes') carregarClientes();
 }
 
 /* ===== CLIENTES ===== */
@@ -583,8 +612,7 @@ async function carregarClientes(filtro=''){
     let query='clientes?select=*&order=nome.asc';
     if(filtro){
       const f=encodeURIComponent('%'+filtro+'%');
-      const cpfF=encodeURIComponent(filtro.replace(/\D/g,''));
-      query='clientes?select=*&order=nome.asc&or=(nome.ilike.'+f+',cpf.ilike.'+encodeURIComponent('%'+filtro+'%')+')';
+      query='clientes?select=*&order=nome.asc&or=(nome.ilike.'+f+',cpf.ilike.'+f+')';
     }
     const data=await api(query);
     const total=document.getElementById('cli-total');
@@ -602,33 +630,24 @@ async function carregarClientes(filtro=''){
         <td>${c.email||'-'}</td>
         <td>${c.cidade||'-'}</td>
         <td><span class="badge ${c.ativo?'badge-ativo':'badge-inativo'}">${c.ativo?'Ativo':'Inativo'}</span></td>
-        <td>
-          <div class="action-btns">
-            <button class="btn-sm btn-edit" onclick="openModalCliente('edit',${c.id})">Editar</button>
-            ${c.ativo
-              ?`<button class="btn-sm btn-deact" onclick="toggleCliente(${c.id},false)">Desativar</button>`
-              :`<button class="btn-sm btn-react" onclick="toggleCliente(${c.id},true)">Reativar</button>`}
-          </div>
-        </td>
+        <td><div class="action-btns">
+          <button class="btn-sm btn-edit" onclick="openModalCliente('edit',${c.id})">Editar</button>
+          ${c.ativo
+            ?`<button class="btn-sm btn-deact" onclick="toggleCliente(${c.id},false)">Desativar</button>`
+            :`<button class="btn-sm btn-react" onclick="toggleCliente(${c.id},true)">Reativar</button>`}
+        </div></td>
       </tr>`).join('');
-  }catch(e){ tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`; }
+  }catch(e){tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`;}
 }
 
-function buscarClientes(){
-  const filtro=document.getElementById('cli-busca').value.trim();
-  carregarClientes(filtro);
-}
-
-function limparBusca(){
-  document.getElementById('cli-busca').value='';
-  carregarClientes();
-}
+function buscarClientes(){const f=document.getElementById('cli-busca').value.trim();carregarClientes(f);}
+function limparBusca(){document.getElementById('cli-busca').value='';carregarClientes();}
 
 async function toggleCliente(id,ativo){
   try{
     await api('clientes?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});
     carregarClientes(document.getElementById('cli-busca')?.value||'');
-  }catch(e){ alert('Erro: '+e.message); }
+  }catch(e){alert('Erro: '+e.message);}
 }
 
 /* ===== MODAL CLIENTE ===== */
@@ -639,10 +658,11 @@ function openModalCliente(mode,id){
   if(mode==='new'){
     document.getElementById('modal-cli-titulo').textContent='Novo Cliente';
     document.getElementById('modal-cli-sub').textContent='Preencha os dados do cliente';
-    ['cli-nome','cli-cpf','cli-nasc','cli-tel','cli-email','cli-cep','cli-end','cli-num','cli-bairro','cli-cidade','cli-estado','cli-obs'].forEach(i=>{
-      const el=document.getElementById(i); if(el) el.value='';
+    ['cli-nome','cli-cpf','cli-tel','cli-email','cli-cep','cli-end','cli-num','cli-comp','cli-bairro','cli-cidade','cli-estado','cli-obs'].forEach(i=>{
+      const el=document.getElementById(i);if(el)el.value='';
     });
     document.getElementById('cli-sexo').value='';
+    document.getElementById('cli-nasc').value='';
     document.getElementById('cli-pais').value='Brasil';
   } else {
     document.getElementById('modal-cli-titulo').textContent='Editar Cliente';
@@ -660,6 +680,7 @@ function openModalCliente(mode,id){
       document.getElementById('cli-cep').value=c.cep||'';
       document.getElementById('cli-end').value=c.endereco||'';
       document.getElementById('cli-num').value=c.numero||'';
+      document.getElementById('cli-comp').value=c.complemento||'';
       document.getElementById('cli-bairro').value=c.bairro||'';
       document.getElementById('cli-cidade').value=c.cidade||'';
       document.getElementById('cli-estado').value=c.estado||'';
@@ -669,38 +690,31 @@ function openModalCliente(mode,id){
   }
   document.getElementById('modal-cliente').classList.add('open');
 }
-
-function closeModalCliente(){ document.getElementById('modal-cliente').classList.remove('open'); }
+function closeModalCliente(){document.getElementById('modal-cliente').classList.remove('open');}
 
 async function salvarCliente(){
-  const nome   =document.getElementById('cli-nome').value.trim();
-  const cpf    =document.getElementById('cli-cpf').value.trim();
-  const nasc   =document.getElementById('cli-nasc').value;
-  const sexo   =document.getElementById('cli-sexo').value;
-  const tel    =document.getElementById('cli-tel').value.trim();
-  const email  =document.getElementById('cli-email').value.trim();
-  const cep    =document.getElementById('cli-cep').value.trim();
-  const end    =document.getElementById('cli-end').value.trim();
-  const num    =document.getElementById('cli-num').value.trim();
-  const bairro =document.getElementById('cli-bairro').value.trim();
-  const cidade =document.getElementById('cli-cidade').value.trim();
-  const estado =document.getElementById('cli-estado').value.trim();
-  const pais   =document.getElementById('cli-pais').value.trim();
-  const obs    =document.getElementById('cli-obs').value.trim();
-  const msgEl  =document.getElementById('modal-cli-msg');
+  const nome=document.getElementById('cli-nome').value.trim();
+  const msgEl=document.getElementById('modal-cli-msg');
   msgEl.style.display='none';
-
-  if(!nome){ showModalMsg(msgEl,'Informe o nome do cliente','error'); return; }
-
+  if(!nome){showModalMsg(msgEl,'Informe o nome do cliente','error');return;}
   const body={
-    nome, cpf:cpf||null, data_nasc:nasc||null, sexo:sexo||null,
-    telefone:tel||null, email:email||null,
-    cep:cep||null, endereco:end||null, numero:num||null,
-    bairro:bairro||null, cidade:cidade||null, estado:estado||null,
-    pais:pais||'Brasil', observacoes:obs||null,
+    nome,
+    cpf:document.getElementById('cli-cpf').value.trim()||null,
+    data_nasc:document.getElementById('cli-nasc').value||null,
+    sexo:document.getElementById('cli-sexo').value||null,
+    telefone:document.getElementById('cli-tel').value.trim()||null,
+    email:document.getElementById('cli-email').value.trim()||null,
+    cep:document.getElementById('cli-cep').value.trim()||null,
+    endereco:document.getElementById('cli-end').value.trim()||null,
+    numero:document.getElementById('cli-num').value.trim()||null,
+    complemento:document.getElementById('cli-comp').value.trim()||null,
+    bairro:document.getElementById('cli-bairro').value.trim()||null,
+    cidade:document.getElementById('cli-cidade').value.trim()||null,
+    estado:document.getElementById('cli-estado').value.trim()||null,
+    pais:document.getElementById('cli-pais').value.trim()||'Brasil',
+    observacoes:document.getElementById('cli-obs').value.trim()||null,
     alterado_em:new Date().toISOString()
   };
-
   try{
     if(!editingClienteId){
       await api('clientes',{method:'POST',body:JSON.stringify({...body,ativo:true})});
@@ -709,8 +723,8 @@ async function salvarCliente(){
       await api('clientes?id=eq.'+editingClienteId,{method:'PATCH',body:JSON.stringify(body)});
       showModalMsg(msgEl,'Cliente atualizado com sucesso!','success');
     }
-    setTimeout(()=>{ closeModalCliente(); carregarClientes(document.getElementById('cli-busca')?.value||''); },900);
-  }catch(e){ showModalMsg(msgEl,'Erro: '+e.message,'error'); }
+    setTimeout(()=>{closeModalCliente();carregarClientes(document.getElementById('cli-busca')?.value||'');},900);
+  }catch(e){showModalMsg(msgEl,'Erro: '+e.message,'error');}
 }
 
 /* ===== USUÁRIOS ===== */
@@ -720,7 +734,7 @@ async function carregarUsuarios(){
   tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
   try{
     const data=await api('usuarios?select=*&order=id.asc');
-    if(!data||!data.length){ tbody.innerHTML='<tr><td colspan="8" class="empty">Nenhum usuário.</td></tr>'; return; }
+    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">Nenhum usuário.</td></tr>';return;}
     tbody.innerHTML=data.map(u=>`
       <tr>
         <td style="color:var(--text3)">${u.id}</td>
@@ -739,14 +753,14 @@ async function carregarUsuarios(){
             :`<button class="btn-sm btn-react" onclick="toggleAtivo(${u.id},true)">Reativar</button>`}
         </div></td>
       </tr>`).join('');
-  }catch(e){ tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`; }
+  }catch(e){tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`;}
 }
 
 async function toggleAtivo(id,ativo){
   try{
     await api('usuarios?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});
     carregarUsuarios();
-  }catch(e){ alert('Erro: '+e.message); }
+  }catch(e){alert('Erro: '+e.message);}
 }
 
 function openModalUsuario(mode,id){
@@ -778,7 +792,7 @@ function openModalUsuario(mode,id){
   }
   document.getElementById('modal-usuario').classList.add('open');
 }
-function closeModalUsuario(){ document.getElementById('modal-usuario').classList.remove('open'); }
+function closeModalUsuario(){document.getElementById('modal-usuario').classList.remove('open');}
 
 async function salvarUsuario(){
   const usuario=document.getElementById('m-usuario').value.trim();
@@ -789,28 +803,19 @@ async function salvarUsuario(){
   const empresa=document.getElementById('m-empresa').value.trim();
   const msgEl=document.getElementById('modal-user-msg');
   msgEl.style.display='none';
-  if(!usuario){ showModalMsg(msgEl,'Informe o usuário','error'); return; }
-  if(!senha){ showModalMsg(msgEl,'Informe a senha','error'); return; }
+  if(!usuario){showModalMsg(msgEl,'Informe o usuário','error');return;}
+  if(!senha){showModalMsg(msgEl,'Informe a senha','error');return;}
   const body={nome,senha,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
   try{
     if(!editingUserId){
-      const novo=await api('usuarios',{method:'POST',body:JSON.stringify({...body,usuario,ativo:true})});
-      if(perfil&&perfil!=='master'&&nivel!=='master_sistema'&&novo&&novo[0]) await criarAcessosPadrao(novo[0].id,perfil);
+      await api('usuarios',{method:'POST',body:JSON.stringify({...body,usuario,ativo:true})});
       showModalMsg(msgEl,'Usuário criado com sucesso!','success');
     } else {
       await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(body)});
       showModalMsg(msgEl,'Usuário atualizado com sucesso!','success');
     }
-    setTimeout(()=>{ closeModalUsuario(); carregarUsuarios(); },900);
-  }catch(e){ showModalMsg(msgEl,'Erro: '+e.message,'error'); }
-}
-
-async function criarAcessosPadrao(userId,perfil){
-  try{
-    const funcs=await api('perfil_funcionalidades?perfil_codigo=eq.'+perfil+'&ativo=eq.true&select=funcionalidade');
-    if(!funcs||!funcs.length) return;
-    await api('usuario_acessos',{method:'POST',body:JSON.stringify(funcs.map(f=>({usuario_id:userId,funcionalidade:f.funcionalidade,ativo:true})))});
-  }catch(e){ console.warn('Acessos padrão:',e.message); }
+    setTimeout(()=>{closeModalUsuario();carregarUsuarios();},900);
+  }catch(e){showModalMsg(msgEl,'Erro: '+e.message,'error');}
 }
 
 /* ===== MODAL ACESSOS ===== */
@@ -822,55 +827,29 @@ async function openModalAcessos(userId,perfil,nome){
   document.getElementById('access-checkboxes').innerHTML='<div class="loading">Carregando...</div>';
   document.getElementById('modal-acessos').classList.add('open');
   try{
-    const [funcs,acessos]=await Promise.all([
-      api('perfil_funcionalidades?perfil_codigo=eq.'+perfil+'&ativo=eq.true&select=funcionalidade,label'),
-      api('usuario_acessos?usuario_id=eq.'+userId+'&ativo=eq.true&select=funcionalidade')
-    ]);
+    const menosPerfil=PERFIL_MENUS[perfil]||[];
+    const funcsDisponiveis=TODOS_MENUS.filter(m=>menosPerfil.includes(m.func));
+    const acessos=await api('usuario_acessos?usuario_id=eq.'+userId+'&ativo=eq.true&select=funcionalidade');
     const ativos=new Set((acessos||[]).map(a=>a.funcionalidade));
-    if(!funcs||!funcs.length){ document.getElementById('access-checkboxes').innerHTML='<div class="empty">Sem funcionalidades.</div>'; return; }
-    document.getElementById('access-checkboxes').innerHTML=funcs.map(f=>`
-      <div class="access-item ${ativos.has(f.funcionalidade)?'selected':''}" onclick="toggleCheck('chk-${f.funcionalidade}',this)">
-        <input type="checkbox" id="chk-${f.funcionalidade}" value="${f.funcionalidade}" ${ativos.has(f.funcionalidade)?'checked':''} onclick="event.stopPropagation()">
-        <label for="chk-${f.funcionalidade}">${f.label}</label>
+    if(!funcsDisponiveis.length){document.getElementById('access-checkboxes').innerHTML='<div class="empty">Sem funcionalidades para este perfil.</div>';return;}
+    document.getElementById('access-checkboxes').innerHTML=funcsDisponiveis.map(f=>`
+      <div class="access-item ${ativos.has(f.func)?'selected':''}" onclick="toggleCheck('chk-${f.func}',this)">
+        <input type="checkbox" id="chk-${f.func}" value="${f.func}" ${ativos.has(f.func)?'checked':''} onclick="event.stopPropagation()">
+        <label for="chk-${f.func}">${f.label}</label>
       </div>`).join('');
-  }catch(e){ document.getElementById('access-checkboxes').innerHTML='<div class="empty">Erro: '+e.message+'</div>'; }
+  }catch(e){document.getElementById('access-checkboxes').innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
-function toggleCheck(id,item){ const c=document.getElementById(id); c.checked=!c.checked; item.classList.toggle('selected',c.checked); }
-function closeModalAcessos(){ document.getElementById('modal-acessos').classList.remove('open'); }
+function toggleCheck(id,item){const c=document.getElementById(id);c.checked=!c.checked;item.classList.toggle('selected',c.checked);}
+function closeModalAcessos(){document.getElementById('modal-acessos').classList.remove('open');}
 async function salvarAcessos(){
-  const msgEl=document.getElementById('modal-access-msg'); msgEl.style.display='none';
+  const msgEl=document.getElementById('modal-access-msg');msgEl.style.display='none';
   const sel=[...document.querySelectorAll('#access-checkboxes input[type=checkbox]')].filter(c=>c.checked).map(c=>c.value);
   try{
     await api('usuario_acessos?usuario_id=eq.'+accessUserId,{method:'DELETE',headers:{...hdrs,'Prefer':''}});
     if(sel.length) await api('usuario_acessos',{method:'POST',body:JSON.stringify(sel.map(f=>({usuario_id:accessUserId,funcionalidade:f,ativo:true})))});
-    showModalMsg(msgEl,'Acessos salvos!','success');
+    showModalMsg(msgEl,'Acessos salvos com sucesso!','success');
     setTimeout(()=>closeModalAcessos(),900);
-  }catch(e){ showModalMsg(msgEl,'Erro: '+e.message,'error'); }
-}
-
-/* ===== PERFIS ===== */
-async function carregarPerfis(){
-  const grid=document.getElementById('perfil-grid');
-  if(!grid) return;
-  grid.innerHTML='<div class="loading">Carregando...</div>';
-  try{
-    const [perfis,funcs]=await Promise.all([
-      api('perfis?ativo=eq.true&select=*&order=id.asc'),
-      api('perfil_funcionalidades?ativo=eq.true&select=perfil_codigo,label')
-    ]);
-    const mapa={};
-    (funcs||[]).forEach(f=>{ if(!mapa[f.perfil_codigo]) mapa[f.perfil_codigo]=[]; mapa[f.perfil_codigo].push(f.label); });
-    grid.innerHTML=(perfis||[]).filter(p=>p.codigo!=='master').map(p=>`
-      <div class="perfil-card">
-        <div class="perfil-card-header">
-          <span class="perfil-card-name">${p.descricao}</span>
-          <span class="badge badge-ativo">Ativo</span>
-        </div>
-        <div class="perfil-menus">
-          ${(mapa[p.codigo]||[]).map(m=>`<span class="menu-tag">${m}</span>`).join('')||'<span style="color:var(--text3);font-size:12px;">Sem menus</span>'}
-        </div>
-      </div>`).join('');
-  }catch(e){ grid.innerHTML='<div class="empty">Erro: '+e.message+'</div>'; }
+  }catch(e){showModalMsg(msgEl,'Erro: '+e.message,'error');}
 }
 </script>
 </body>
