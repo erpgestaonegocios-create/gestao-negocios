@@ -299,11 +299,17 @@
       </div>
     </div>
 
-    <!-- Passo 2: Elemento (oculto inicialmente) -->
+    <!-- Passo 2: Elemento -->
     <div id="lbl-passo-2" style="display:none">
       <div class="mfield">
         <label>Qual elemento deseja renomear? <span class="req">*</span></label>
-        <div id="lbl-elementos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"></div>
+        <select id="lbl-elemento-sel" onchange="selecionarElementoLabel(this.value)" style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+          <option value="">Selecione o elemento...</option>
+        </select>
+      </div>
+      <div id="lbl-elemento-preview" style="display:none;margin-top:12px;padding:12px;background:var(--surface2);border-radius:8px;font-size:13px;">
+        <div style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Nome atual na interface</div>
+        <div id="lbl-elemento-atual" style="color:var(--accent);font-weight:600;font-size:16px"></div>
       </div>
     </div>
 
@@ -1053,23 +1059,20 @@ async function avancarPassoLabel(){
     const perfil=document.getElementById('lbl-perfil').value;
     if(!perfil){showMM('modal-label-msg','Selecione um perfil','error');return;}
     lblPerfilAtual=perfil;
-    // Montar grid de elementos para passo 2
-    const grid=document.getElementById('lbl-elementos-grid');
-    // Buscar labels já configurados para este perfil
+    // Buscar labels já configurados para mostrar nome atual
     const rows=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&select=chave,label').catch(()=>[]);
     const labelsAtuais={};
     (rows||[]).forEach(r=>labelsAtuais[r.chave]=r.label);
-    grid.innerHTML=ELEMENTOS_LABEL.map(el=>{
-      const atual=labelsAtuais[el.chave]||el.padrao;
-      const temCustom=!!labelsAtuais[el.chave];
-      return '<div onclick="selecionarElementoLabel(\''+el.chave+'\')" '
-        +'style="padding:12px;background:var(--surface2);border:1px solid '+(temCustom?'var(--accent)':'var(--border)')+';border-radius:8px;cursor:pointer;transition:all .15s;" '
-        +'onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\''+(temCustom?'var(--accent)':'var(--border)')+'\'"> '
-        +'<div style="font-size:18px;margin-bottom:4px">'+el.icone+'</div>'
-        +'<div style="font-size:12px;color:var(--text2);font-weight:600">'+el.elemento+'</div>'
-        +'<div style="font-size:11px;color:'+(temCustom?'var(--accent)':'var(--text3)')+';margin-top:3px">Atual: '+atual+'</div>'
-        +'</div>';
-    }).join('');
+    // Popular select de elementos
+    const sel=document.getElementById('lbl-elemento-sel');
+    sel.innerHTML='<option value="">Selecione o elemento...</option>'
+      +ELEMENTOS_LABEL.map(el=>{
+        const atual=labelsAtuais[el.chave]||el.padrao;
+        return '<option value="'+el.chave+'">'+el.icone+' '+el.elemento+' (atual: '+atual+')</option>';
+      }).join('');
+    sel.value='';
+    lblChaveSelecionada='';
+    document.getElementById('lbl-elemento-preview').style.display='none';
     irParaPassoLabel(2);
   } else if(lblPassoAtual===2){
     if(!lblChaveSelecionada){showMM('modal-label-msg','Selecione um elemento','error');return;}
@@ -1083,19 +1086,18 @@ function voltarPassoLabel(){
 
 function selecionarElementoLabel(chave){
   lblChaveSelecionada=chave;
+  if(!chave){document.getElementById('lbl-elemento-preview').style.display='none';return;}
   const el=ELEMENTOS_LABEL.find(e=>e.chave===chave);
   if(!el)return;
-  // Destacar selecionado
-  document.querySelectorAll('#lbl-elementos-grid > div').forEach((d,i)=>{
-    d.style.borderColor=ELEMENTOS_LABEL[i].chave===chave?'var(--accent)':'var(--border)';
-    d.style.background=ELEMENTOS_LABEL[i].chave===chave?'rgba(107,127,215,.15)':'var(--surface2)';
-  });
+  // Mostrar preview do nome atual
+  const prev=document.getElementById('lbl-elemento-preview');
+  const sel=document.getElementById('lbl-elemento-sel');
+  const opt=sel.options[sel.selectedIndex];
+  prev.style.display='block';
+  document.getElementById('lbl-elemento-atual').textContent=opt?opt.text.replace(/^.* \(atual: /,'').replace(/\)$/,''):'';
   // Preencher resumo no passo 3
   document.getElementById('lbl-resumo-elemento').textContent=el.icone+' '+el.elemento+' — módulo '+el.modulo;
   document.getElementById('lbl-resumo-atual').textContent='Nome padrão: '+el.padrao;
-  // Avança automaticamente para passo 3
-  irParaPassoLabel(3);
-  document.getElementById('lbl-novo-nome').focus();
 }
 
 function onLabelPerfilChange(){
