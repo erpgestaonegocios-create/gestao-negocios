@@ -490,6 +490,65 @@
   </div>
 </div>
 
+<!-- MODAL PRODUTO -->
+<div class="modal-overlay" id="modal-produto">
+  <div class="modal">
+    <div class="modal-title" id="modal-prod-titulo">Novo Produto</div>
+    <div class="modal-sub" id="modal-prod-sub">Preencha os dados do produto</div>
+    <div class="form-grid">
+      <div class="form-section">Identificação</div>
+      <div class="mfield col-1"><label>Código</label><input type="text" id="prod-codigo" placeholder="ex: PROD-001"></div>
+      <div class="mfield col-2"><label>Nome <span class="req">*</span></label><input type="text" id="prod-nome" placeholder="Nome do produto"></div>
+      <div class="mfield col-2"><label>Descrição</label><textarea id="prod-desc" placeholder="Descrição do produto..." style="min-height:60px"></textarea></div>
+      <div class="mfield col-1"><label>Categoria / Grupo</label><input type="text" id="prod-categoria" placeholder="ex: Medicamentos, Alimentos..."></div>
+      <div class="mfield col-1"><label>Unidade de Medida</label>
+        <select id="prod-unidade">
+          <option value="un">un — Unidade</option>
+          <option value="kg">kg — Quilograma</option>
+          <option value="g">g — Grama</option>
+          <option value="lt">lt — Litro</option>
+          <option value="ml">ml — Mililitro</option>
+          <option value="m">m — Metro</option>
+          <option value="m2">m² — Metro quadrado</option>
+          <option value="cx">cx — Caixa</option>
+          <option value="pc">pc — Peça</option>
+          <option value="par">par — Par</option>
+          <option value="outro">outro</option>
+        </select>
+      </div>
+      <div class="form-section">Preços</div>
+      <div class="mfield col-1"><label>Preço de Custo (R$)</label><input type="number" id="prod-custo" placeholder="0,00" min="0" step="0.01"></div>
+      <div class="mfield col-1"><label>Preço de Venda (R$)</label><input type="number" id="prod-venda" placeholder="0,00" min="0" step="0.01"></div>
+      <div class="form-section">Estoque</div>
+      <div class="mfield col-1"><label>Estoque Mínimo</label><input type="number" id="prod-est-min" placeholder="0" min="0" step="0.001"></div>
+      <div class="mfield col-1"><label>Estoque Máximo</label><input type="number" id="prod-est-max" placeholder="0" min="0" step="0.001"></div>
+      <div class="form-section">Fornecedor e Imagem</div>
+      <div class="mfield col-2"><label>Fornecedor</label>
+        <select id="prod-fornecedor"><option value="">Nenhum / Sem vínculo</option></select>
+      </div>
+      <div class="mfield col-2">
+        <label>Imagem do Produto</label>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:4px">
+          <div id="prod-img-preview" style="width:80px;height:80px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0">📦</div>
+          <div style="flex:1">
+            <input type="file" id="prod-img-file" accept="image/*" onchange="onProdImageChange(event)" style="display:none">
+            <button class="btn-secondary" style="width:100%;margin-bottom:8px" onclick="document.getElementById('prod-img-file').click()">📁 Escolher imagem</button>
+            <button class="btn-secondary" style="width:100%;color:var(--danger);border-color:var(--danger)" onclick="removerImagemProd()">🗑️ Remover imagem</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">Formatos: JPG, PNG, WebP. Máx. 2MB.</div>
+      </div>
+      <div class="form-section">Informações Adicionais</div>
+      <div class="mfield col-2"><label>Observações</label><textarea id="prod-obs" placeholder="Observações..."></textarea></div>
+    </div>
+    <div class="modal-msg" id="modal-prod-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-produto')">Cancelar</button>
+      <button class="btn-save" onclick="salvarProduto()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPA_URL='https://uqigoyedyaltwjmfysnu.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaWdveWVkeWFsdHdqbWZ5c251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjY2MjcsImV4cCI6MjA5MjY0MjYyN30.EtTJIzn-OITNfp2uraLgSM0HH7ZLLjewa4l0zOggutI';
@@ -867,6 +926,7 @@ function renderPanel(id){
     case 'acessos':  return renderAcessos();
     case 'labels':   return renderLabelsPanel();
     case 'config-empresa': return renderConfigEmpresaPanel();
+    case 'produtos':     return renderProdutos();
     case 'fornecedores': return renderFornecedores();
     case 'clientes': return renderClientes();
     default:{
@@ -890,6 +950,7 @@ function showPanel(name){
   // O DOM do painel já existe (criado em addMenuPanel), então não há race condition
   if(name==='usuarios') onShowUsuarios();
   if(name==='acessos')  onShowAcessos();
+  if(name==='produtos')     carregarProdutos();
   if(name==='fornecedores') carregarFornecedores();
   if(name==='clientes') carregarClientes();
   if(name==='labels')   carregarLabelsTabela();
@@ -1529,6 +1590,182 @@ async function salvarLabelGuiado(){
       closeModal('modal-label');
     },800);
   }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
+}
+
+// ─── PAINEL: PRODUTOS ────────────────────────────────────────────
+let editingProdutoId=null;
+let prodImageBase64='';
+
+function renderProdutos(){
+  const tit=getLabel('produtos_titulo','Produtos');
+  const novo=getLabel('produtos_novo','Novo Produto');
+  return `<div class="panel-header">
+    <span class="panel-title">${tit} <span class="total-badge" id="prod-total"></span></span>
+    <button class="btn-new" onclick="openModalProduto('new')">+ ${novo}</button></div>
+    <div class="search-bar">
+      <input type="text" id="prod-busca" placeholder="Buscar por nome, código ou categoria..." onkeydown="if(event.key==='Enter')buscarProdutos()">
+      <button class="btn-search" onclick="buscarProdutos()">Buscar</button>
+      <button class="btn-clear" onclick="limparBuscaProd()">✕ Limpar</button>
+    </div>
+    <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>#</th><th>Imagem</th><th>Código</th><th>Nome</th><th>Categoria</th>
+      <th>Unidade</th><th>Preço Venda</th><th>Est. Mín.</th><th>Status</th><th>Ações</th>
+    </tr></thead>
+    <tbody id="tbl-produtos"><tr><td colspan="10" class="loading">Carregando...</td></tr></tbody>
+    </table></div>`;
+}
+
+async function carregarProdutos(filtro=''){
+  const tbody=document.getElementById('tbl-produtos');if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="10" class="loading">Carregando...</td></tr>';
+  try{
+    const pf=currentUser.perfil||'master';
+    let q='produtos?select=*&order=nome.asc&perfil_codigo=eq.'+encodeURIComponent(pf);
+    if(filtro){
+      const f=encodeURIComponent('%'+filtro+'%');
+      q+='&or=(nome.ilike.'+f+',codigo.ilike.'+f+',categoria.ilike.'+f+')';
+    }
+    const data=await api(q);
+    const total=document.getElementById('prod-total');
+    if(total)total.textContent=data&&data.length?'('+data.length+')':'';
+    if(!data||!data.length){
+      tbody.innerHTML='<tr><td colspan="10" class="empty">'+(filtro?'Nenhum resultado.':'Nenhum produto cadastrado.')+'</td></tr>';
+      return;
+    }
+    const fmt=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
+    tbody.innerHTML=data.map(p=>`<tr>
+      <td style="color:var(--text3)">${p.id}</td>
+      <td>${p.imagem_base64
+        ?'<img src="'+p.imagem_base64+'" style="width:36px;height:36px;border-radius:6px;object-fit:cover">'
+        :'<span style="font-size:22px">📦</span>'}</td>
+      <td style="color:var(--text3);font-size:12px">${p.codigo||'-'}</td>
+      <td style="font-weight:500;color:var(--text)">${p.nome}</td>
+      <td>${p.categoria||'-'}</td>
+      <td><span class="badge" style="background:var(--surface2);color:var(--text2)">${p.unidade||'un'}</span></td>
+      <td style="color:var(--success);font-weight:600">${fmt(p.preco_venda)}</td>
+      <td>${p.estoque_minimo!=null?p.estoque_minimo:'-'}</td>
+      <td><span class="badge ${p.ativo?'badge-ativo':'badge-inativo'}">${p.ativo?'Ativo':'Inativo'}</span></td>
+      <td><div class="action-btns">
+        <button class="btn-sm btn-edit" onclick="openModalProduto('edit',${p.id})">Editar</button>
+        ${p.ativo
+          ?'<button class="btn-sm btn-deact" onclick="toggleProduto('+p.id+',false)">Desativar</button>'
+          :'<button class="btn-sm btn-react" onclick="toggleProduto('+p.id+',true)">Reativar</button>'}
+      </div></td></tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="10" class="empty">Erro: ${e.message}</td></tr>`;}
+}
+
+function buscarProdutos(){carregarProdutos(document.getElementById('prod-busca').value.trim());}
+function limparBuscaProd(){document.getElementById('prod-busca').value='';carregarProdutos();}
+
+async function toggleProduto(id,ativo){
+  try{
+    await api('produtos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});
+    carregarProdutos(document.getElementById('prod-busca')?.value||'');
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+function onProdImageChange(event){
+  const file=event.target.files[0];if(!file)return;
+  if(file.size>2*1024*1024){alert('Imagem maior que 2MB. Escolha uma menor.');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    prodImageBase64=e.target.result;
+    const prev=document.getElementById('prod-img-preview');
+    prev.innerHTML='<img src="'+prodImageBase64+'" style="width:100%;height:100%;object-fit:cover">';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removerImagemProd(){
+  prodImageBase64='';
+  document.getElementById('prod-img-preview').innerHTML='📦';
+  document.getElementById('prod-img-file').value='';
+}
+
+async function openModalProduto(mode,id){
+  editingProdutoId=null;
+  prodImageBase64='';
+  document.getElementById('modal-prod-msg').style.display='none';
+  document.getElementById('prod-img-preview').innerHTML='📦';
+  document.getElementById('prod-img-file').value='';
+  // Popular select de fornecedores
+  const selForn=document.getElementById('prod-fornecedor');
+  try{
+    const pf=currentUser.perfil||'master';
+    const forns=await api('fornecedores?select=id,nome&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc');
+    selForn.innerHTML='<option value="">Nenhum / Sem vínculo</option>'
+      +(forns||[]).map(f=>'<option value="'+f.id+'">'+f.nome+'</option>').join('');
+  }catch(e){selForn.innerHTML='<option value="">Nenhum</option>';}
+
+  const campos=['prod-codigo','prod-nome','prod-desc','prod-categoria',
+    'prod-custo','prod-venda','prod-est-min','prod-est-max','prod-obs'];
+
+  if(mode==='new'){
+    document.getElementById('modal-prod-titulo').textContent=getLabel('produtos_novo','Novo Produto');
+    document.getElementById('modal-prod-sub').textContent='Preencha os dados do produto';
+    campos.forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    document.getElementById('prod-unidade').value='un';
+    document.getElementById('prod-fornecedor').value='';
+  } else {
+    document.getElementById('modal-prod-titulo').textContent='Editar Produto';
+    document.getElementById('modal-prod-sub').textContent='Altere os dados necessários';
+    editingProdutoId=id;
+    const data=await api('produtos?id=eq.'+id+'&select=*');
+    if(!data||!data.length)return;
+    const p=data[0];
+    document.getElementById('prod-codigo').value=p.codigo||'';
+    document.getElementById('prod-nome').value=p.nome||'';
+    document.getElementById('prod-desc').value=p.descricao||'';
+    document.getElementById('prod-categoria').value=p.categoria||'';
+    document.getElementById('prod-unidade').value=p.unidade||'un';
+    document.getElementById('prod-custo').value=p.preco_custo!=null?p.preco_custo:'';
+    document.getElementById('prod-venda').value=p.preco_venda!=null?p.preco_venda:'';
+    document.getElementById('prod-est-min').value=p.estoque_minimo!=null?p.estoque_minimo:'';
+    document.getElementById('prod-est-max').value=p.estoque_maximo!=null?p.estoque_maximo:'';
+    document.getElementById('prod-obs').value=p.observacoes||'';
+    document.getElementById('prod-fornecedor').value=p.fornecedor_id||'';
+    if(p.imagem_base64){
+      prodImageBase64=p.imagem_base64;
+      document.getElementById('prod-img-preview').innerHTML='<img src="'+p.imagem_base64+'" style="width:100%;height:100%;object-fit:cover">';
+    }
+  }
+  openModal('modal-produto');
+}
+
+async function salvarProduto(){
+  const nome=document.getElementById('prod-nome').value.trim();
+  if(!nome){showMM('modal-prod-msg','Informe o nome do produto','error');return;}
+  const fornId=document.getElementById('prod-fornecedor').value;
+  const body={
+    nome,
+    perfil_codigo:currentUser.perfil||'master',
+    codigo:document.getElementById('prod-codigo').value.trim()||null,
+    descricao:document.getElementById('prod-desc').value.trim()||null,
+    categoria:document.getElementById('prod-categoria').value.trim()||null,
+    unidade:document.getElementById('prod-unidade').value||'un',
+    preco_custo:document.getElementById('prod-custo').value||null,
+    preco_venda:document.getElementById('prod-venda').value||null,
+    estoque_minimo:document.getElementById('prod-est-min').value||0,
+    estoque_maximo:document.getElementById('prod-est-max').value||null,
+    fornecedor_id:fornId?parseInt(fornId):null,
+    imagem_base64:prodImageBase64||null,
+    observacoes:document.getElementById('prod-obs').value.trim()||null,
+    alterado_em:new Date().toISOString()
+  };
+  try{
+    if(!editingProdutoId){
+      await api('produtos',{method:'POST',body:JSON.stringify({...body,ativo:true})});
+      showMM('modal-prod-msg','Produto cadastrado com sucesso!','success');
+    } else {
+      await api('produtos?id=eq.'+editingProdutoId,{method:'PATCH',body:JSON.stringify(body)});
+      showMM('modal-prod-msg','Produto atualizado com sucesso!','success');
+    }
+    setTimeout(()=>{
+      closeModal('modal-produto');
+      carregarProdutos(document.getElementById('prod-busca')?.value||'');
+    },900);
+  }catch(e){showMM('modal-prod-msg','Erro: '+e.message,'error');}
 }
 
 // ─── PAINEL: FORNECEDORES ────────────────────────────────────────
