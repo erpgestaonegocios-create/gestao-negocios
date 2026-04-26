@@ -968,21 +968,7 @@ function renderLabelsPanel(){
 }
 
 async function carregarLabelsTabela(){
-  const wrap=document.getElementById('labels-painel-wrap');if(!wrap)return;
-  if(!perfisCache.length) await carregarPerfisCache();
-  try{
-    const rows=await api('perfil_labels?select=id,perfil_codigo,chave,label&order=perfil_codigo.asc,chave.asc');
-    if(!rows||!rows.length){wrap.innerHTML='<div class="empty">Nenhum label configurado ainda. Clique em "+ Novo Label" para começar.</div>';return;}
-    const campoNome=chave=>chave;
-    wrap.innerHTML=`<div class="labels-table-wrap"><table>
-      <thead><tr><th>Perfil</th><th>Campo</th><th>Label na Interface</th><th>Ação</th></tr></thead>
-      <tbody>${rows.map(r=>`<tr>
-        <td>${perfilNome(r.perfil_codigo)}</td>
-        <td style="color:var(--text2);font-size:12px">${campoNome(r.chave)}</td>
-        <td style="color:var(--accent);font-weight:600">${r.label}</td>
-        <td><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id},'${r.perfil_codigo}')">Remover</button></td>
-      </tr>`).join('')}</tbody></table></div>`;
-  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
+  // Painel limpo — sem tabela, só o info-card já está no renderLabelsPanel
 }
 
 async function openModalLabel(){
@@ -1133,11 +1119,19 @@ async function interpretarESalvarLabel(){
     +'<br><span style="color:var(--text3);font-size:12px;margin-top:4px;display:block">Salvando...</span>';
 
   try{
-    await api('perfil_labels',{
-      method:'POST',
-      headers:{...hdrs,'Prefer':'resolution=merge-duplicates'},
-      body:JSON.stringify({perfil_codigo:perfil,chave:chave,label:novoNome})
-    });
+    // Tenta atualizar se já existe, senão insere
+    const existente=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+chave+'&select=id').catch(()=>[]);
+    if(existente&&existente.length>0){
+      await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+chave,{
+        method:'PATCH',
+        body:JSON.stringify({label:novoNome})
+      });
+    } else {
+      await api('perfil_labels',{
+        method:'POST',
+        body:JSON.stringify({perfil_codigo:perfil,chave:chave,label:novoNome})
+      });
+    }
     await carregarLabels();
     await carregarLabelsExistentes(perfil);
     carregarLabelsTabela();
