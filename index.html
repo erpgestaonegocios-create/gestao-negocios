@@ -420,7 +420,7 @@ async function popularSelectPerfis(elId, placeholder){
   const sel=document.getElementById(elId);
   if(!sel)return;
   if(!perfisCache.length){
-    try{perfisCache=await api('perfis?ativo=eq.true&select=*&order=id.asc')||[];}catch(e){}
+    try{perfisCache=await api('perfis?select=*&order=id.asc')||[];}catch(e){}
   }
   sel.innerHTML=`<option value="">${placeholder||'Selecione o perfil...'}</option>`+
     perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
@@ -498,11 +498,11 @@ function doLogout(){
 // ─── CARREGAMENTO DE CACHES ───────────────────────────────────────
 // Chamados no login e após operações de escrita que alteram perfis/funcs
 async function carregarPerfisCache(){
-  try{perfisCache=await api('perfis?ativo=eq.true&select=*&order=id.asc')||[];}
+  try{perfisCache=await api('perfis?select=*&order=id.asc')||[];}
   catch(e){perfisCache=[];}
 }
 async function carregarFuncCache(){
-  try{funcCache=await api('perfil_funcionalidades?ativo=eq.true&select=*&order=id.asc')||[];}
+  try{funcCache=await api('perfil_funcionalidades?select=*&order=id.asc')||[];}
   catch(e){funcCache=[];}
 }
 async function carregarLabels(){
