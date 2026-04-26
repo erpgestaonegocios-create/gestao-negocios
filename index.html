@@ -4178,7 +4178,7 @@ function openModalCliente(mode,id){
       if(!data||!data.length)return;const c=data[0];
       document.getElementById('cli-nome').value=c.nome||'';
       document.getElementById('cli-cpf').value=c.cpf||'';
-      document.getElementById('cli-nasc').value=c.data_nasc||'';
+      document.getElementById('cli-nasc').value=c.data_nascimento||'';
       document.getElementById('cli-sexo').value=c.sexo||'';
       document.getElementById('cli-tel').value=c.telefone||'';
       document.getElementById('cli-email').value=c.email||'';
@@ -4209,7 +4209,7 @@ async function salvarCliente(){
   const body={
     nome,perfil_codigo:currentUser.perfil||'master',
     cpf:cpfVal,
-    data_nasc:document.getElementById('cli-nasc').value||null,
+    data_nascimento:document.getElementById('cli-nasc').value||null,
     sexo:document.getElementById('cli-sexo').value||null,
     telefone:document.getElementById('cli-tel').value.trim()||null,
     email:document.getElementById('cli-email').value.trim()||null,
