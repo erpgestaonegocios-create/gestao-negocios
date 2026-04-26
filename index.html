@@ -2006,7 +2006,10 @@ async function carregarLancamentos(){
     if(status) q+='&status=eq.'+status;
     if(mes){
       const ini=mes+'-01';
-      const fim=mes+'-31';
+      // Calcular último dia do mês corretamente
+      const [ano,m]=mes.split('-').map(Number);
+      const ultimoDia=new Date(ano,m,0).getDate();
+      const fim=mes+'-'+String(ultimoDia).padStart(2,'0');
       q+='&data_vencimento=gte.'+ini+'&data_vencimento=lte.'+fim;
     }
     const data=await api(q);
