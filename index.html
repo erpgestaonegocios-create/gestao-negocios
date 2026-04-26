@@ -197,7 +197,7 @@
       <div class="mfield col-1" id="wrap-perfil"><label>Perfil <span class="req">*</span></label>
         <select id="m-perfil"><option value="">Selecione...</option></select>
       </div>
-      <div class="mfield col-1"><label>Empresa</label><input type="text" id="m-empresa" placeholder="Nome da empresa"></div>
+      <div class="mfield col-1" id="wrap-empresa"><label>Empresa</label><input type="text" id="m-empresa" placeholder="Nome da empresa"></div>
     </div>
     <div id="wrap-acessos-new" style="display:none;margin-top:16px;">
       <div class="access-section-title">Menus que este usuário poderá acessar</div>
@@ -549,8 +549,18 @@ function renderPanel(id){
 }
 
 function renderUsuarios(){
+  const isMasterSistema=currentUser?.nivel==='master_sistema';
+  const filtroPerfil=isMasterSistema?`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <label style="font-size:12px;color:var(--text2);white-space:nowrap">Filtrar por perfil:</label>
+      <select id="filtro-perfil-usuarios" onchange="carregarUsuarios()" style="padding:7px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;min-width:180px;">
+        <option value="">Todos os perfis</option>
+        ${perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('')}
+      </select>
+    </div>`:'';
   return `<div class="panel-header"><span class="panel-title">Gestão de Usuários</span>
     <button class="btn-new" onclick="openModalUsuario('new')">+ Novo Usuário</button></div>
+    ${filtroPerfil}
     <div class="tbl-wrap"><table>
     <thead><tr><th>#</th><th>Usuário</th><th>Nome</th><th>Perfil</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody id="tbl-usuarios"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
@@ -558,32 +568,7 @@ function renderUsuarios(){
 }
 
 function renderAcessos(){
-  // Garante que funcCache está carregado
-  const perfisNomes=perfisCache.filter(p=>p.codigo!=='master');
-  // Coleta todas as funcionalidades únicas presentes no cache
-  const funcsMap={};
-  funcCache.forEach(f=>{
-    if(!funcsMap[f.funcionalidade]) funcsMap[f.funcionalidade]=f.label||f.funcionalidade;
-  });
-  const funcsUnicas=Object.keys(funcsMap);
-
-  if(!perfisNomes.length||!funcsUnicas.length){
-    return `<div class="panel-header"><span class="panel-title">Gestão de Acessos</span>
-      <div class="panel-actions">
-        <button class="btn-secondary" onclick="openModal('modal-perfil')">+ Novo Perfil</button>
-        <button class="btn-secondary" onclick="openModalFunc()">+ Nova Funcionalidade</button>
-      </div></div>
-      <div class="loading">Carregando dados...</div>`;
-  }
-
-  const thead=`<thead><tr><th>Funcionalidade</th>${perfisNomes.map(p=>`<th>${p.descricao}</th>`).join('')}</tr></thead>`;
-  const tbody=funcsUnicas.map(func=>{
-    return `<tr><td>${funcsMap[func]}</td>${perfisNomes.map(p=>{
-      const tem=funcCache.some(f=>f.perfil_codigo===p.codigo&&f.funcionalidade===func&&f.ativo);
-      return `<td><button class="toggle-btn" title="${tem?'Remover':'Adicionar'}" onclick="toggleFuncPerfil('${p.codigo}','${func}',${!tem},'${funcsMap[func]}')">${tem?'✅':'❌'}</button></td>`;
-    }).join('')}</tr>`;
-  }).join('');
-
+  // Retorna estrutura base com container — dados carregados assincronamente
   return `<div class="panel-header"><span class="panel-title">Gestão de Acessos</span>
     <div class="panel-actions">
       <button class="btn-secondary" onclick="openModal('modal-perfil')">+ Novo Perfil</button>
@@ -593,7 +578,29 @@ function renderAcessos(){
     <div class="info-card-title">Como funciona</div>
     <div class="info-card-desc">Clique em ✅ para remover ou ❌ para adicionar uma funcionalidade a um perfil. Use os botões acima para criar novos perfis ou funcionalidades.</div>
     </div></div>
-    <div class="menus-table-wrap"><table>${thead}<tbody>${tbody}</tbody></table></div>`;
+    <div id="acessos-tabela-wrap"><div class="loading">Carregando dados...</div></div>`;
+}
+
+async function carregarAcessosTabela(){
+  const wrap=document.getElementById('acessos-tabela-wrap');if(!wrap)return;
+  try{
+    await Promise.all([carregarPerfisCache(),carregarFuncCache()]);
+    const perfisNomes=perfisCache.filter(p=>p.codigo!=='master');
+    const funcsMap={};
+    funcCache.forEach(f=>{if(!funcsMap[f.funcionalidade])funcsMap[f.funcionalidade]=f.label||f.funcionalidade;});
+    const funcsUnicas=Object.keys(funcsMap);
+    if(!perfisNomes.length&&!funcsUnicas.length){
+      wrap.innerHTML='<div class="empty">Nenhum perfil ou funcionalidade cadastrado. Use os botões acima para começar.</div>';return;
+    }
+    if(!funcsUnicas.length){wrap.innerHTML='<div class="empty">Nenhuma funcionalidade cadastrada ainda.</div>';return;}
+    if(!perfisNomes.length){wrap.innerHTML='<div class="empty">Nenhum perfil de negócio cadastrado ainda.</div>';return;}
+    const thead=`<thead><tr><th>Funcionalidade</th>${perfisNomes.map(p=>`<th>${p.descricao}</th>`).join('')}</tr></thead>`;
+    const tbody=funcsUnicas.map(func=>`<tr><td>${funcsMap[func]}</td>${perfisNomes.map(p=>{
+      const tem=funcCache.some(f=>f.perfil_codigo===p.codigo&&f.funcionalidade===func&&f.ativo);
+      return `<td><button class="toggle-btn" title="${tem?'Remover':'Adicionar'}" onclick="toggleFuncPerfil('${p.codigo}','${func}',${!tem},'${funcsMap[func].replace(/'/g,"\\'")}')">${tem?'✅':'❌'}</button></td>`;
+    }).join('')}</tr>`).join('');
+    wrap.innerHTML=`<div class="menus-table-wrap"><table>${thead}<tbody>${tbody}</tbody></table></div>`;
+  }catch(e){if(wrap)wrap.innerHTML=`<div class="empty">Erro ao carregar: ${e.message}</div>`;}
 }
 
 function renderLabelsPanel(){
@@ -632,6 +639,7 @@ function showPanel(name){
   if(panel)panel.classList.add('active');
   if(menu)menu.classList.add('active');
   if(name==='usuarios')carregarUsuarios();
+  if(name==='acessos') carregarAcessosTabela();
   if(name==='clientes')carregarClientes();
   if(name==='labels')  carregarLabelsTabela();
 }
@@ -647,7 +655,7 @@ async function toggleFuncPerfil(perfil,func,adicionar,labelFunc){
     }
     await carregarFuncCache();
     const p=document.getElementById('panel-acessos');
-    if(p&&p.classList.contains('active'))p.innerHTML=renderAcessos();
+    if(p&&p.classList.contains('active'))carregarAcessosTabela();
   }catch(e){alert('Erro: '+e.message);}
 }
 
@@ -661,7 +669,7 @@ async function salvarPerfil(){
     await api('perfis',{method:'POST',body:JSON.stringify({codigo,descricao:nome,ativo:true})});
     showMM('modal-perfil-msg','Perfil criado com sucesso!','success');
     await carregarPerfisCache();
-    setTimeout(()=>{closeModal('modal-perfil');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))p.innerHTML=renderAcessos();},900);
+    setTimeout(()=>{closeModal('modal-perfil');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))carregarAcessosTabela();},900);
   }catch(e){showMM('modal-perfil-msg','Erro: '+e.message,'error');}
 }
 
@@ -688,7 +696,7 @@ async function salvarFuncionalidade(){
     if(perfisSel.length)await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify(perfisSel.map(p=>({perfil_codigo:p,funcionalidade:codigo,label:nome,ativo:true})))});
     showMM('modal-func-msg','Funcionalidade adicionada!','success');
     await carregarFuncCache();
-    setTimeout(()=>{closeModal('modal-func');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))p.innerHTML=renderAcessos();},900);
+    setTimeout(()=>{closeModal('modal-func');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))carregarAcessosTabela();},900);
   }catch(e){showMM('modal-func-msg','Erro: '+e.message,'error');}
 }
 
@@ -699,6 +707,9 @@ async function openModalLabel(){
   document.getElementById('lbl-atual-wrap').style.display='none';
   document.getElementById('labels-existentes-wrap').style.display='none';
 
+  // Garante cache atualizado antes de popular
+  if(!perfisCache.length) await carregarPerfisCache();
+
   // Popular select de perfis
   const selPerfil=document.getElementById('lbl-perfil');
   selPerfil.innerHTML='<option value="">Selecione o perfil...</option>'+
@@ -708,6 +719,10 @@ async function openModalLabel(){
   const selCampo=document.getElementById('lbl-campo');
   selCampo.innerHTML='<option value="">Selecione o campo...</option>'+
     CAMPOS_LABELS.map(c=>`<option value="${c.chave}" data-padrao="${c.padrao}">${c.nome}</option>`).join('');
+
+  // Resetar campo seleção
+  selPerfil.value='';
+  selCampo.value='';
 
   openModal('modal-label');
 }
@@ -909,13 +924,30 @@ async function carregarUsuarios(){
   const isMasterSistema=currentUser.nivel==='master_sistema';
   const isMasterEmpresa=currentUser.nivel==='master_empresa';
   try{
-    // master_sistema: TODOS os usuários
-    // master_empresa: apenas usuários comuns do seu perfil
-    let q='usuarios?select=*&order=id.asc';
-    if(isMasterEmpresa)q+='&perfil=eq.'+currentUser.perfil+'&nivel=eq.usuario';
+    let q='usuarios?select=*';
+    if(isMasterSistema){
+      // Aplica filtro de perfil se selecionado
+      const filtroPerfil=document.getElementById('filtro-perfil-usuarios')?.value||'';
+      if(filtroPerfil){
+        // Ordem: master_empresa primeiro, depois usuarios, ambos por id
+        q+='&perfil=eq.'+encodeURIComponent(filtroPerfil)+'&order=nivel.desc,id.asc';
+      } else {
+        q+='&order=id.asc';
+      }
+    } else if(isMasterEmpresa){
+      q+='&perfil=eq.'+currentUser.perfil+'&nivel=eq.usuario&order=id.asc';
+    }
     const data=await api(q);
     if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">Nenhum usuário encontrado.</td></tr>';return;}
-    tbody.innerHTML=data.map(u=>`<tr>
+
+    // Ordenação quando há filtro de perfil: master_empresa > master_sistema > usuario, depois por id
+    const nivelOrdem={master_sistema:0,master_empresa:1,usuario:2};
+    let lista=data;
+    if(isMasterSistema&&document.getElementById('filtro-perfil-usuarios')?.value){
+      lista=[...data].sort((a,b)=>(nivelOrdem[a.nivel]??9)-(nivelOrdem[b.nivel]??9)||a.id-b.id);
+    }
+
+    tbody.innerHTML=lista.map(u=>`<tr>
       <td style="color:var(--text3)">${u.id}</td>
       <td style="font-weight:500;color:var(--text)">${u.usuario}</td>
       <td>${u.nome||'-'}</td>
@@ -958,6 +990,21 @@ async function openModalUsuario(mode,id){
   document.getElementById('wrap-perfil').style.display=isMasterEmpresa?'none':'block';
   document.getElementById('wrap-acessos-new').style.display='none';
 
+  // Campo empresa: herdado e bloqueado para master_empresa, livre para master_sistema
+  const empresaInput=document.getElementById('m-empresa');
+  if(isMasterEmpresa){
+    empresaInput.value=currentUser.empresa||'';
+    empresaInput.disabled=true;
+    empresaInput.style.opacity='0.6';
+    empresaInput.style.cursor='not-allowed';
+    document.querySelector('#wrap-empresa label').innerHTML='Empresa <span style="color:var(--text3);font-size:10px;font-weight:400">(herdada do seu perfil)</span>';
+  } else {
+    empresaInput.disabled=false;
+    empresaInput.style.opacity='';
+    empresaInput.style.cursor='';
+    document.querySelector('#wrap-empresa label').innerHTML='Empresa';
+  }
+
   if(mode==='new'){
     document.getElementById('modal-user-titulo').textContent='Novo Usuário';
     document.getElementById('modal-user-sub').textContent=isMasterEmpresa
@@ -993,7 +1040,10 @@ async function openModalUsuario(mode,id){
     document.getElementById('m-nivel').value=u.nivel;
     // Seleciona o perfil correto
     document.getElementById('m-perfil').value=u.perfil||'';
-    document.getElementById('m-empresa').value=u.empresa||'';
+    const empEdit=document.getElementById('m-empresa');
+    empEdit.value=u.empresa||'';
+    // master_sistema editando: libera campo empresa
+    if(isMasterSistema){empEdit.disabled=false;empEdit.style.opacity='';empEdit.style.cursor='';}
     document.getElementById('m-usuario').disabled=true;
   }
   openModal('modal-usuario');
