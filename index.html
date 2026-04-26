@@ -988,13 +988,46 @@ async function salvarFuncionalidade(){
 
 // Definição dos elementos renomeaveis — único lugar para manter
 const ELEMENTOS_LABEL = [
-  {chave:'clientes_menu',       modulo:'Clientes', elemento:'Nome no menu lateral',        padrao:'Clientes',         icone:'📋'},
-  {chave:'clientes_titulo',     modulo:'Clientes', elemento:'Título da página',             padrao:'Clientes',         icone:'📄'},
-  {chave:'clientes_novo',       modulo:'Clientes', elemento:'Texto do botão "Novo"',        padrao:'Novo Cliente',     icone:'➕'},
-  {chave:'clientes_single',     modulo:'Clientes', elemento:'Nome singular do registro',    padrao:'Cliente',          icone:'👤'},
-  {chave:'clientes_th_nome',    modulo:'Clientes', elemento:'Cabeçalho coluna "Nome"',      padrao:'Nome',             icone:'🏷️'},
-  {chave:'clientes_campo_nome', modulo:'Clientes', elemento:'Label campo "Nome" (formulário)',padrao:'Nome Completo',  icone:'✏️'},
-  {chave:'clientes_campo_cpf',  modulo:'Clientes', elemento:'Label campo "CPF"',            padrao:'CPF',              icone:'🪪'},
+  // ── Clientes
+  {func:'clientes', chave:'clientes_menu',        modulo:'Clientes',      elemento:'Nome no menu lateral',           padrao:'Clientes',          icone:'📋'},
+  {func:'clientes', chave:'clientes_titulo',       modulo:'Clientes',      elemento:'Título da página',               padrao:'Clientes',          icone:'📄'},
+  {func:'clientes', chave:'clientes_novo',         modulo:'Clientes',      elemento:'Texto do botão "Novo"',          padrao:'Novo Cliente',      icone:'➕'},
+  {func:'clientes', chave:'clientes_single',       modulo:'Clientes',      elemento:'Nome singular do registro',      padrao:'Cliente',           icone:'👤'},
+  {func:'clientes', chave:'clientes_th_nome',      modulo:'Clientes',      elemento:'Cabeçalho coluna "Nome"',        padrao:'Nome',              icone:'🏷️'},
+  {func:'clientes', chave:'clientes_campo_nome',   modulo:'Clientes',      elemento:'Label campo "Nome" (formulário)',padrao:'Nome Completo',     icone:'✏️'},
+  {func:'clientes', chave:'clientes_campo_cpf',    modulo:'Clientes',      elemento:'Label campo "CPF"',              padrao:'CPF',               icone:'🪪'},
+  // ── Fornecedores
+  {func:'fornecedores', chave:'fornecedores_menu',       modulo:'Fornecedores', elemento:'Nome no menu lateral',      padrao:'Fornecedores',      icone:'📋'},
+  {func:'fornecedores', chave:'fornecedores_titulo',      modulo:'Fornecedores', elemento:'Título da página',          padrao:'Fornecedores',      icone:'📄'},
+  {func:'fornecedores', chave:'fornecedores_novo',        modulo:'Fornecedores', elemento:'Texto do botão "Novo"',     padrao:'Novo Fornecedor',   icone:'➕'},
+  {func:'fornecedores', chave:'fornecedores_single',      modulo:'Fornecedores', elemento:'Nome singular do registro', padrao:'Fornecedor',        icone:'👤'},
+  {func:'fornecedores', chave:'fornecedores_th_nome',     modulo:'Fornecedores', elemento:'Cabeçalho coluna "Nome"',   padrao:'Nome',              icone:'🏷️'},
+  // ── Produtos
+  {func:'produtos', chave:'produtos_menu',         modulo:'Produtos',      elemento:'Nome no menu lateral',           padrao:'Produtos',          icone:'📋'},
+  {func:'produtos', chave:'produtos_titulo',        modulo:'Produtos',      elemento:'Título da página',               padrao:'Produtos',          icone:'📄'},
+  {func:'produtos', chave:'produtos_novo',          modulo:'Produtos',      elemento:'Texto do botão "Novo"',          padrao:'Novo Produto',      icone:'➕'},
+  {func:'produtos', chave:'produtos_single',        modulo:'Produtos',      elemento:'Nome singular do registro',      padrao:'Produto',           icone:'👤'},
+  {func:'produtos', chave:'produtos_th_nome',       modulo:'Produtos',      elemento:'Cabeçalho coluna "Nome"',        padrao:'Nome',              icone:'🏷️'},
+  // ── Serviços
+  {func:'servicos', chave:'servicos_menu',          modulo:'Serviços',      elemento:'Nome no menu lateral',           padrao:'Serviços',          icone:'📋'},
+  {func:'servicos', chave:'servicos_titulo',         modulo:'Serviços',      elemento:'Título da página',               padrao:'Serviços',          icone:'📄'},
+  {func:'servicos', chave:'servicos_novo',           modulo:'Serviços',      elemento:'Texto do botão "Novo"',          padrao:'Novo Serviço',      icone:'➕'},
+  {func:'servicos', chave:'servicos_single',         modulo:'Serviços',      elemento:'Nome singular do registro',      padrao:'Serviço',           icone:'👤'},
+  {func:'servicos', chave:'servicos_th_nome',        modulo:'Serviços',      elemento:'Cabeçalho coluna "Nome"',        padrao:'Nome',              icone:'🏷️'},
+  // ── Estoque
+  {func:'estoque',  chave:'estoque_menu',            modulo:'Estoque',       elemento:'Nome no menu lateral',           padrao:'Controle de Estoque',icone:'📋'},
+  {func:'estoque',  chave:'estoque_titulo',           modulo:'Estoque',       elemento:'Título da página',               padrao:'Controle de Estoque',icone:'📄'},
+  // ── Agendamentos
+  {func:'agendamentos', chave:'agendamentos_menu',   modulo:'Agendamentos',  elemento:'Nome no menu lateral',           padrao:'Agendamentos',      icone:'📋'},
+  {func:'agendamentos', chave:'agendamentos_titulo',  modulo:'Agendamentos',  elemento:'Título da página',               padrao:'Agendamentos',      icone:'📄'},
+  {func:'agendamentos', chave:'agendamentos_novo',    modulo:'Agendamentos',  elemento:'Texto do botão "Novo"',          padrao:'Novo Agendamento',  icone:'➕'},
+  {func:'agendamentos', chave:'agendamentos_single',  modulo:'Agendamentos',  elemento:'Nome singular do registro',      padrao:'Agendamento',       icone:'👤'},
+  // ── Financeiro
+  {func:'financeiro',   chave:'financeiro_menu',      modulo:'Financeiro',    elemento:'Nome no menu lateral',           padrao:'Financeiro',        icone:'📋'},
+  {func:'financeiro',   chave:'financeiro_titulo',     modulo:'Financeiro',    elemento:'Título da página',               padrao:'Financeiro',        icone:'📄'},
+  // ── Relatórios
+  {func:'relatorios',   chave:'relatorios_menu',       modulo:'Relatórios',    elemento:'Nome no menu lateral',           padrao:'Relatórios',        icone:'📋'},
+  {func:'relatorios',   chave:'relatorios_titulo',      modulo:'Relatórios',    elemento:'Título da página',               padrao:'Relatórios',        icone:'📄'},
 ];
 
 // Estado do wizard
@@ -1063,12 +1096,26 @@ async function avancarPassoLabel(){
     const rows=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&select=chave,label').catch(()=>[]);
     const labelsAtuais={};
     (rows||[]).forEach(r=>labelsAtuais[r.chave]=r.label);
-    // Popular select de elementos
+    // Funcionalidades habilitadas para este perfil
+    const funcsHabilitadas=new Set(funcCache.filter(f=>f.perfil_codigo===perfil).map(f=>f.funcionalidade));
+    // Filtrar elementos pelos módulos que o perfil tem + sempre incluir todos se perfil master
+    const isMaster=(currentUser.nivel==='master_sistema');
+    const elementosFiltrados=ELEMENTOS_LABEL.filter(el=>isMaster||funcsHabilitadas.has(el.func));
+    // Agrupar por módulo
+    const modulos=[...new Set(elementosFiltrados.map(el=>el.modulo))];
     const sel=document.getElementById('lbl-elemento-sel');
     sel.innerHTML='<option value="">Selecione o elemento...</option>'
-      +ELEMENTOS_LABEL.map(el=>{
-        const atual=labelsAtuais[el.chave]||el.padrao;
-        return '<option value="'+el.chave+'">'+el.icone+' '+el.elemento+' (atual: '+atual+')</option>';
+      +modulos.map(mod=>{
+        const itens=elementosFiltrados.filter(el=>el.modulo===mod);
+        return '<optgroup label="── '+mod+' ──">'
+          +itens.map(el=>{
+            const atual=labelsAtuais[el.chave]||el.padrao;
+            const temCustom=!!labelsAtuais[el.chave];
+            return '<option value="'+el.chave+'" '+(temCustom?'style="color:var(--accent)"':'')+'>'
+              +el.icone+' '+el.elemento+' (atual: '+atual+')'
+              +'</option>';
+          }).join('')
+          +'</optgroup>';
       }).join('');
     sel.value='';
     lblChaveSelecionada='';
