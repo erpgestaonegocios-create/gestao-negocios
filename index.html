@@ -582,6 +582,62 @@
   </div>
 </div>
 
+<!-- MODAL ESTOQUE MOVIMENTO -->
+<div class="modal-overlay" id="modal-estoque-mov">
+  <div class="modal modal-sm">
+    <div class="modal-title" id="modal-est-titulo">Nova Movimentação</div>
+    <div class="modal-sub" id="modal-est-sub">Registre a movimentação de estoque</div>
+    <div class="form-grid">
+      <div class="mfield col-2">
+        <label>Produto <span class="req">*</span></label>
+        <select id="est-produto" onchange="onEstProdutoChange()"><option value="">Selecione o produto...</option></select>
+      </div>
+      <div class="mfield col-2" id="est-saldo-atual-wrap" style="display:none">
+        <div style="padding:10px 14px;background:var(--surface2);border-radius:6px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--text3)">Saldo atual em estoque</span>
+          <span id="est-saldo-atual" style="font-size:18px;font-weight:700;color:var(--accent)">0</span>
+        </div>
+      </div>
+      <div class="mfield col-2">
+        <label>Tipo de Movimentação <span class="req">*</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+          <label id="est-tipo-entrada-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer">
+            <input type="radio" name="est-tipo" value="entrada" checked onchange="onEstTipoChange()" style="accent-color:#4caf7d">
+            <span style="font-size:13px">📥 Entrada</span>
+          </label>
+          <label id="est-tipo-saida-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer">
+            <input type="radio" name="est-tipo" value="saida" onchange="onEstTipoChange()" style="accent-color:var(--danger)">
+            <span style="font-size:13px">📤 Saída</span>
+          </label>
+          <label id="est-tipo-ajuste-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer">
+            <input type="radio" name="est-tipo" value="ajuste" onchange="onEstTipoChange()" style="accent-color:var(--warn)">
+            <span style="font-size:13px">⚖️ Ajuste</span>
+          </label>
+          <label id="est-tipo-transferencia-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer">
+            <input type="radio" name="est-tipo" value="transferencia" onchange="onEstTipoChange()" style="accent-color:var(--accent)">
+            <span style="font-size:13px">🔄 Transferência</span>
+          </label>
+        </div>
+      </div>
+      <div class="mfield col-1">
+        <label id="est-qtd-label">Quantidade <span class="req">*</span></label>
+        <input type="number" id="est-quantidade" placeholder="0" min="0" step="0.001" oninput="onEstQtdChange()">
+        <div class="field-hint" id="est-qtd-hint"></div>
+      </div>
+      <div class="mfield col-2">
+        <label>Motivo / Descrição</label>
+        <input type="text" id="est-motivo" placeholder="ex: Compra NF 1234, Venda PDV, Inventário...">
+      </div>
+      <div class="mfield col-2"><label>Observações</label><textarea id="est-obs" placeholder="Observações adicionais..." style="min-height:50px"></textarea></div>
+    </div>
+    <div class="modal-msg" id="modal-est-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-estoque-mov')">Cancelar</button>
+      <button class="btn-save" id="est-btn-salvar" onclick="salvarMovimento()">Registrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPA_URL='https://uqigoyedyaltwjmfysnu.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaWdveWVkeWFsdHdqbWZ5c251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjY2MjcsImV4cCI6MjA5MjY0MjYyN30.EtTJIzn-OITNfp2uraLgSM0HH7ZLLjewa4l0zOggutI';
@@ -959,6 +1015,7 @@ function renderPanel(id){
     case 'acessos':  return renderAcessos();
     case 'labels':   return renderLabelsPanel();
     case 'config-empresa': return renderConfigEmpresaPanel();
+    case 'estoque':      return renderEstoque();
     case 'servicos':     return renderServicos();
     case 'produtos':     return renderProdutos();
     case 'fornecedores': return renderFornecedores();
@@ -984,6 +1041,7 @@ function showPanel(name){
   // O DOM do painel já existe (criado em addMenuPanel), então não há race condition
   if(name==='usuarios') onShowUsuarios();
   if(name==='acessos')  onShowAcessos();
+  if(name==='estoque')      carregarEstoque();
   if(name==='servicos')     carregarServicos();
   if(name==='produtos')     carregarProdutos();
   if(name==='fornecedores') carregarFornecedores();
@@ -1625,6 +1683,286 @@ async function salvarLabelGuiado(){
       closeModal('modal-label');
     },800);
   }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
+}
+
+// ─── PAINEL: ESTOQUE ─────────────────────────────────────────────
+let produtosEstoqueCache=[];   // cache dos produtos com saldo
+let saldosCache={};            // {produto_id: quantidade}
+
+function renderEstoque(){
+  return `<div class="panel-header">
+    <span class="panel-title">Controle de Estoque</span>
+    <button class="btn-new" onclick="openModalMovimento()">+ Nova Movimentação</button>
+  </div>
+  <div id="estoque-alertas"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Produtos cadastrados</div>
+      <div id="est-count-total" style="font-size:28px;font-weight:700;color:var(--text)">—</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Abaixo do mínimo</div>
+      <div id="est-count-critico" style="font-size:28px;font-weight:700;color:var(--danger)">—</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+    <input type="text" id="est-busca" placeholder="Buscar produto..." onkeydown="if(event.key==='Enter')filtrarEstoque()"
+      style="flex:1;padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+    <select id="est-filtro-status" onchange="filtrarEstoque()" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+      <option value="">Todos os produtos</option>
+      <option value="critico">⚠️ Abaixo do mínimo</option>
+      <option value="ok">✅ Estoque OK</option>
+      <option value="sem">Sem estoque (0)</option>
+    </select>
+    <button class="btn-search" onclick="filtrarEstoque()">Filtrar</button>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Produto</th><th>Unidade</th><th>Saldo Atual</th>
+      <th>Mínimo</th><th>Máximo</th><th>Situação</th><th>Ações</th>
+    </tr></thead>
+    <tbody id="tbl-estoque"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+  </table></div>
+  <div style="margin-top:24px">
+    <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+      <span>📋 Últimas Movimentações</span>
+      <button class="btn-secondary" onclick="carregarHistorico()">Atualizar</button>
+    </div>
+    <div id="est-historico"><div class="loading">Carregando...</div></div>
+  </div>`;
+}
+
+async function carregarEstoque(){
+  const pf=currentUser.perfil||'master';
+  try{
+    // Buscar produtos e saldos em paralelo
+    const [produtos, saldos] = await Promise.all([
+      api('produtos?select=id,nome,unidade,estoque_minimo,estoque_maximo,ativo&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc'),
+      api('estoque_saldo?select=produto_id,quantidade&perfil_codigo=eq.'+encodeURIComponent(pf))
+    ]);
+    // Montar mapa de saldos
+    saldosCache={};
+    (saldos||[]).forEach(s=>saldosCache[s.produto_id]=parseFloat(s.quantidade)||0);
+    // Combinar produtos com saldos
+    produtosEstoqueCache=(produtos||[]).map(p=>({
+      ...p,
+      saldo: saldosCache[p.id]??0
+    }));
+    renderTabelaEstoque(produtosEstoqueCache);
+    carregarHistorico();
+  }catch(e){
+    const tbody=document.getElementById('tbl-estoque');
+    if(tbody)tbody.innerHTML=`<tr><td colspan="7" class="empty">Erro: ${e.message}</td></tr>`;
+  }
+}
+
+function renderTabelaEstoque(lista){
+  const tbody=document.getElementById('tbl-estoque');
+  const alertas=document.getElementById('estoque-alertas');
+  const countTotal=document.getElementById('est-count-total');
+  const countCritico=document.getElementById('est-count-critico');
+  if(!tbody)return;
+
+  const criticos=lista.filter(p=>p.estoque_minimo!=null&&p.saldo<p.estoque_minimo);
+  if(countTotal) countTotal.textContent=lista.length;
+  if(countCritico) countCritico.textContent=criticos.length;
+
+  // Alertas visuais
+  if(alertas){
+    if(criticos.length>0){
+      alertas.innerHTML=`<div style="background:rgba(224,85,85,.1);border:1px solid var(--danger);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--danger)">${criticos.length} produto(s) abaixo do estoque mínimo</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${criticos.map(p=>p.nome).join(', ')}</div>
+        </div>
+      </div>`;
+    } else {
+      alertas.innerHTML='';
+    }
+  }
+
+  if(!lista.length){
+    tbody.innerHTML='<tr><td colspan="7" class="empty">Nenhum produto encontrado.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML=lista.map(p=>{
+    const min=p.estoque_minimo!=null?p.estoque_minimo:null;
+    const max=p.estoque_maximo!=null?p.estoque_maximo:null;
+    let situacao, badgeStyle;
+    if(min!=null&&p.saldo<min){
+      situacao='⚠️ Crítico';badgeStyle='background:rgba(224,85,85,.15);color:var(--danger)';
+    } else if(max!=null&&p.saldo>=max){
+      situacao='📦 Máximo';badgeStyle='background:rgba(107,127,215,.15);color:var(--accent)';
+    } else if(p.saldo===0){
+      situacao='❌ Zerado';badgeStyle='background:rgba(224,85,85,.1);color:var(--danger)';
+    } else {
+      situacao='✅ Normal';badgeStyle='background:rgba(76,175,125,.15);color:var(--success)';
+    }
+    const saldoColor=min!=null&&p.saldo<min?'color:var(--danger);font-weight:700':'color:var(--text);font-weight:600';
+    return `<tr>
+      <td style="font-weight:500;color:var(--text)">${p.nome}</td>
+      <td><span class="badge" style="background:var(--surface2);color:var(--text2)">${p.unidade||'un'}</span></td>
+      <td style="${saldoColor};font-size:16px">${p.saldo}</td>
+      <td style="color:var(--text3)">${min??'-'}</td>
+      <td style="color:var(--text3)">${max??'-'}</td>
+      <td><span class="badge" style="${badgeStyle}">${situacao}</span></td>
+      <td><div class="action-btns">
+        <button class="btn-sm btn-edit" data-pid="${p.id}" onclick="openModalMovimento(this.dataset.pid)">Movimentar</button>
+      </div></td></tr>`;
+  }).join('');
+}
+
+function filtrarEstoque(){
+  const busca=document.getElementById('est-busca').value.toLowerCase();
+  const status=document.getElementById('est-filtro-status').value;
+  let lista=produtosEstoqueCache;
+  if(busca) lista=lista.filter(p=>p.nome.toLowerCase().includes(busca));
+  if(status==='critico') lista=lista.filter(p=>p.estoque_minimo!=null&&p.saldo<p.estoque_minimo);
+  if(status==='ok') lista=lista.filter(p=>p.estoque_minimo==null||p.saldo>=p.estoque_minimo);
+  if(status==='sem') lista=lista.filter(p=>p.saldo===0);
+  renderTabelaEstoque(lista);
+}
+
+async function carregarHistorico(){
+  const wrap=document.getElementById('est-historico');if(!wrap)return;
+  const pf=currentUser.perfil||'master';
+  try{
+    const movs=await api('estoque_movimentos?select=*,produtos(nome,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=criado_em.desc&limit=20');
+    if(!movs||!movs.length){wrap.innerHTML='<div class="empty" style="padding:20px">Nenhuma movimentação registrada ainda.</div>';return;}
+    const tipoIcon={entrada:'📥',saida:'📤',ajuste:'⚖️',transferencia:'🔄'};
+    const tipoLabel={entrada:'Entrada',saida:'Saída',ajuste:'Ajuste',transferencia:'Transferência'};
+    const tipoColor={entrada:'var(--success)',saida:'var(--danger)',ajuste:'var(--warn)',transferencia:'var(--accent)'};
+    wrap.innerHTML='<div class="tbl-wrap"><table>'
+      +'<thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Qtd</th><th>Saldo Anterior</th><th>Saldo Posterior</th><th>Motivo</th></tr></thead>'
+      +'<tbody>'
+      +movs.map(m=>{
+        const dt=new Date(m.criado_em).toLocaleString('pt-BR');
+        const nomeProd=m.produtos?.nome||'—';
+        const unid=m.produtos?.unidade||'un';
+        const sinal=m.tipo==='entrada'?'+':m.tipo==='saida'?'-':'';
+        return `<tr>
+          <td style="font-size:12px;color:var(--text3)">${dt}</td>
+          <td style="font-weight:500;color:var(--text)">${nomeProd}</td>
+          <td><span style="color:${tipoColor[m.tipo]};font-weight:600">${tipoIcon[m.tipo]} ${tipoLabel[m.tipo]||m.tipo}</span></td>
+          <td style="color:${tipoColor[m.tipo]};font-weight:700">${sinal}${m.quantidade} ${unid}</td>
+          <td style="color:var(--text3)">${m.quantidade_anterior??'—'}</td>
+          <td style="color:var(--text3)">${m.quantidade_posterior??'—'}</td>
+          <td style="font-size:12px">${m.motivo||'—'}</td>
+        </tr>`;
+      }).join('')
+      +'</tbody></table></div>';
+  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
+}
+
+async function openModalMovimento(produtoId){
+  document.getElementById('modal-est-msg').style.display='none';
+  document.getElementById('est-saldo-atual-wrap').style.display='none';
+  document.getElementById('est-qtd-hint').textContent='';
+  // Resetar campos
+  document.getElementById('est-quantidade').value='';
+  document.getElementById('est-motivo').value='';
+  document.getElementById('est-obs').value='';
+  document.querySelector('input[name="est-tipo"][value="entrada"]').checked=true;
+  onEstTipoChange();
+  // Popular select de produtos
+  const pf=currentUser.perfil||'master';
+  const sel=document.getElementById('est-produto');
+  try{
+    const prods=await api('produtos?select=id,nome,unidade&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc');
+    sel.innerHTML='<option value="">Selecione o produto...</option>'
+      +(prods||[]).map(p=>'<option value="'+p.id+'" data-unidade="'+p.unidade+'">'+p.nome+'</option>').join('');
+  }catch(e){sel.innerHTML='<option value="">Erro ao carregar</option>';}
+  // Se veio com produto pré-selecionado
+  if(produtoId){
+    sel.value=produtoId;
+    await onEstProdutoChange();
+  } else {
+    sel.value='';
+  }
+  openModal('modal-estoque-mov');
+}
+
+async function onEstProdutoChange(){
+  const sel=document.getElementById('est-produto');
+  const pid=sel.value;
+  const wrap=document.getElementById('est-saldo-atual-wrap');
+  if(!pid){wrap.style.display='none';return;}
+  const opt=sel.options[sel.selectedIndex];
+  const unidade=opt?.getAttribute('data-unidade')||'un';
+  document.getElementById('est-qtd-label').innerHTML='Quantidade ('+unidade+') <span class="req">*</span>';
+  // Buscar saldo atual
+  try{
+    const pf=currentUser.perfil||'master';
+    const rows=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade');
+    const saldo=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
+    document.getElementById('est-saldo-atual').textContent=saldo+' '+unidade;
+    wrap.style.display='block';
+    onEstQtdChange();
+  }catch(e){}
+}
+
+function onEstTipoChange(){
+  const tipo=document.querySelector('input[name="est-tipo"]:checked')?.value||'entrada';
+  const labels={entrada:'Quantidade a Entrar',saida:'Quantidade a Sair',ajuste:'Nova Quantidade Total',transferencia:'Quantidade a Transferir'};
+  document.getElementById('est-qtd-label').innerHTML=(labels[tipo]||'Quantidade')+' <span class="req">*</span>';
+  onEstQtdChange();
+}
+
+function onEstQtdChange(){
+  const tipo=document.querySelector('input[name="est-tipo"]:checked')?.value||'entrada';
+  const qtd=parseFloat(document.getElementById('est-quantidade').value)||0;
+  const saldoTxt=document.getElementById('est-saldo-atual').textContent;
+  const saldoAtual=parseFloat(saldoTxt)||0;
+  const hint=document.getElementById('est-qtd-hint');
+  if(!qtd){hint.textContent='';return;}
+  if(tipo==='entrada') hint.textContent='Novo saldo: '+(saldoAtual+qtd);
+  else if(tipo==='saida') hint.textContent='Novo saldo: '+(saldoAtual-qtd)+(saldoAtual-qtd<0?' ⚠️ Saldo ficará negativo':'');
+  else if(tipo==='ajuste') hint.textContent='Diferença: '+(qtd-saldoAtual>=0?'+':'')+(qtd-saldoAtual);
+  else if(tipo==='transferencia') hint.textContent='Saída de: '+qtd;
+  hint.className='field-hint'+(tipo==='saida'&&saldoAtual-qtd<0?' err':'');
+}
+
+async function salvarMovimento(){
+  const pid=document.getElementById('est-produto').value;
+  const qtd=parseFloat(document.getElementById('est-quantidade').value);
+  const tipo=document.querySelector('input[name="est-tipo"]:checked')?.value;
+  if(!pid){showMM('modal-est-msg','Selecione o produto','error');return;}
+  if(!qtd||qtd<=0){showMM('modal-est-msg','Informe uma quantidade válida','error');return;}
+  const pf=currentUser.perfil||'master';
+  try{
+    // Buscar saldo atual
+    const rows=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade');
+    const saldoAtual=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
+    const saldoId=rows&&rows.length?rows[0].id:null;
+    // Calcular novo saldo
+    let novoSaldo;
+    if(tipo==='entrada') novoSaldo=saldoAtual+qtd;
+    else if(tipo==='saida') novoSaldo=saldoAtual-qtd;
+    else if(tipo==='ajuste') novoSaldo=qtd;
+    else if(tipo==='transferencia') novoSaldo=saldoAtual-qtd;
+    // Registrar movimento
+    await api('estoque_movimentos',{method:'POST',body:JSON.stringify({
+      perfil_codigo:pf,
+      produto_id:parseInt(pid),
+      tipo,
+      quantidade:qtd,
+      quantidade_anterior:saldoAtual,
+      quantidade_posterior:novoSaldo,
+      motivo:document.getElementById('est-motivo').value.trim()||null,
+      observacoes:document.getElementById('est-obs').value.trim()||null,
+      criado_por:currentUser.usuario
+    })});
+    // Atualizar saldo
+    if(saldoId){
+      await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});
+    } else {
+      await api('estoque_saldo',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),quantidade:novoSaldo})});
+    }
+    showMM('modal-est-msg','Movimentação registrada com sucesso!','success');
+    setTimeout(()=>{closeModal('modal-estoque-mov');carregarEstoque();},900);
+  }catch(e){showMM('modal-est-msg','Erro: '+e.message,'error');}
 }
 
 // ─── PAINEL: SERVIÇOS ────────────────────────────────────────────
