@@ -1222,34 +1222,38 @@ let lblPassoAtual=1, lblChaveSelecionada='', lblPerfilAtual='';
 
 
 async function carregarListaEmpresas(){
-  const wrap = document.getElementById('config-empresa-lista');
-  if(!wrap) return;
+  const wrap=document.getElementById('config-empresa-lista');
+  if(!wrap)return;
   try{
-    const rows = await api('empresa_config?select=*&order=perfil_codigo.asc');
+    const rows=await api('empresa_config?select=*&order=perfil_codigo.asc');
     if(!rows||!rows.length){
       wrap.innerHTML='<div class="empty">Nenhuma empresa configurada ainda. Clique em "+ Configurar Empresa" para começar.</div>';
       return;
     }
-    wrap.innerHTML='<div class="tbl-wrap"><table>'
-      +'<thead><tr><th>Perfil</th><th>Nome da Empresa</th><th>Logo</th><th>Link de Acesso</th><th>Ação</th></tr></thead>'
-      +'<tbody>'
-      +rows.map(r=>{
-        const logo = r.logo_base64
-          ? '<img src="'+r.logo_base64+'" style="width:40px;height:40px;border-radius:6px;object-fit:cover">'
-          : '<span style="color:var(--text3)">—</span>';
-        const link = 'arquivo.html?empresa='+r.perfil_codigo;
-        return '<tr>'
-          +'<td>'+perfilNome(r.perfil_codigo)+'</td>'
-          +'<td style="font-weight:500;color:var(--text)">'+r.nome_empresa+'</td>'
-          +'<td>'+logo+'</td>'
-          +'<td><code style="font-size:11px;color:var(--accent);background:var(--surface2);padding:2px 6px;border-radius:4px">'+link+'</code></td>'
-          +'<td><div class="action-btns">'
-          +'<button class="btn-sm btn-edit" onclick="editarConfigEmpresa(\"'+r.perfil_codigo+'\")">Editar</button>'
-          +'<button class="btn-sm btn-deact" onclick="deletarConfigEmpresa(\"'+r.perfil_codigo+'\")">Remover</button>'
-          +'</div></td>'
-          +'</tr>';
-      }).join('')
-      +'</tbody></table></div>';
+    // Gerar URL base real do arquivo
+    const urlBase=window.location.href.split('?')[0];
+    let html='<div class="tbl-wrap"><table>';
+    html+='<thead><tr><th>Perfil</th><th>Nome da Empresa</th><th>Logo</th><th>Link para o Cliente</th><th>Ação</th></tr></thead><tbody>';
+    rows.forEach(r=>{
+      const logo=r.logo_base64
+        ?'<img src="'+r.logo_base64+'" style="width:40px;height:40px;border-radius:6px;object-fit:cover">'
+        :'<span style="color:var(--text3)">—</span>';
+      const link=urlBase+'?empresa='+r.perfil_codigo;
+      html+='<tr>';
+      html+='<td>'+perfilNome(r.perfil_codigo)+'</td>';
+      html+='<td style="font-weight:500;color:var(--text)">'+r.nome_empresa+'</td>';
+      html+='<td>'+logo+'</td>';
+      html+='<td>';
+      html+='<code style="font-size:11px;color:var(--accent);background:var(--surface2);padding:2px 6px;border-radius:4px;word-break:break-all">'+link+'</code>';
+      html+='</td>';
+      html+='<td><div class="action-btns">';
+      html+='<button class="btn-sm btn-edit" data-perfil="'+r.perfil_codigo+'" onclick="editarConfigEmpresa(this.dataset.perfil)">Editar</button>';
+      html+='<button class="btn-sm btn-deact" data-perfil="'+r.perfil_codigo+'" onclick="deletarConfigEmpresa(this.dataset.perfil)">Remover</button>';
+      html+='</div></td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+    wrap.innerHTML=html;
   }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
 
