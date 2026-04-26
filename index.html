@@ -278,28 +278,56 @@
 <div class="modal-overlay" id="modal-label">
   <div class="modal modal-sm">
     <div class="modal-title">Personalizar Label</div>
-    <div class="modal-sub">Descreva o que deseja alterar. A IA vai identificar o campo e o novo nome automaticamente.</div>
-    <div class="form-grid">
-      <div class="mfield col-2">
+    <div class="modal-sub">Selecione o perfil, o elemento que deseja renomear e informe o novo nome.</div>
+
+    <!-- Indicador de passos -->
+    <div id="lbl-steps" style="display:flex;gap:0;margin-bottom:24px;">
+      <div class="lbl-step active" id="lbl-step-1" style="flex:1;text-align:center;padding:8px 4px;font-size:11px;font-weight:600;border-bottom:2px solid var(--accent);color:var(--accent)">1. Perfil</div>
+      <div class="lbl-step" id="lbl-step-2" style="flex:1;text-align:center;padding:8px 4px;font-size:11px;font-weight:600;border-bottom:2px solid var(--border);color:var(--text3)">2. Elemento</div>
+      <div class="lbl-step" id="lbl-step-3" style="flex:1;text-align:center;padding:8px 4px;font-size:11px;font-weight:600;border-bottom:2px solid var(--border);color:var(--text3)">3. Novo nome</div>
+    </div>
+
+    <!-- Passo 1: Perfil -->
+    <div id="lbl-passo-1">
+      <div class="mfield">
         <label>Perfil <span class="req">*</span></label>
         <select id="lbl-perfil" onchange="onLabelPerfilChange()"><option value="">Selecione o perfil...</option></select>
       </div>
-      <div class="mfield col-2">
-        <label>Descreva a alteração <span class="req">*</span></label>
-        <textarea id="lbl-descricao-ia" rows="3" placeholder="Ex: No perfil Hospital, quero chamar o menu Clientes de Pacientes" style="width:100%;resize:vertical;min-height:70px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;font-family:var(--font);transition:border-color .2s"></textarea>
-      </div>
-      <div class="mfield col-2" id="lbl-ia-resultado-wrap" style="display:none">
-        <div id="lbl-ia-resultado" style="padding:12px;background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:6px;font-size:13px;line-height:1.6"></div>
+      <div id="labels-existentes-wrap" style="margin-top:16px;display:none;">
+        <div class="section-label">Labels já configurados para este perfil</div>
+        <div id="labels-existentes"></div>
       </div>
     </div>
-    <div id="labels-existentes-wrap" style="margin-top:16px;display:none;">
-      <div class="section-label">Labels já configurados para este perfil</div>
-      <div id="labels-existentes"></div>
+
+    <!-- Passo 2: Elemento (oculto inicialmente) -->
+    <div id="lbl-passo-2" style="display:none">
+      <div class="mfield">
+        <label>Qual elemento deseja renomear? <span class="req">*</span></label>
+        <div id="lbl-elementos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"></div>
+      </div>
     </div>
+
+    <!-- Passo 3: Novo nome (oculto inicialmente) -->
+    <div id="lbl-passo-3" style="display:none">
+      <div style="padding:12px;background:var(--surface2);border-radius:8px;margin-bottom:16px;font-size:13px;">
+        <div style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Você está renomeando</div>
+        <div id="lbl-resumo-elemento" style="color:var(--accent);font-weight:600"></div>
+        <div id="lbl-resumo-atual" style="color:var(--text3);font-size:12px;margin-top:2px"></div>
+      </div>
+      <div class="mfield">
+        <label>Novo nome <span class="req">*</span></label>
+        <input type="text" id="lbl-novo-nome" placeholder="ex: Pacientes" onkeydown="if(event.key==='Enter')salvarLabelGuiado()">
+        <div class="field-hint">Este nome aparecerá na interface para o perfil selecionado.</div>
+      </div>
+    </div>
+
     <div class="modal-msg" id="modal-label-msg"></div>
+
     <div class="modal-actions">
+      <button class="btn-cancel" id="lbl-btn-voltar" onclick="voltarPassoLabel()" style="display:none">← Voltar</button>
       <button class="btn-cancel" onclick="closeModal('modal-label')">Cancelar</button>
-      <button id="btn-interpretar" class="btn-save" style="background:linear-gradient(135deg,#6b7fd7,#a78bfa)" onclick="interpretarESalvarLabel()">✨ Interpretar e Salvar</button>
+      <button class="btn-save" id="lbl-btn-avancar" onclick="avancarPassoLabel()" style="display:none">Próximo →</button>
+      <button class="btn-save" id="lbl-btn-salvar" onclick="salvarLabelGuiado()" style="display:none">Salvar</button>
     </div>
   </div>
 </div>
@@ -951,6 +979,21 @@ async function salvarFuncionalidade(){
 }
 
 // ─── PAINEL: PERSONALIZAR LABELS ─────────────────────────────────
+
+// Definição dos elementos renomeaveis — único lugar para manter
+const ELEMENTOS_LABEL = [
+  {chave:'clientes_menu',       modulo:'Clientes', elemento:'Nome no menu lateral',        padrao:'Clientes',         icone:'📋'},
+  {chave:'clientes_titulo',     modulo:'Clientes', elemento:'Título da página',             padrao:'Clientes',         icone:'📄'},
+  {chave:'clientes_novo',       modulo:'Clientes', elemento:'Texto do botão "Novo"',        padrao:'Novo Cliente',     icone:'➕'},
+  {chave:'clientes_single',     modulo:'Clientes', elemento:'Nome singular do registro',    padrao:'Cliente',          icone:'👤'},
+  {chave:'clientes_th_nome',    modulo:'Clientes', elemento:'Cabeçalho coluna "Nome"',      padrao:'Nome',             icone:'🏷️'},
+  {chave:'clientes_campo_nome', modulo:'Clientes', elemento:'Label campo "Nome" (formulário)',padrao:'Nome Completo',  icone:'✏️'},
+  {chave:'clientes_campo_cpf',  modulo:'Clientes', elemento:'Label campo "CPF"',            padrao:'CPF',              icone:'🪪'},
+];
+
+// Estado do wizard
+let lblPassoAtual=1, lblChaveSelecionada='', lblPerfilAtual='';
+
 function renderLabelsPanel(){
   return `
     <div class="panel-header">
@@ -961,40 +1004,98 @@ function renderLabelsPanel(){
       <div class="info-card-icon">🏷️</div>
       <div class="info-card-body">
         <div class="info-card-title">Como funciona</div>
-        <div class="info-card-desc">Descreva em texto livre o que deseja alterar. A IA identifica o campo correto e salva automaticamente.<br><strong>O banco de dados nunca é alterado</strong> — apenas o texto na tela muda.</div>
+        <div class="info-card-desc">Renomeie como os textos aparecem na tela para cada perfil de negócio.<br>
+        Escolha o perfil, o elemento que deseja renomear e informe o novo nome.<br>
+        <strong>O banco de dados nunca é alterado</strong> — apenas o texto na tela muda.</div>
       </div>
-    </div>
-`;
+    </div>`;
 }
 
 async function carregarLabelsTabela(){
-  const wrap=document.getElementById('labels-painel-wrap');if(!wrap)return;
-  if(!perfisCache.length) await carregarPerfisCache();
-  try{
-    const rows=await api('perfil_labels?select=id,perfil_codigo,chave,label&order=perfil_codigo.asc,chave.asc');
-    if(!rows||!rows.length){wrap.innerHTML='<div class="empty">Nenhum label configurado ainda. Clique em "+ Novo Label" para começar.</div>';return;}
-    const campoNome=chave=>chave;
-    wrap.innerHTML=`<div class="labels-table-wrap"><table>
-      <thead><tr><th>Perfil</th><th>Campo</th><th>Label na Interface</th><th>Ação</th></tr></thead>
-      <tbody>${rows.map(r=>`<tr>
-        <td>${perfilNome(r.perfil_codigo)}</td>
-        <td style="color:var(--text2);font-size:12px">${campoNome(r.chave)}</td>
-        <td style="color:var(--accent);font-weight:600">${r.label}</td>
-        <td><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id},'${r.perfil_codigo}')">Remover</button></td>
-      </tr>`).join('')}</tbody></table></div>`;
-  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
+  // Painel só tem o info-card, sem tabela
 }
 
 async function openModalLabel(){
+  lblPassoAtual=1;
+  lblChaveSelecionada='';
+  lblPerfilAtual='';
   document.getElementById('modal-label-msg').style.display='none';
-  document.getElementById('lbl-descricao-ia').value='';
-  document.getElementById('lbl-ia-resultado-wrap').style.display='none';
-  document.getElementById('lbl-ia-resultado').innerHTML='';
   document.getElementById('labels-existentes-wrap').style.display='none';
-  const btn=document.getElementById('btn-interpretar');
-  if(btn){btn.textContent='\u2728 Interpretar e Salvar';btn.disabled=false;}
+  document.getElementById('lbl-novo-nome').value='';
   await popularSelectPerfis('lbl-perfil','Selecione o perfil...');
+  irParaPassoLabel(1);
   openModal('modal-label');
+}
+
+function irParaPassoLabel(passo){
+  lblPassoAtual=passo;
+  // Mostrar/ocultar painéis
+  document.getElementById('lbl-passo-1').style.display=passo===1?'block':'none';
+  document.getElementById('lbl-passo-2').style.display=passo===2?'block':'none';
+  document.getElementById('lbl-passo-3').style.display=passo===3?'block':'none';
+  // Botões
+  document.getElementById('lbl-btn-voltar').style.display=passo>1?'inline-block':'none';
+  document.getElementById('lbl-btn-avancar').style.display=passo<3?'inline-block':'none';
+  document.getElementById('lbl-btn-salvar').style.display=passo===3?'inline-block':'none';
+  // Indicadores de passo
+  for(let i=1;i<=3;i++){
+    const el=document.getElementById('lbl-step-'+i);
+    if(el){
+      el.style.borderBottomColor = i===passo?'var(--accent)':i<passo?'var(--success)':'var(--border)';
+      el.style.color = i===passo?'var(--accent)':i<passo?'var(--success)':'var(--text3)';
+    }
+  }
+  document.getElementById('modal-label-msg').style.display='none';
+}
+
+async function avancarPassoLabel(){
+  if(lblPassoAtual===1){
+    const perfil=document.getElementById('lbl-perfil').value;
+    if(!perfil){showMM('modal-label-msg','Selecione um perfil','error');return;}
+    lblPerfilAtual=perfil;
+    // Montar grid de elementos para passo 2
+    const grid=document.getElementById('lbl-elementos-grid');
+    // Buscar labels já configurados para este perfil
+    const rows=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&select=chave,label').catch(()=>[]);
+    const labelsAtuais={};
+    (rows||[]).forEach(r=>labelsAtuais[r.chave]=r.label);
+    grid.innerHTML=ELEMENTOS_LABEL.map(el=>{
+      const atual=labelsAtuais[el.chave]||el.padrao;
+      const temCustom=!!labelsAtuais[el.chave];
+      return '<div onclick="selecionarElementoLabel(\''+el.chave+'\')" '
+        +'style="padding:12px;background:var(--surface2);border:1px solid '+(temCustom?'var(--accent)':'var(--border)')+';border-radius:8px;cursor:pointer;transition:all .15s;" '
+        +'onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\''+(temCustom?'var(--accent)':'var(--border)')+'\'"> '
+        +'<div style="font-size:18px;margin-bottom:4px">'+el.icone+'</div>'
+        +'<div style="font-size:12px;color:var(--text2);font-weight:600">'+el.elemento+'</div>'
+        +'<div style="font-size:11px;color:'+(temCustom?'var(--accent)':'var(--text3)')+';margin-top:3px">Atual: '+atual+'</div>'
+        +'</div>';
+    }).join('');
+    irParaPassoLabel(2);
+  } else if(lblPassoAtual===2){
+    if(!lblChaveSelecionada){showMM('modal-label-msg','Selecione um elemento','error');return;}
+    irParaPassoLabel(3);
+  }
+}
+
+function voltarPassoLabel(){
+  if(lblPassoAtual>1) irParaPassoLabel(lblPassoAtual-1);
+}
+
+function selecionarElementoLabel(chave){
+  lblChaveSelecionada=chave;
+  const el=ELEMENTOS_LABEL.find(e=>e.chave===chave);
+  if(!el)return;
+  // Destacar selecionado
+  document.querySelectorAll('#lbl-elementos-grid > div').forEach((d,i)=>{
+    d.style.borderColor=ELEMENTOS_LABEL[i].chave===chave?'var(--accent)':'var(--border)';
+    d.style.background=ELEMENTOS_LABEL[i].chave===chave?'rgba(107,127,215,.15)':'var(--surface2)';
+  });
+  // Preencher resumo no passo 3
+  document.getElementById('lbl-resumo-elemento').textContent=el.icone+' '+el.elemento+' — módulo '+el.modulo;
+  document.getElementById('lbl-resumo-atual').textContent='Nome padrão: '+el.padrao;
+  // Avança automaticamente para passo 3
+  irParaPassoLabel(3);
+  document.getElementById('lbl-novo-nome').focus();
 }
 
 function onLabelPerfilChange(){
@@ -1011,19 +1112,20 @@ async function carregarLabelsExistentes(perfil){
   try{
     const rows=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&select=*&order=chave.asc');
     if(!rows||!rows.length){
-      cont.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum label configurado ainda para este perfil.</div>';
+      cont.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum label configurado ainda.</div>';
       return;
     }
+    const nomeEl=chave=>{const e=ELEMENTOS_LABEL.find(x=>x.chave===chave);return e?e.elemento:chave;};
     cont.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">'
       +'<thead><tr>'
-      +'<th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">CAMPO</th>'
-      +'<th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">LABEL ATUAL</th>'
+      +'<th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">ELEMENTO</th>'
+      +'<th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">NOME ATUAL</th>'
       +'<th></th>'
       +'</tr></thead><tbody>'
       +rows.map(r=>'<tr style="border-top:1px solid var(--border)">'
-        +'<td style="padding:6px 8px;color:var(--text2)">'+r.chave+'</td>'
+        +'<td style="padding:6px 8px;color:var(--text2)">'+nomeEl(r.chave)+'</td>'
         +'<td style="padding:6px 8px;color:var(--accent);font-weight:600">'+r.label+'</td>'
-        +'<td style="padding:6px 8px"><button class="btn-sm btn-deact" onclick="deletarLabel('+r.id+',' + "'" + perfil + "'" + ')">Remover</button></td>'
+        +'<td style="padding:6px 8px"><button class="btn-sm btn-deact" onclick="deletarLabel('+r.id+',\''+perfil+'\')">Remover</button></td>'
         +'</tr>').join('')
       +'</tbody></table>';
   }catch(e){cont.innerHTML='Erro: '+e.message;}
@@ -1034,119 +1136,30 @@ async function deletarLabel(id,perfil){
     await api('perfil_labels?id=eq.'+id,{method:'DELETE',headers:{...hdrs,'Prefer':''}});
     await carregarLabelsExistentes(perfil);
     await carregarLabels();
-    carregarLabelsTabela();
   }catch(e){alert('Erro: '+e.message);}
 }
 
-// Mapeamento local de termos comuns para chaves do banco
-// Usado como fallback se a IA não estiver disponível
-const MAPA_LOCAL={
-  'menu':'clientes_menu','menu lateral':'clientes_menu','nome do menu':'clientes_menu',
-  'titulo':'clientes_titulo','título':'clientes_titulo','pagina':'clientes_titulo',
-  'botao novo':'clientes_novo','botão novo':'clientes_novo','botao adicionar':'clientes_novo',
-  'singular':'clientes_single','nome singular':'clientes_single',
-  'coluna nome':'clientes_th_nome','cabecalho':'clientes_th_nome',
-  'campo nome':'clientes_campo_nome','nome completo':'clientes_campo_nome',
-  'campo cpf':'clientes_campo_cpf','cpf':'clientes_campo_cpf',
-};
-
-function interpretarLocalLabel(descricao){
-  const d=descricao.toLowerCase();
-  // Extrair novo nome: última palavra entre aspas ou após "de " / "para " / "chamar de "
-  let novoNome='';
-  const mPara=d.match(/(?:chamar(?:\s+de)?|para|como)\s+["']?([a-záàãéêíóõúüçA-ZÁÀÃÉÊÍÓÕÚÜÇ][^"'\n,]+?)["']?(?:\s|$|,)/i);
-  if(mPara) novoNome=mPara[1].trim();
-  // Identificar chave
-  let chave='';
-  for(const [termo,k] of Object.entries(MAPA_LOCAL)){
-    if(d.includes(termo)){chave=k;break;}
-  }
-  // Tentar extrair do padrão "campo X / menu X"
-  if(!chave){
-    const mCampo=d.match(/(?:campo|menu|botao|botão|titulo|título)\s+(?:de\s+)?(\w+)/i);
-    if(mCampo) chave=mCampo[1]+'_menu';
-  }
-  return {chave,novoNome};
-}
-
-async function interpretarESalvarLabel(){
-  const perfil=document.getElementById('lbl-perfil').value;
-  const descricao=document.getElementById('lbl-descricao-ia').value.trim();
-  const resDiv=document.getElementById('lbl-ia-resultado');
-  const resWrap=document.getElementById('lbl-ia-resultado-wrap');
-  const btn=document.getElementById('btn-interpretar');
-  if(!perfil){showMM('modal-label-msg','Selecione o perfil','error');return;}
-  if(!descricao){showMM('modal-label-msg','Descreva a alteracao desejada','error');return;}
-  btn.textContent='✨ Interpretando...';
-  btn.disabled=true;
-  resWrap.style.display='block';
-  resDiv.innerHTML='<span style="color:var(--warn)">✨ A IA esta analisando...</span>';
-
-  // Prompt com instrucoes claras de grafia exata e suporte a multiplos campos
-  const sysLines=[
-    'Voce e um assistente que interpreta pedidos de renomeacao de campos de um sistema de gestao.',
-    'Campos disponiveis:',
-    'clientes_menu = nome do modulo no menu lateral (ex: Clientes, Pacientes, Alunos)',
-    'clientes_titulo = titulo da pagina principal do modulo',
-    'clientes_novo = texto do botao de criar novo registro',
-    'clientes_single = nome singular do registro',
-    'clientes_th_nome = cabecalho da coluna Nome na listagem',
-    'clientes_campo_nome = label do campo Nome no formulario',
-    'clientes_campo_cpf = label do campo CPF no cabecalho e formulario',
-    'REGRAS OBRIGATORIAS:',
-    '1. Preserve EXATAMENTE a grafia, acentos e maiusculas/minusculas que o usuario pediu para o novo nome.',
-    '2. Se o pedido mencionar mais de um campo, retorne um array JSON com todos.',
-    '3. Formato para UM campo: {"chave":"CHAVE","novoNome":"NOME EXATO","explicacao":"motivo"}',
-    '4. Formato para MULTIPLOS: [{"chave":"CHAVE1","novoNome":"NOME1","explicacao":"motivo"},{"chave":"CHAVE2","novoNome":"NOME2","explicacao":"motivo"}]',
-    '5. Retorne APENAS o JSON. Nenhum texto antes ou depois.'
-  ];
-  const sys=sysLines.join(' ');
-  const userMsg='Perfil: '+perfilNome(perfil)+'. Pedido: '+descricao;
-
-  async function salvarItems(items){
-    for(const item of items){
-      if(!item.chave||!item.novoNome)continue;
-      const ex=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+item.chave+'&select=id').catch(()=>[]);
-      if(ex&&ex.length>0){
-        await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+item.chave,{method:'PATCH',body:JSON.stringify({label:item.novoNome})});
-      } else {
-        await api('perfil_labels',{method:'POST',body:JSON.stringify({perfil_codigo:perfil,chave:item.chave,label:item.novoNome})});
-      }
+async function salvarLabelGuiado(){
+  const novoNome=document.getElementById('lbl-novo-nome').value.trim();
+  if(!novoNome){showMM('modal-label-msg','Informe o novo nome','error');return;}
+  if(!lblChaveSelecionada){showMM('modal-label-msg','Selecione um elemento','error');return;}
+  if(!lblPerfilAtual){showMM('modal-label-msg','Selecione um perfil','error');return;}
+  try{
+    const ex=await api('perfil_labels?perfil_codigo=eq.'+lblPerfilAtual+'&chave=eq.'+lblChaveSelecionada+'&select=id').catch(()=>[]);
+    if(ex&&ex.length>0){
+      await api('perfil_labels?perfil_codigo=eq.'+lblPerfilAtual+'&chave=eq.'+lblChaveSelecionada,
+        {method:'PATCH',body:JSON.stringify({label:novoNome})});
+    } else {
+      await api('perfil_labels',{method:'POST',
+        body:JSON.stringify({perfil_codigo:lblPerfilAtual,chave:lblChaveSelecionada,label:novoNome})});
     }
     await carregarLabels();
-    await carregarLabelsExistentes(perfil);
-    resDiv.innerHTML='<strong style="color:var(--success)">✅ Salvo!</strong>'
-      +items.map(p=>'<br><code style="background:var(--surface2);padding:2px 4px;border-radius:3px">'+p.chave+'</code> &rarr; <strong style="color:var(--accent)">'+p.novoNome+'</strong>').join('');
-    btn.textContent='✨ Interpretar e Salvar';
-    btn.disabled=false;
-    showMM('modal-label-msg','Label(s) salvos!','success');
-  }
-
-  try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,system:sys,messages:[{role:'user',content:userMsg}]})
-    });
-    const data=await resp.json();
-    const txt=(data.content&&data.content[0]&&data.content[0].text)||'';
-    const m=txt.match(/[\[\{][\s\S]*[\]\}]/);
-    const parsed=JSON.parse(m?m[0]:txt);
-    const items=Array.isArray(parsed)?parsed:[parsed];
-    await salvarItems(items);
-  }catch(errIA){
-    // Fallback local
-    const local=interpretarLocalLabel(descricao);
-    if(local.chave&&local.novoNome){
-      await salvarItems([local]);
-    } else {
-      resDiv.innerHTML='<span style="color:var(--danger)">❌ Nao foi possivel identificar. Tente: "Quero chamar o menu Clientes de Pacientes".</span>';
-      btn.textContent='✨ Interpretar e Salvar';
-      btn.disabled=false;
-    }
-  }
+    showMM('modal-label-msg','Salvo com sucesso!','success');
+    setTimeout(()=>{
+      closeModal('modal-label');
+    },800);
+  }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
 }
-
 
 // ─── PAINEL: CLIENTES ─────────────────────────────────────────────
 function renderClientes(){
