@@ -1976,15 +1976,23 @@ async function carregarFinanceiro(){
 async function carregarDashboard(){
   const pf=currentUser.perfil||'master';
   try{
-    const [receitas,despesas,vencidos]=await Promise.all([
+    const [recPagas,despPagas,recPendentes,despPendentes,vencidos]=await Promise.all([
+      // Receitas pagas → compõem o saldo real
+      api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pago'),
+      // Despesas pagas → reduzem o saldo real
+      api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago'),
+      // Receitas pendentes → a receber
       api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pendente'),
+      // Despesas pendentes → a pagar
       api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pendente'),
+      // Vencidos (qualquer tipo)
       api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=eq.vencido'),
     ]);
-    const totRec=(receitas||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
-    const totDesp=(despesas||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
-    const totVenc=(vencidos||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
-    const saldo=totRec-totDesp;
+    const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
+    const saldo=soma(recPagas)-soma(despPagas);
+    const totRec=soma(recPendentes);
+    const totDesp=soma(despPendentes);
+    const totVenc=soma(vencidos);
     const el=id=>document.getElementById(id);
     if(el('fin-saldo')){el('fin-saldo').textContent=fmt(saldo);el('fin-saldo').style.color=saldo>=0?'var(--success)':'var(--danger)';}
     if(el('fin-a-receber'))el('fin-a-receber').textContent=fmt(totRec);
@@ -2052,25 +2060,39 @@ async function carregarCaixa(){
   const pf=currentUser.perfil||'master';
   const data=document.getElementById('cx-filtro-data')?.value||new Date().toISOString().slice(0,10);
   try{
-    const movs=await api('caixa_movimentos?select=*,financeiro_categorias(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_movimento=eq.'+data+'&order=criado_em.asc');
-    const entradas=(movs||[]).filter(m=>m.tipo==='entrada').reduce((s,m)=>s+parseFloat(m.valor||0),0);
-    const saidas=(movs||[]).filter(m=>m.tipo==='saida').reduce((s,m)=>s+parseFloat(m.valor||0),0);
+    // Buscar movimentos manuais de caixa do dia
+    const movsMan=await api('caixa_movimentos?select=*,financeiro_categorias(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_movimento=eq.'+data+'&order=criado_em.asc');
+    // Buscar lançamentos pagos na data (receitas e despesas)
+    const lanPagos=await api('financeiro_lancamentos?select=id,tipo,descricao,valor,financeiro_categorias(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=eq.pago&data_pagamento=eq.'+data);
+    // Unir as duas listas — lançamentos pagos viram movimentos no caixa
+    const movsLan=(lanPagos||[]).map(l=>({
+      id:'lan-'+l.id, tipo:l.tipo==='receita'?'entrada':'saida',
+      descricao:l.descricao+' (Lançamento)',
+      valor:l.valor, financeiro_categorias:l.financeiro_categorias,
+      origem:'lancamento'
+    }));
+    const todosMovs=[...(movsMan||[]).map(m=>({...m,origem:'caixa'})),...movsLan];
+    const entradas=todosMovs.filter(m=>m.tipo==='entrada').reduce((s,m)=>s+parseFloat(m.valor||0),0);
+    const saidas=todosMovs.filter(m=>m.tipo==='saida').reduce((s,m)=>s+parseFloat(m.valor||0),0);
     const saldo=entradas-saidas;
     const el=id=>document.getElementById(id);
     if(el('cx-total-entrada'))el('cx-total-entrada').textContent=fmt(entradas);
     if(el('cx-total-saida'))el('cx-total-saida').textContent=fmt(saidas);
     if(el('cx-saldo-dia')){el('cx-saldo-dia').textContent=fmt(saldo);el('cx-saldo-dia').style.color=saldo>=0?'var(--success)':'var(--danger)';}
-    if(!movs||!movs.length){tbody.innerHTML='<tr><td colspan="6" class="empty">Nenhum movimento nesta data.</td></tr>';return;}
-    tbody.innerHTML=movs.map(m=>{
+    if(!todosMovs.length){tbody.innerHTML='<tr><td colspan="6" class="empty">Nenhum movimento nesta data.</td></tr>';return;}
+    tbody.innerHTML=todosMovs.map(m=>{
       const tipoColor=m.tipo==='entrada'?'var(--success)':'var(--danger)';
       const tipoIcon=m.tipo==='entrada'?'💵':'💸';
+      const acoes=m.origem==='caixa'
+        ?`<button class="btn-sm btn-deact" data-id="${m.id}" onclick="deletarMovCaixa(this.dataset.id)">Remover</button>`
+        :'<span style="font-size:11px;color:var(--text3)">Lançamento</span>';
       return `<tr>
-        <td style="color:var(--text3)">${m.id}</td>
+        <td style="color:var(--text3);font-size:11px">${m.id}</td>
         <td><span style="color:${tipoColor};font-weight:600">${tipoIcon} ${m.tipo==='entrada'?'Entrada':'Saída'}</span></td>
         <td style="font-weight:500;color:var(--text)">${m.descricao}</td>
         <td style="font-size:12px;color:var(--text3)">${m.financeiro_categorias?.nome||'-'}</td>
         <td style="font-weight:700;color:${tipoColor}">${fmt(m.valor)}</td>
-        <td><button class="btn-sm btn-deact" data-id="${m.id}" onclick="deletarMovCaixa(this.dataset.id)">Remover</button></td>
+        <td>${acoes}</td>
       </tr>`;
     }).join('');
   }catch(e){tbody.innerHTML=`<tr><td colspan="6" class="empty">Erro: ${e.message}</td></tr>`;}
@@ -3647,4 +3669,3 @@ async function salvarAcessos(){
 }
 </script>
 </body>
-</html>
