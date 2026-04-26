@@ -92,6 +92,7 @@
   .mfield label .req{color:var(--danger);margin-left:2px;}
   .mfield input,.mfield select,.mfield textarea{width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;font-family:var(--font);transition:border-color .2s;}
   .mfield input:focus,.mfield select:focus,.mfield textarea:focus{border-color:var(--accent);}
+  .mfield input:disabled{opacity:.6;cursor:not-allowed;}
   .mfield select option{background:var(--surface2);}
   .mfield textarea{resize:vertical;min-height:70px;}
   .mfield .field-hint{font-size:11px;color:var(--text3);margin-top:4px;min-height:16px;}
@@ -114,7 +115,6 @@
   .access-item input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0;}
   .access-item label{font-size:13px;color:var(--text2);cursor:pointer;}
   .access-item.selected label{color:var(--text);}
-  /* TABELA ACESSOS */
   .menus-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:auto;margin-top:16px;}
   .menus-table-wrap table{width:100%;border-collapse:collapse;min-width:600px;}
   .menus-table-wrap thead{background:var(--surface2);}
@@ -125,7 +125,6 @@
   .menus-table-wrap tr:hover td{background:var(--surface2);}
   .toggle-btn{background:none;border:none;font-size:18px;cursor:pointer;transition:transform .15s;}
   .toggle-btn:hover{transform:scale(1.2);}
-  /* LABELS TABLE */
   .labels-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:16px;}
   .labels-table-wrap table{width:100%;border-collapse:collapse;}
   .labels-table-wrap thead{background:var(--surface2);}
@@ -146,6 +145,11 @@
   .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
   .total-badge{font-size:12px;color:var(--text3);margin-left:8px;font-weight:400;}
   .label-preview{display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(107,127,215,.15);color:var(--accent);font-size:12px;margin-top:4px;}
+  .filtro-bar{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:8px;}
+  .filtro-bar label{font-size:11px;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;white-space:nowrap;font-weight:600;}
+  .filtro-bar select{padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;min-width:200px;}
+  .filtro-bar select:focus{border-color:var(--accent);}
+  .filtro-hint{font-size:12px;color:var(--text3);font-style:italic;}
 </style>
 </head>
 <body>
@@ -197,7 +201,10 @@
       <div class="mfield col-1" id="wrap-perfil"><label>Perfil <span class="req">*</span></label>
         <select id="m-perfil"><option value="">Selecione...</option></select>
       </div>
-      <div class="mfield col-1" id="wrap-empresa"><label>Empresa</label><input type="text" id="m-empresa" placeholder="Nome da empresa"></div>
+      <div class="mfield col-1" id="wrap-empresa">
+        <label id="lbl-empresa-modal">Empresa</label>
+        <input type="text" id="m-empresa" placeholder="Nome da empresa">
+      </div>
     </div>
     <div id="wrap-acessos-new" style="display:none;margin-top:16px;">
       <div class="access-section-title">Menus que este usuário poderá acessar</div>
@@ -264,7 +271,7 @@
   </div>
 </div>
 
-<!-- MODAL LABEL — SIMPLIFICADO -->
+<!-- MODAL LABEL -->
 <div class="modal-overlay" id="modal-label">
   <div class="modal modal-sm">
     <div class="modal-title">Personalizar Label</div>
@@ -340,26 +347,33 @@ const SUPA_URL='https://uqigoyedyaltwjmfysnu.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaWdveWVkeWFsdHdqbWZ5c251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjY2MjcsImV4cCI6MjA5MjY0MjYyN30.EtTJIzn-OITNfp2uraLgSM0HH7ZLLjewa4l0zOggutI';
 const hdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 
-let currentUser=null, editingUserId=null, editingClienteId=null, accessUserId=null, accessUserPerfil=null;
-let perfisCache=[], funcCache=[], labelsCache={};
+// ─── ESTADO GLOBAL ───────────────────────────────────────────────
+let currentUser=null;
+let editingUserId=null, editingClienteId=null, accessUserId=null, accessUserPerfil=null;
+// Caches carregados UMA VEZ no login e atualizados só após operações de escrita
+let perfisCache=[];   // [{id, codigo, descricao, ativo}]
+let funcCache=[];     // [{id, perfil_codigo, funcionalidade, label, ativo}]
+let labelsCache={};   // {perfil_codigo: {chave: label}}
 
-// Mapa de campos amigáveis para o modal de labels
-const CAMPOS_LABELS = [
-  {chave:'clientes_menu',      nome:'Menu lateral — nome do módulo',         padrao:'Clientes'},
-  {chave:'clientes_titulo',    nome:'Título da página do módulo',             padrao:'Clientes'},
-  {chave:'clientes_novo',      nome:'Botão "Novo" — texto do botão',          padrao:'Novo Cliente'},
-  {chave:'clientes_single',    nome:'Nome singular do registro',              padrao:'Cliente'},
-  {chave:'clientes_th_nome',   nome:'Coluna "Nome" na listagem',              padrao:'Nome'},
-  {chave:'clientes_campo_nome',nome:'Campo "Nome" no formulário',             padrao:'Nome Completo'},
-  {chave:'clientes_campo_cpf', nome:'Campo "CPF" no formulário',              padrao:'CPF'},
+const CAMPOS_LABELS=[
+  {chave:'clientes_menu',      nome:'Menu lateral — nome do módulo',    padrao:'Clientes'},
+  {chave:'clientes_titulo',    nome:'Título da página do módulo',        padrao:'Clientes'},
+  {chave:'clientes_novo',      nome:'Botão "Novo" — texto do botão',     padrao:'Novo Cliente'},
+  {chave:'clientes_single',    nome:'Nome singular do registro',         padrao:'Cliente'},
+  {chave:'clientes_th_nome',   nome:'Coluna "Nome" na listagem',         padrao:'Nome'},
+  {chave:'clientes_campo_nome',nome:'Campo "Nome" no formulário',        padrao:'Nome Completo'},
+  {chave:'clientes_campo_cpf', nome:'Campo "CPF" no formulário',         padrao:'CPF'},
 ];
 
+// ─── API ─────────────────────────────────────────────────────────
 async function api(path,opts={}){
   const res=await fetch(SUPA_URL+'/rest/v1/'+path,{headers:{...hdrs,...(opts.headers||{})},...opts});
-  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.message||e.hint||'Erro');}
-  if(res.status===204) return null;
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.message||e.hint||'Erro '+res.status);}
+  if(res.status===204)return null;
   return res.json();
 }
+
+// ─── HELPERS ─────────────────────────────────────────────────────
 function showMsg(el,txt,type){el.textContent=txt;el.className='msg '+type;el.style.display='block';}
 function showMM(id,txt,type){const el=document.getElementById(id);el.textContent=txt;el.className='modal-msg '+type;el.style.display='block';}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
@@ -367,17 +381,23 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function toggleCheck(id,item){const c=document.getElementById(id);c.checked=!c.checked;item.classList.toggle('selected',c.checked);}
 function nivelLabel(n){return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário';}
 function nivelBadge(n){return n==='master_sistema'?'badge-master':n==='master_empresa'?'badge-empresa':'badge-usuario';}
-function perfilNome(c){const p=perfisCache.find(x=>x.codigo===c);return p?p.descricao:c||'-';}
-function getLabel(chave,padrao){
-  const p=currentUser?.perfil||'';
-  return(labelsCache[p]&&labelsCache[p][chave])||padrao;
+function perfilNome(c){const p=perfisCache.find(x=>x.codigo===c);return p?p.descricao:(c||'-');}
+function getLabel(chave,padrao){const p=currentUser?.perfil||'';return(labelsCache[p]&&labelsCache[p][chave])||padrao;}
+function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+// Popula qualquer <select> com os perfis do cache
+function popularSelectPerfis(elId, placeholder){
+  const sel=document.getElementById(elId);
+  if(!sel)return;
+  sel.innerHTML=`<option value="">${placeholder||'Selecione o perfil...'}</option>`+
+    perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
+  sel.value='';
 }
 
-/* MÁSCARAS */
+// ─── MÁSCARAS ────────────────────────────────────────────────────
 function mascaraCPF(el){let v=el.value.replace(/\D/g,'');v=v.replace(/(\d{3})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
 function mascaraTel(el){let v=el.value.replace(/\D/g,'');if(v.length<=10)v=v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3');else v=v.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3');el.value=v.trim().replace(/-$/,'');}
 function mascaraCEP(el){let v=el.value.replace(/\D/g,'');v=v.replace(/(\d{5})(\d)/,'$1-$2');el.value=v;}
-
 async function buscarCEP(){
   const cep=document.getElementById('cli-cep').value.replace(/\D/g,'');
   const hint=document.getElementById('cep-hint');
@@ -399,7 +419,7 @@ async function buscarCEP(){
   }catch(e){hint.className='field-hint err';hint.textContent='Erro ao buscar CEP';}
 }
 
-/* LOGIN */
+// ─── LOGIN / LOGOUT ───────────────────────────────────────────────
 async function doLogin(){
   const user=document.getElementById('inp-user').value.trim();
   const pass=document.getElementById('inp-pass').value.trim();
@@ -419,7 +439,8 @@ async function doLogin(){
       document.getElementById('screen-main').style.display='flex';
       document.getElementById('top-username').textContent=u.nome||u.usuario;
       document.getElementById('top-avatar').textContent=(u.nome||u.usuario)[0].toUpperCase();
-      await Promise.all([carregarPerfisCache(),carregarFuncCache(),carregarLabels()]);
+      // Carrega todos os caches em paralelo ANTES de construir a interface
+      await Promise.all([carregarPerfisCache(), carregarFuncCache(), carregarLabels()]);
       await construirInterface();
     },800);
   }catch(e){showMsg(msg,'Erro de conexão: '+e.message,'error');}
@@ -438,8 +459,16 @@ function doLogout(){
   document.getElementById('content-area').innerHTML='';
 }
 
-async function carregarPerfisCache(){try{perfisCache=await api('perfis?ativo=eq.true&select=*&order=id.asc')||[];}catch(e){perfisCache=[];}}
-async function carregarFuncCache(){try{funcCache=await api('perfil_funcionalidades?ativo=eq.true&select=*&order=id.asc')||[];}catch(e){funcCache=[];}}
+// ─── CARREGAMENTO DE CACHES ───────────────────────────────────────
+// Chamados no login e após operações de escrita que alteram perfis/funcs
+async function carregarPerfisCache(){
+  try{perfisCache=await api('perfis?ativo=eq.true&select=*&order=id.asc')||[];}
+  catch(e){perfisCache=[];}
+}
+async function carregarFuncCache(){
+  try{funcCache=await api('perfil_funcionalidades?ativo=eq.true&select=*&order=id.asc')||[];}
+  catch(e){funcCache=[];}
+}
 async function carregarLabels(){
   if(!currentUser?.perfil)return;
   try{
@@ -449,7 +478,7 @@ async function carregarLabels(){
   }catch(e){}
 }
 
-/* INTERFACE DINÂMICA */
+// ─── INTERFACE DINÂMICA ───────────────────────────────────────────
 async function construirInterface(){
   const isMasterSistema=currentUser.nivel==='master_sistema';
   const isMasterEmpresa=currentUser.nivel==='master_empresa';
@@ -470,7 +499,6 @@ async function construirInterface(){
   sidebar.innerHTML='';contentArea.innerHTML='';
   let primeiroMenu=null;
 
-  // ADMINISTRAÇÃO
   const adminItens=[];
   if(isMasterSistema){
     adminItens.push({id:'usuarios',icon:'👤',label:'Gestão de Usuários'});
@@ -484,7 +512,6 @@ async function construirInterface(){
     adminItens.forEach(item=>{if(!primeiroMenu)primeiroMenu=item.id;addMenuPanel(sidebar,contentArea,item);});
   }
 
-  // FUNCIONAIS
   const grupos=[
     {nome:'Cadastros',itens:[
       {id:'clientes',    icon:'🧑‍🤝‍🧑',func:'clientes'},
@@ -528,7 +555,6 @@ function addMenuPanel(sidebar,contentArea,item){
   panel.innerHTML=renderPanel(item.id);
   contentArea.appendChild(panel);
 }
-function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 
 function renderPanel(id){
   const icons={clientes:'🧑‍🤝‍🧑',fornecedores:'🚚',produtos:'📦',servicos:'🛠️',estoque:'🏭',agendamentos:'📅',financeiro:'💰',relatorios:'📊'};
@@ -548,122 +574,6 @@ function renderPanel(id){
   }
 }
 
-function renderUsuarios(){
-  const isMasterSistema=currentUser?.nivel==='master_sistema';
-  // Para master_sistema: exibe só o filtro, sem tabela. Tabela aparece após selecionar perfil.
-  // Para master_empresa: exibe direto a tabela dos seus usuários.
-  if(isMasterSistema){
-    return `<div class="panel-header"><span class="panel-title">Gestão de Usuários</span>
-      <button class="btn-new" onclick="openModalUsuario('new')">+ Novo Usuário</button></div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
-        <label style="font-size:12px;color:var(--text2);white-space:nowrap;font-weight:600;letter-spacing:.5px;text-transform:uppercase">Perfil:</label>
-        <select id="filtro-perfil-usuarios" onchange="carregarUsuariosPorPerfil()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;min-width:200px;">
-          <option value="">Selecione o perfil...</option>
-        </select>
-        <span id="usuarios-perfil-hint" style="font-size:12px;color:var(--text3)">← Selecione um perfil para visualizar os usuários</span>
-      </div>
-      <div id="usuarios-tabela-wrap" style="display:none;">
-        <div class="tbl-wrap"><table>
-        <thead><tr><th>#</th><th>Usuário</th><th>Nome</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="tbl-usuarios"></tbody>
-        </table></div>
-      </div>`;
-  }
-  // master_empresa: tabela direta
-  return `<div class="panel-header"><span class="panel-title">Gestão de Usuários</span>
-    <button class="btn-new" onclick="openModalUsuario('new')">+ Novo Usuário</button></div>
-    <div class="tbl-wrap"><table>
-    <thead><tr><th>#</th><th>Usuário</th><th>Nome</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead>
-    <tbody id="tbl-usuarios"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
-    </table></div>`;
-}
-
-function popularFiltroPerfis(){
-  const sel=document.getElementById('filtro-perfil-usuarios');
-  if(!sel)return;
-  sel.innerHTML='<option value="">Selecione o perfil...</option>'+
-    perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
-}
-
-async function carregarUsuariosPorPerfil(){
-  const sel=document.getElementById('filtro-perfil-usuarios');
-  const perfil=sel?.value||'';
-  const wrap=document.getElementById('usuarios-tabela-wrap');
-  const hint=document.getElementById('usuarios-perfil-hint');
-  if(!perfil){
-    if(wrap)wrap.style.display='none';
-    if(hint){hint.style.display='inline';hint.textContent='← Selecione um perfil para visualizar os usuários';}
-    return;
-  }
-  if(wrap)wrap.style.display='block';
-  if(hint)hint.style.display='none';
-  await carregarUsuarios();
-}
-
-function renderAcessos(){
-  // Retorna estrutura base com container — dados carregados assincronamente
-  return `<div class="panel-header"><span class="panel-title">Gestão de Acessos</span>
-    <div class="panel-actions">
-      <button class="btn-secondary" onclick="openModal('modal-perfil')">+ Novo Perfil</button>
-      <button class="btn-secondary" onclick="openModalFunc()">+ Nova Funcionalidade</button>
-    </div></div>
-    <div class="info-card"><div class="info-card-icon">ℹ️</div><div class="info-card-body">
-    <div class="info-card-title">Como funciona</div>
-    <div class="info-card-desc">Clique em ✅ para remover ou ❌ para adicionar uma funcionalidade a um perfil. Use os botões acima para criar novos perfis ou funcionalidades.</div>
-    </div></div>
-    <div id="acessos-tabela-wrap"><div class="loading">Carregando dados...</div></div>`;
-}
-
-async function carregarAcessosTabela(){
-  const wrap=document.getElementById('acessos-tabela-wrap');if(!wrap)return;
-  try{
-    // Usa caches já carregados no login — sem novas chamadas à API
-    const perfisNomes=perfisCache.filter(p=>p.codigo!=='master');
-    const funcsMap={};
-    funcCache.forEach(f=>{if(!funcsMap[f.funcionalidade])funcsMap[f.funcionalidade]=f.label||f.funcionalidade;});
-    const funcsUnicas=Object.keys(funcsMap);
-    if(!perfisNomes.length&&!funcsUnicas.length){
-      wrap.innerHTML='<div class="empty">Nenhum perfil ou funcionalidade cadastrado. Use os botões acima para começar.</div>';return;
-    }
-    if(!funcsUnicas.length){wrap.innerHTML='<div class="empty">Nenhuma funcionalidade cadastrada ainda.</div>';return;}
-    if(!perfisNomes.length){wrap.innerHTML='<div class="empty">Nenhum perfil de negócio cadastrado ainda.</div>';return;}
-    const thead=`<thead><tr><th>Funcionalidade</th>${perfisNomes.map(p=>`<th>${p.descricao}</th>`).join('')}</tr></thead>`;
-    const tbody=funcsUnicas.map(func=>`<tr><td>${funcsMap[func]}</td>${perfisNomes.map(p=>{
-      const tem=funcCache.some(f=>f.perfil_codigo===p.codigo&&f.funcionalidade===func&&f.ativo);
-      return `<td><button class="toggle-btn" title="${tem?'Remover':'Adicionar'}" onclick="toggleFuncPerfil('${p.codigo}','${func}',${!tem},'${funcsMap[func].replace(/'/g,"\\'")}')">${tem?'✅':'❌'}</button></td>`;
-    }).join('')}</tr>`).join('');
-    wrap.innerHTML=`<div class="menus-table-wrap"><table>${thead}<tbody>${tbody}</tbody></table></div>`;
-  }catch(e){if(wrap)wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
-}
-
-function renderLabelsPanel(){
-  return `<div class="panel-header"><span class="panel-title">Personalizar Labels</span>
-    <button class="btn-new" onclick="openModalLabel()">+ Novo Label</button></div>
-    <div class="info-card"><div class="info-card-icon">🏷️</div><div class="info-card-body">
-    <div class="info-card-title">Como funciona</div>
-    <div class="info-card-desc">Personalize os nomes exibidos na interface para cada perfil. Exemplo: mudar "Clientes" para "Pacientes" no Hospital, ou "Clientes" para "Alunos" na Academia.<br><strong>O banco de dados nunca é alterado</strong> — apenas o texto na tela muda.</div>
-    </div></div>
-    <div id="labels-painel-wrap"><div class="loading">Carregando...</div></div>`;
-}
-
-function renderClientes(){
-  const tit=getLabel('clientes_titulo','Clientes');
-  const novo=getLabel('clientes_novo','Novo Cliente');
-  return `<div class="panel-header">
-    <span class="panel-title">${tit} <span class="total-badge" id="cli-total"></span></span>
-    <button class="btn-new" onclick="openModalCliente('new')">+ ${novo}</button></div>
-    <div class="search-bar">
-      <input type="text" id="cli-busca" placeholder="Buscar por nome ou CPF..." onkeydown="if(event.key==='Enter')buscarClientes()">
-      <button class="btn-search" onclick="buscarClientes()">Buscar</button>
-      <button class="btn-clear" onclick="limparBusca()">✕ Limpar</button>
-    </div>
-    <div class="tbl-wrap"><table>
-    <thead><tr><th>#</th><th>${getLabel('clientes_th_nome','Nome')}</th>
-    <th>CPF</th><th>Telefone</th><th>E-mail</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead>
-    <tbody id="tbl-clientes"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
-    </table></div>`;
-}
-
 function showPanel(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
@@ -671,16 +581,286 @@ function showPanel(name){
   const menu=document.getElementById('menu-'+name);
   if(panel)panel.classList.add('active');
   if(menu)menu.classList.add('active');
-  if(name==='usuarios'){
-    if(currentUser.nivel==='master_sistema') popularFiltroPerfis();
-    else carregarUsuarios();
-  }
-  if(name==='acessos') carregarAcessosTabela();
-  if(name==='clientes')carregarClientes();
-  if(name==='labels')  carregarLabelsTabela();
+  // Cada painel chama sua função de carregamento
+  // O DOM do painel já existe (criado em addMenuPanel), então não há race condition
+  if(name==='usuarios') onShowUsuarios();
+  if(name==='acessos')  onShowAcessos();
+  if(name==='clientes') carregarClientes();
+  if(name==='labels')   carregarLabelsTabela();
 }
 
-/* TOGGLE FUNC/PERFIL */
+// ─── PAINEL: GESTÃO DE USUÁRIOS ───────────────────────────────────
+function renderUsuarios(){
+  const isMasterSistema=currentUser?.nivel==='master_sistema';
+  if(isMasterSistema){
+    // Para master_sistema: mostra filtro de perfil, tabela só aparece após selecionar
+    return `
+      <div class="panel-header">
+        <span class="panel-title">Gestão de Usuários</span>
+        <button class="btn-new" onclick="openModalUsuario('new')">+ Novo Usuário</button>
+      </div>
+      <div class="filtro-bar">
+        <label>Perfil:</label>
+        <select id="filtro-perfil-usuarios" onchange="onFiltroPerfilChange()">
+          <option value="">Selecione o perfil...</option>
+        </select>
+        <span class="filtro-hint" id="filtro-hint-usuarios">← Selecione um perfil para listar os usuários</span>
+      </div>
+      <div id="usuarios-tabela-wrap" style="display:none">
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>#</th><th>Usuário</th><th>Nome</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="tbl-usuarios"></tbody>
+        </table></div>
+      </div>`;
+  }
+  // master_empresa: lista direta dos seus usuários
+  return `
+    <div class="panel-header">
+      <span class="panel-title">Gestão de Usuários</span>
+      <button class="btn-new" onclick="openModalUsuario('new')">+ Novo Usuário</button>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Usuário</th><th>Nome</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody id="tbl-usuarios"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+    </table></div>`;
+}
+
+function onShowUsuarios(){
+  if(currentUser.nivel==='master_sistema'){
+    // Popula o combo com o perfisCache (já carregado no login)
+    popularSelectPerfis('filtro-perfil-usuarios','Selecione o perfil...');
+    // Garante que a tabela está oculta
+    const wrap=document.getElementById('usuarios-tabela-wrap');
+    if(wrap) wrap.style.display='none';
+    const hint=document.getElementById('filtro-hint-usuarios');
+    if(hint) hint.style.display='inline';
+  } else {
+    carregarUsuarios();
+  }
+}
+
+function onFiltroPerfilChange(){
+  const sel=document.getElementById('filtro-perfil-usuarios');
+  const perfil=sel?sel.value:'';
+  const wrap=document.getElementById('usuarios-tabela-wrap');
+  const hint=document.getElementById('filtro-hint-usuarios');
+  if(!perfil){
+    if(wrap) wrap.style.display='none';
+    if(hint) hint.style.display='inline';
+    return;
+  }
+  if(wrap) wrap.style.display='block';
+  if(hint) hint.style.display='none';
+  carregarUsuarios();
+}
+
+async function carregarUsuarios(){
+  const tbody=document.getElementById('tbl-usuarios');
+  if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="7" class="loading">Carregando...</td></tr>';
+  try{
+    let data=[];
+    if(currentUser.nivel==='master_sistema'){
+      const sel=document.getElementById('filtro-perfil-usuarios');
+      const perfil=sel?sel.value:'';
+      if(!perfil)return;
+      data=await api('usuarios?select=*&perfil=eq.'+encodeURIComponent(perfil))||[];
+      // Ordenação: master_empresa primeiro, depois usuario, por id asc dentro de cada grupo
+      const ord={master_sistema:0,master_empresa:1,usuario:2};
+      data.sort((a,b)=>(ord[a.nivel]??9)-(ord[b.nivel]??9)||a.id-b.id);
+    } else if(currentUser.nivel==='master_empresa'){
+      data=await api('usuarios?select=*&perfil=eq.'+currentUser.perfil+'&nivel=eq.usuario&order=id.asc')||[];
+    }
+    if(!data.length){
+      tbody.innerHTML='<tr><td colspan="7" class="empty">Nenhum usuário encontrado.</td></tr>';return;
+    }
+    tbody.innerHTML=data.map(u=>`<tr>
+      <td style="color:var(--text3)">${u.id}</td>
+      <td style="font-weight:500;color:var(--text)">${u.usuario}</td>
+      <td>${u.nome||'-'}</td>
+      <td>${u.empresa||'-'}</td>
+      <td><span class="badge ${nivelBadge(u.nivel)}">${nivelLabel(u.nivel)}</span></td>
+      <td><span class="badge ${u.ativo?'badge-ativo':'badge-inativo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
+      <td><div class="action-btns">
+        <button class="btn-sm btn-edit" onclick="openModalUsuario('edit',${u.id})">Editar</button>
+        ${podeGerenciarAcesso(u)?`<button class="btn-sm btn-access" onclick="openModalAcessos(${u.id},'${u.perfil}','${(u.nome||u.usuario).replace(/'/g,"\\'")}')">Acessos</button>`:''}
+        ${u.ativo
+          ?`<button class="btn-sm btn-deact" onclick="toggleAtivo(${u.id},false)">Desativar</button>`
+          :`<button class="btn-sm btn-react" onclick="toggleAtivo(${u.id},true)">Reativar</button>`}
+      </div></td></tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="7" class="empty">Erro: ${e.message}</td></tr>`;}
+}
+
+function recarregarUsuarios(){
+  // Após salvar/editar: mantém perfil selecionado e recarrega a lista
+  if(currentUser.nivel==='master_sistema'){
+    const sel=document.getElementById('filtro-perfil-usuarios');
+    if(sel&&sel.value) carregarUsuarios();
+  } else {
+    carregarUsuarios();
+  }
+}
+
+function podeGerenciarAcesso(u){
+  if(currentUser.nivel==='master_sistema')return u.nivel!=='master_sistema';
+  if(currentUser.nivel==='master_empresa')return u.nivel==='usuario';
+  return false;
+}
+
+async function toggleAtivo(id,ativo){
+  try{
+    await api('usuarios?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});
+    recarregarUsuarios();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+// ─── MODAL USUÁRIO ────────────────────────────────────────────────
+async function openModalUsuario(mode,id){
+  editingUserId=null;
+  document.getElementById('modal-user-msg').style.display='none';
+  const isMasterSistema=currentUser.nivel==='master_sistema';
+  const isMasterEmpresa=currentUser.nivel==='master_empresa';
+
+  // Popula select de perfil com o cache (já carregado no login)
+  popularSelectPerfis('m-perfil','Selecione...');
+
+  // Mostra/oculta campos conforme nível
+  document.getElementById('wrap-nivel').style.display=isMasterEmpresa?'none':'block';
+  document.getElementById('wrap-perfil').style.display=isMasterEmpresa?'none':'block';
+  document.getElementById('wrap-acessos-new').style.display='none';
+
+  // Campo empresa
+  const empresaInput=document.getElementById('m-empresa');
+  const empresaLabel=document.getElementById('lbl-empresa-modal');
+  if(isMasterEmpresa){
+    // Herdado do master — bloqueia e preenche
+    empresaInput.value=currentUser.empresa||'';
+    empresaInput.disabled=true;
+    empresaLabel.innerHTML='Empresa <span style="color:var(--text3);font-size:10px;font-weight:400">(herdada do perfil)</span>';
+  } else {
+    empresaInput.disabled=false;
+    empresaLabel.textContent='Empresa';
+  }
+
+  if(mode==='new'){
+    document.getElementById('modal-user-titulo').textContent='Novo Usuário';
+    document.getElementById('modal-user-sub').textContent=isMasterEmpresa
+      ?'Novo usuário do perfil '+perfilNome(currentUser.perfil)
+      :'Preencha os dados do novo usuário';
+    document.getElementById('m-usuario').value='';
+    document.getElementById('m-nome').value='';
+    document.getElementById('m-senha').value='';
+    document.getElementById('m-nivel').value='usuario';
+    document.getElementById('m-perfil').value='';
+    document.getElementById('m-usuario').disabled=false;
+    // Só limpa empresa se NÃO for master_empresa (o valor foi setado acima)
+    if(!isMasterEmpresa) empresaInput.value='';
+
+    if(isMasterEmpresa){
+      document.getElementById('wrap-acessos-new').style.display='block';
+      const funcsDisponiveis=funcCache.filter(f=>f.perfil_codigo===currentUser.perfil&&f.ativo);
+      document.getElementById('new-user-acessos').innerHTML=funcsDisponiveis.length
+        ?funcsDisponiveis.map(f=>`
+          <div class="access-item" onclick="toggleCheck('na-${f.funcionalidade}',this)">
+            <input type="checkbox" id="na-${f.funcionalidade}" value="${f.funcionalidade}" onclick="event.stopPropagation()">
+            <label for="na-${f.funcionalidade}">${f.label||f.funcionalidade}</label>
+          </div>`).join('')
+        :'<div class="empty" style="padding:12px">Nenhuma funcionalidade configurada para este perfil.</div>';
+    }
+  } else {
+    document.getElementById('modal-user-titulo').textContent='Editar Usuário';
+    document.getElementById('modal-user-sub').textContent='Altere os dados necessários';
+    editingUserId=id;
+    const data=await api('usuarios?id=eq.'+id+'&select=*');
+    if(!data||!data.length)return;
+    const u=data[0];
+    document.getElementById('m-usuario').value=u.usuario;
+    document.getElementById('m-nome').value=u.nome||'';
+    document.getElementById('m-senha').value=u.senha;
+    document.getElementById('m-nivel').value=u.nivel;
+    document.getElementById('m-perfil').value=u.perfil||'';
+    if(!isMasterEmpresa) empresaInput.value=u.empresa||'';
+    document.getElementById('m-usuario').disabled=true;
+  }
+  openModal('modal-usuario');
+}
+
+async function salvarUsuario(){
+  const isMasterEmpresa=currentUser.nivel==='master_empresa';
+  const usuario=document.getElementById('m-usuario').value.trim();
+  const nome=document.getElementById('m-nome').value.trim();
+  const senha=document.getElementById('m-senha').value.trim();
+  const nivel=isMasterEmpresa?'usuario':document.getElementById('m-nivel').value;
+  const perfil=isMasterEmpresa?currentUser.perfil:document.getElementById('m-perfil').value;
+  const empresa=isMasterEmpresa?(currentUser.empresa||''):document.getElementById('m-empresa').value.trim();
+  if(!usuario){showMM('modal-user-msg','Informe o usuário','error');return;}
+  if(!senha){showMM('modal-user-msg','Informe a senha','error');return;}
+  if(!perfil&&!isMasterEmpresa){showMM('modal-user-msg','Selecione o perfil','error');return;}
+  const body={nome,senha,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
+  try{
+    if(!editingUserId){
+      const novo=await api('usuarios',{method:'POST',body:JSON.stringify({...body,usuario,ativo:true})});
+      const novoId=novo&&novo[0]?novo[0].id:null;
+      if(novoId&&isMasterEmpresa){
+        const sel=[...document.querySelectorAll('#new-user-acessos input:checked')].map(c=>c.value);
+        if(sel.length)await api('usuario_acessos',{method:'POST',body:JSON.stringify(sel.map(f=>({usuario_id:novoId,funcionalidade:f,ativo:true})))});
+      }
+      showMM('modal-user-msg','Usuário criado com sucesso!','success');
+    } else {
+      await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(body)});
+      showMM('modal-user-msg','Usuário atualizado com sucesso!','success');
+    }
+    setTimeout(()=>{closeModal('modal-usuario');recarregarUsuarios();},900);
+  }catch(e){showMM('modal-user-msg','Erro: '+e.message,'error');}
+}
+
+// ─── PAINEL: GESTÃO DE ACESSOS ────────────────────────────────────
+function renderAcessos(){
+  return `
+    <div class="panel-header">
+      <span class="panel-title">Gestão de Acessos</span>
+      <div class="panel-actions">
+        <button class="btn-secondary" onclick="openModal('modal-perfil')">+ Novo Perfil</button>
+        <button class="btn-secondary" onclick="openModalFunc()">+ Nova Funcionalidade</button>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-icon">ℹ️</div>
+      <div class="info-card-body">
+        <div class="info-card-title">Como funciona</div>
+        <div class="info-card-desc">Clique em ✅ para remover ou ❌ para adicionar uma funcionalidade a um perfil.</div>
+      </div>
+    </div>
+    <div id="acessos-corpo"></div>`;
+}
+
+function onShowAcessos(){
+  renderTabelaAcessos();
+}
+
+function renderTabelaAcessos(){
+  const el=document.getElementById('acessos-corpo');
+  if(!el)return;
+  const perfisNomes=perfisCache.filter(p=>p.codigo!=='master');
+  const funcsMap={};
+  funcCache.forEach(f=>{if(!funcsMap[f.funcionalidade])funcsMap[f.funcionalidade]=f.label||f.funcionalidade;});
+  const funcsUnicas=Object.keys(funcsMap);
+  if(!perfisNomes.length&&!funcsUnicas.length){
+    el.innerHTML='<div class="empty">Nenhum perfil ou funcionalidade cadastrado ainda.</div>';return;
+  }
+  if(!funcsUnicas.length){el.innerHTML='<div class="empty">Nenhuma funcionalidade cadastrada ainda.</div>';return;}
+  if(!perfisNomes.length){el.innerHTML='<div class="empty">Nenhum perfil de negócio cadastrado ainda.</div>';return;}
+  const thead=`<thead><tr><th>Funcionalidade</th>${perfisNomes.map(p=>`<th>${p.descricao}</th>`).join('')}</tr></thead>`;
+  const tbody=funcsUnicas.map(func=>`<tr>
+    <td>${funcsMap[func]}</td>
+    ${perfisNomes.map(p=>{
+      const tem=funcCache.some(f=>f.perfil_codigo===p.codigo&&f.funcionalidade===func&&f.ativo);
+      return `<td><button class="toggle-btn" onclick="toggleFuncPerfil('${p.codigo}','${func}',${!tem},'${funcsMap[func].replace(/'/g,"\\'")}')">${tem?'✅':'❌'}</button></td>`;
+    }).join('')}
+  </tr>`).join('');
+  el.innerHTML=`<div class="menus-table-wrap"><table>${thead}<tbody>${tbody}</tbody></table></div>`;
+}
+
 async function toggleFuncPerfil(perfil,func,adicionar,labelFunc){
   try{
     if(adicionar){
@@ -690,12 +870,10 @@ async function toggleFuncPerfil(perfil,func,adicionar,labelFunc){
       if(row)await api('perfil_funcionalidades?id=eq.'+row.id,{method:'PATCH',body:JSON.stringify({ativo:false})});
     }
     await carregarFuncCache();
-    const p=document.getElementById('panel-acessos');
-    if(p&&p.classList.contains('active'))carregarAcessosTabela();
+    renderTabelaAcessos(); // Rerenderiza usando o cache atualizado
   }catch(e){alert('Erro: '+e.message);}
 }
 
-/* NOVO PERFIL */
 async function salvarPerfil(){
   const nome=document.getElementById('p-nome').value.trim();
   const codigo=document.getElementById('p-codigo').value.trim();
@@ -704,12 +882,14 @@ async function salvarPerfil(){
   try{
     await api('perfis',{method:'POST',body:JSON.stringify({codigo,descricao:nome,ativo:true})});
     showMM('modal-perfil-msg','Perfil criado com sucesso!','success');
-    await carregarPerfisCache();
-    setTimeout(()=>{closeModal('modal-perfil');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))carregarAcessosTabela();},900);
+    await carregarPerfisCache(); // Atualiza cache após criar
+    setTimeout(()=>{
+      closeModal('modal-perfil');
+      renderTabelaAcessos();
+    },900);
   }catch(e){showMM('modal-perfil-msg','Erro: '+e.message,'error');}
 }
 
-/* NOVA FUNCIONALIDADE */
 async function openModalFunc(){
   document.getElementById('f-nome').value='';
   document.getElementById('f-codigo').value='';
@@ -722,6 +902,7 @@ async function openModalFunc(){
     </div>`).join('');
   openModal('modal-func');
 }
+
 async function salvarFuncionalidade(){
   const nome=document.getElementById('f-nome').value.trim();
   const codigo=document.getElementById('f-codigo').value.trim();
@@ -731,30 +912,60 @@ async function salvarFuncionalidade(){
   try{
     if(perfisSel.length)await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify(perfisSel.map(p=>({perfil_codigo:p,funcionalidade:codigo,label:nome,ativo:true})))});
     showMM('modal-func-msg','Funcionalidade adicionada!','success');
-    await carregarFuncCache();
-    setTimeout(()=>{closeModal('modal-func');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))carregarAcessosTabela();},900);
+    await carregarFuncCache(); // Atualiza cache após criar
+    setTimeout(()=>{
+      closeModal('modal-func');
+      renderTabelaAcessos();
+    },900);
   }catch(e){showMM('modal-func-msg','Erro: '+e.message,'error');}
 }
 
-/* LABELS — SIMPLIFICADO */
-async function openModalLabel(){
+// ─── PAINEL: PERSONALIZAR LABELS ─────────────────────────────────
+function renderLabelsPanel(){
+  return `
+    <div class="panel-header">
+      <span class="panel-title">Personalizar Labels</span>
+      <button class="btn-new" onclick="openModalLabel()">+ Novo Label</button>
+    </div>
+    <div class="info-card">
+      <div class="info-card-icon">🏷️</div>
+      <div class="info-card-body">
+        <div class="info-card-title">Como funciona</div>
+        <div class="info-card-desc">Personalize os nomes exibidos na interface para cada perfil. Exemplo: mudar "Clientes" para "Pacientes" no Hospital.<br><strong>O banco de dados nunca é alterado</strong> — apenas o texto na tela muda.</div>
+      </div>
+    </div>
+    <div id="labels-painel-wrap"><div class="loading">Carregando...</div></div>`;
+}
+
+async function carregarLabelsTabela(){
+  const wrap=document.getElementById('labels-painel-wrap');if(!wrap)return;
+  try{
+    const rows=await api('perfil_labels?select=id,perfil_codigo,chave,label&order=perfil_codigo.asc,chave.asc');
+    if(!rows||!rows.length){wrap.innerHTML='<div class="empty">Nenhum label configurado ainda. Clique em "+ Novo Label" para começar.</div>';return;}
+    const campoNome=chave=>CAMPOS_LABELS.find(c=>c.chave===chave)?.nome||chave;
+    wrap.innerHTML=`<div class="labels-table-wrap"><table>
+      <thead><tr><th>Perfil</th><th>Campo</th><th>Label na Interface</th><th>Ação</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td>${perfilNome(r.perfil_codigo)}</td>
+        <td style="color:var(--text2);font-size:12px">${campoNome(r.chave)}</td>
+        <td style="color:var(--accent);font-weight:600">${r.label}</td>
+        <td><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id},'${r.perfil_codigo}')">Remover</button></td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
+}
+
+function openModalLabel(){
   document.getElementById('modal-label-msg').style.display='none';
   document.getElementById('lbl-valor').value='';
   document.getElementById('lbl-atual-wrap').style.display='none';
   document.getElementById('labels-existentes-wrap').style.display='none';
-
-  const selPerfil=document.getElementById('lbl-perfil');
+  // Usa o perfisCache já carregado — sem nenhuma chamada à API
+  popularSelectPerfis('lbl-perfil','Selecione o perfil...');
+  // Popula campos
   const selCampo=document.getElementById('lbl-campo');
-
-  // Usa o cache carregado no login — sem nova chamada à API
-  selPerfil.innerHTML='<option value="">Selecione o perfil...</option>'+
-    perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
-  selPerfil.value='';
-
   selCampo.innerHTML='<option value="">Selecione o campo...</option>'+
     CAMPOS_LABELS.map(c=>`<option value="${c.chave}" data-padrao="${c.padrao}">${c.nome}</option>`).join('');
   selCampo.value='';
-
   openModal('modal-label');
 }
 
@@ -769,12 +980,8 @@ function onLabelCampoChange(){
   const opt=sel.options[sel.selectedIndex];
   const padrao=opt?.getAttribute('data-padrao')||'';
   const wrap=document.getElementById('lbl-atual-wrap');
-  if(padrao){
-    document.getElementById('lbl-atual-val').textContent=padrao;
-    wrap.style.display='block';
-  } else {
-    wrap.style.display='none';
-  }
+  if(padrao){document.getElementById('lbl-atual-val').textContent=padrao;wrap.style.display='block';}
+  else wrap.style.display='none';
 }
 
 async function carregarLabelsExistentes(perfil){
@@ -785,7 +992,7 @@ async function carregarLabelsExistentes(perfil){
   try{
     const rows=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&select=*&order=chave.asc');
     if(!rows||!rows.length){cont.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum label configurado ainda para este perfil.</div>';return;}
-    const campoNome=(chave)=>CAMPOS_LABELS.find(c=>c.chave===chave)?.nome||chave;
+    const campoNome=chave=>CAMPOS_LABELS.find(c=>c.chave===chave)?.nome||chave;
     cont.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
       <thead><tr>
         <th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">CAMPO</th>
@@ -805,6 +1012,7 @@ async function deletarLabel(id,perfil){
     await api('perfil_labels?id=eq.'+id,{method:'DELETE',headers:{...hdrs,'Prefer':''}});
     await carregarLabelsExistentes(perfil);
     await carregarLabels();
+    carregarLabelsTabela();
   }catch(e){alert('Erro: '+e.message);}
 }
 
@@ -820,43 +1028,40 @@ async function salvarLabel(){
     showMM('modal-label-msg','Label salvo com sucesso!','success');
     await carregarLabels();
     await carregarLabelsExistentes(perfil);
-    const lp=document.getElementById('labels-painel-wrap');if(lp)carregarLabelsTabela();
+    carregarLabelsTabela();
   }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
 }
 
-async function carregarLabelsTabela(){
-  const wrap=document.getElementById('labels-painel-wrap');if(!wrap)return;
-  try{
-    const rows=await api('perfil_labels?select=id,perfil_codigo,chave,label&order=perfil_codigo.asc,chave.asc');
-    if(!rows||!rows.length){wrap.innerHTML='<div class="empty">Nenhum label configurado ainda. Clique em "+ Novo Label" para começar.</div>';return;}
-    const campoNome=(chave)=>CAMPOS_LABELS.find(c=>c.chave===chave)?.nome||chave;
-    wrap.innerHTML=`<div class="labels-table-wrap"><table>
-      <thead><tr><th>Perfil</th><th>Campo</th><th>Label na Interface</th><th>Ação</th></tr></thead>
-      <tbody>${rows.map(r=>`<tr>
-        <td>${perfilNome(r.perfil_codigo)}</td>
-        <td style="color:var(--text2);font-size:12px">${campoNome(r.chave)}</td>
-        <td style="color:var(--accent);font-weight:600">${r.label}</td>
-        <td><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id},'${r.perfil_codigo}');carregarLabelsTabela()">Remover</button></td>
-      </tr>`).join('')}</tbody></table></div>`;
-  }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+// ─── PAINEL: CLIENTES ─────────────────────────────────────────────
+function renderClientes(){
+  const tit=getLabel('clientes_titulo','Clientes');
+  const novo=getLabel('clientes_novo','Novo Cliente');
+  return `<div class="panel-header">
+    <span class="panel-title">${tit} <span class="total-badge" id="cli-total"></span></span>
+    <button class="btn-new" onclick="openModalCliente('new')">+ ${novo}</button></div>
+    <div class="search-bar">
+      <input type="text" id="cli-busca" placeholder="Buscar por nome ou CPF..." onkeydown="if(event.key==='Enter')buscarClientes()">
+      <button class="btn-search" onclick="buscarClientes()">Buscar</button>
+      <button class="btn-clear" onclick="limparBusca()">✕ Limpar</button>
+    </div>
+    <div class="tbl-wrap"><table>
+    <thead><tr><th>#</th><th>${getLabel('clientes_th_nome','Nome')}</th>
+    <th>CPF</th><th>Telefone</th><th>E-mail</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody id="tbl-clientes"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
+    </table></div>`;
 }
 
-/* CLIENTES — isolados por perfil */
 async function carregarClientes(filtro=''){
   const tbody=document.getElementById('tbl-clientes');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
   try{
-    // Filtra sempre pelo perfil do usuário logado
     const perfilFiltro=currentUser.perfil||'master';
     let q='clientes?select=*&order=nome.asc&perfil_codigo=eq.'+encodeURIComponent(perfilFiltro);
-    if(filtro){
-      const f=encodeURIComponent('%'+filtro+'%');
-      q='clientes?select=*&order=nome.asc&perfil_codigo=eq.'+encodeURIComponent(perfilFiltro)+'&or=(nome.ilike.'+f+',cpf.ilike.'+f+')';
-    }
+    if(filtro){const f=encodeURIComponent('%'+filtro+'%');q+='&or=(nome.ilike.'+f+',cpf.ilike.'+f+')';}
     const data=await api(q);
     const total=document.getElementById('cli-total');
     if(total)total.textContent=data&&data.length?'('+data.length+')':'';
-    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">'+(filtro?'Nenhum registro encontrado.':'Nenhum registro cadastrado.')+'</td></tr>';return;}
+    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">'+(filtro?'Nenhum resultado.':'Nenhum cadastro.')+'</td></tr>';return;}
     tbody.innerHTML=data.map(c=>`<tr>
       <td style="color:var(--text3)">${c.id}</td>
       <td style="font-weight:500;color:var(--text)">${c.nome}</td>
@@ -918,8 +1123,7 @@ async function salvarCliente(){
   const nome=document.getElementById('cli-nome').value.trim();
   if(!nome){showMM('modal-cli-msg','Informe o nome','error');return;}
   const body={
-    nome,
-    perfil_codigo:currentUser.perfil||'master', // <<< ISOLAMENTO POR PERFIL
+    nome,perfil_codigo:currentUser.perfil||'master',
     cpf:document.getElementById('cli-cpf').value.trim()||null,
     data_nasc:document.getElementById('cli-nasc').value||null,
     sexo:document.getElementById('cli-sexo').value||null,
@@ -948,167 +1152,7 @@ async function salvarCliente(){
   }catch(e){showMM('modal-cli-msg','Erro: '+e.message,'error');}
 }
 
-/* USUÁRIOS */
-async function carregarUsuarios(){
-  const tbody=document.getElementById('tbl-usuarios');if(!tbody)return;
-  const isMasterSistema=currentUser.nivel==='master_sistema';
-  const isMasterEmpresa=currentUser.nivel==='master_empresa';
-  const colspan=isMasterSistema?7:7;
-  tbody.innerHTML=`<tr><td colspan="${colspan}" class="loading">Carregando...</td></tr>`;
-  try{
-    let data=[];
-    if(isMasterSistema){
-      const perfil=document.getElementById('filtro-perfil-usuarios')?.value||'';
-      if(!perfil)return; // sem perfil selecionado, não lista nada
-      // Busca todos usuários daquele perfil
-      data=await api('usuarios?select=*&perfil=eq.'+encodeURIComponent(perfil))||[];
-      // Ordena: master_empresa primeiro, depois usuario, ambos por id asc
-      const nivelOrdem={master_sistema:0,master_empresa:1,usuario:2};
-      data.sort((a,b)=>(nivelOrdem[a.nivel]??9)-(nivelOrdem[b.nivel]??9)||a.id-b.id);
-    } else if(isMasterEmpresa){
-      data=await api('usuarios?select=*&perfil=eq.'+currentUser.perfil+'&nivel=eq.usuario&order=id.asc')||[];
-    }
-    if(!data.length){tbody.innerHTML=`<tr><td colspan="${colspan}" class="empty">Nenhum usuário encontrado.</td></tr>`;return;}
-    tbody.innerHTML=data.map(u=>`<tr>
-      <td style="color:var(--text3)">${u.id}</td>
-      <td style="font-weight:500;color:var(--text)">${u.usuario}</td>
-      <td>${u.nome||'-'}</td>
-      <td>${u.empresa||'-'}</td>
-      <td><span class="badge ${nivelBadge(u.nivel)}">${nivelLabel(u.nivel)}</span></td>
-      <td><span class="badge ${u.ativo?'badge-ativo':'badge-inativo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
-      <td><div class="action-btns">
-        <button class="btn-sm btn-edit" onclick="openModalUsuario('edit',${u.id})">Editar</button>
-        ${podeGerenciarAcesso(u)?`<button class="btn-sm btn-access" onclick="openModalAcessos(${u.id},'${u.perfil}','${(u.nome||u.usuario).replace(/'/g,"\\'")}')">Acessos</button>`:''}
-        ${u.ativo?`<button class="btn-sm btn-deact" onclick="toggleAtivo(${u.id},false)">Desativar</button>`:`<button class="btn-sm btn-react" onclick="toggleAtivo(${u.id},true)">Reativar</button>`}
-      </div></td></tr>`).join('');
-  }catch(e){tbody.innerHTML=`<tr><td colspan="${colspan}" class="empty">Erro: ${e.message}</td></tr>`;}
-}
-
-function podeGerenciarAcesso(u){
-  if(currentUser.nivel==='master_sistema')return u.nivel!=='master_sistema';
-  if(currentUser.nivel==='master_empresa')return u.nivel==='usuario';
-  return false;
-}
-
-async function toggleAtivo(id,ativo){
-  try{
-    await api('usuarios?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});
-    if(currentUser.nivel==='master_sistema') carregarUsuariosPorPerfil();
-    else carregarUsuarios();
-  }catch(e){alert('Erro: '+e.message);}
-}
-
-async function openModalUsuario(mode,id){
-  editingUserId=null;
-  document.getElementById('modal-user-msg').style.display='none';
-  const isMasterSistema=currentUser.nivel==='master_sistema';
-  const isMasterEmpresa=currentUser.nivel==='master_empresa';
-
-  // Usa o cache — sem nova chamada à API
-  const selPerfil=document.getElementById('m-perfil');
-  selPerfil.innerHTML='<option value="">Selecione...</option>'+
-    perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
-
-  // Mostrar/ocultar campos
-  document.getElementById('wrap-nivel').style.display=isMasterEmpresa?'none':'block';
-  document.getElementById('wrap-perfil').style.display=isMasterEmpresa?'none':'block';
-  document.getElementById('wrap-acessos-new').style.display='none';
-
-  // Campo empresa: herdado e bloqueado para master_empresa, livre para master_sistema
-  const empresaInput=document.getElementById('m-empresa');
-  if(isMasterEmpresa){
-    empresaInput.value=currentUser.empresa||'';
-    empresaInput.disabled=true;
-    empresaInput.style.opacity='0.6';
-    empresaInput.style.cursor='not-allowed';
-    document.querySelector('#wrap-empresa label').innerHTML='Empresa <span style="color:var(--text3);font-size:10px;font-weight:400">(herdada do seu perfil)</span>';
-  } else {
-    empresaInput.disabled=false;
-    empresaInput.style.opacity='';
-    empresaInput.style.cursor='';
-    document.querySelector('#wrap-empresa label').innerHTML='Empresa';
-  }
-
-  if(mode==='new'){
-    document.getElementById('modal-user-titulo').textContent='Novo Usuário';
-    document.getElementById('modal-user-sub').textContent=isMasterEmpresa
-      ?'Novo usuário do perfil '+perfilNome(currentUser.perfil)
-      :'Preencha os dados do novo usuário';
-    // Limpa campos — mas NÃO limpa empresa se for master_empresa (será herdada)
-    ['m-usuario','m-nome'].forEach(i=>document.getElementById(i).value='');
-    if(!isMasterEmpresa) document.getElementById('m-empresa').value='';
-    document.getElementById('m-senha').value='';
-    document.getElementById('m-nivel').value='usuario';
-    document.getElementById('m-perfil').value='';
-    document.getElementById('m-usuario').disabled=false;
-
-    if(isMasterEmpresa){
-      document.getElementById('wrap-acessos-new').style.display='block';
-      const funcsDisponiveis=funcCache.filter(f=>f.perfil_codigo===currentUser.perfil&&f.ativo);
-      document.getElementById('new-user-acessos').innerHTML=funcsDisponiveis.length
-        ? funcsDisponiveis.map(f=>`
-            <div class="access-item" onclick="toggleCheck('na-${f.funcionalidade}',this)">
-              <input type="checkbox" id="na-${f.funcionalidade}" value="${f.funcionalidade}" onclick="event.stopPropagation()">
-              <label for="na-${f.funcionalidade}">${f.label||f.funcionalidade}</label>
-            </div>`).join('')
-        : '<div class="empty" style="padding:12px">Nenhuma funcionalidade configurada para este perfil.</div>';
-    }
-  } else {
-    document.getElementById('modal-user-titulo').textContent='Editar Usuário';
-    document.getElementById('modal-user-sub').textContent='Altere os dados necessários';
-    editingUserId=id;
-    const data=await api('usuarios?id=eq.'+id+'&select=*');
-    if(!data||!data.length)return;
-    const u=data[0];
-    document.getElementById('m-usuario').value=u.usuario;
-    document.getElementById('m-nome').value=u.nome||'';
-    document.getElementById('m-senha').value=u.senha;
-    document.getElementById('m-nivel').value=u.nivel;
-    // Seleciona o perfil correto
-    document.getElementById('m-perfil').value=u.perfil||'';
-    const empEdit=document.getElementById('m-empresa');
-    empEdit.value=u.empresa||'';
-    // master_sistema editando: libera campo empresa
-    if(isMasterSistema){empEdit.disabled=false;empEdit.style.opacity='';empEdit.style.cursor='';}
-    document.getElementById('m-usuario').disabled=true;
-  }
-  openModal('modal-usuario');
-}
-
-async function salvarUsuario(){
-  const isMasterEmpresa=currentUser.nivel==='master_empresa';
-  const usuario=document.getElementById('m-usuario').value.trim();
-  const nome=document.getElementById('m-nome').value.trim();
-  const senha=document.getElementById('m-senha').value.trim();
-  const nivel=isMasterEmpresa?'usuario':document.getElementById('m-nivel').value;
-  const perfil=isMasterEmpresa?currentUser.perfil:document.getElementById('m-perfil').value;
-  const empresa=isMasterEmpresa?(currentUser.empresa||''):document.getElementById('m-empresa').value.trim();
-  if(!usuario){showMM('modal-user-msg','Informe o usuário','error');return;}
-  if(!senha){showMM('modal-user-msg','Informe a senha','error');return;}
-  if(!perfil&&!isMasterEmpresa){showMM('modal-user-msg','Selecione o perfil','error');return;}
-  const body={nome,senha,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
-  try{
-    if(!editingUserId){
-      const novo=await api('usuarios',{method:'POST',body:JSON.stringify({...body,usuario,ativo:true})});
-      const novoId=novo&&novo[0]?novo[0].id:null;
-      if(novoId&&isMasterEmpresa){
-        const sel=[...document.querySelectorAll('#new-user-acessos input:checked')].map(c=>c.value);
-        if(sel.length)await api('usuario_acessos',{method:'POST',body:JSON.stringify(sel.map(f=>({usuario_id:novoId,funcionalidade:f,ativo:true})))});
-      }
-      showMM('modal-user-msg','Usuário criado com sucesso!','success');
-    } else {
-      await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(body)});
-      showMM('modal-user-msg','Usuário atualizado com sucesso!','success');
-    }
-    setTimeout(()=>{
-      closeModal('modal-usuario');
-      if(currentUser.nivel==='master_sistema') carregarUsuariosPorPerfil();
-      else carregarUsuarios();
-    },900);
-  }catch(e){showMM('modal-user-msg','Erro: '+e.message,'error');}
-}
-
-/* MODAL ACESSOS */
+// ─── MODAL ACESSOS (por usuário) ──────────────────────────────────
 async function openModalAcessos(userId,perfil,nome){
   accessUserId=userId;accessUserPerfil=perfil;
   document.getElementById('modal-access-titulo').textContent='Acessos: '+nome;
