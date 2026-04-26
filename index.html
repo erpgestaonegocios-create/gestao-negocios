@@ -5,179 +5,154 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestão de Negócios</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  :root {
-    --bg: #1a1a1a; --surface: #242424; --surface2: #2e2e2e;
-    --border: #3a3a3a; --text: #e8e8e8; --text2: #aaa; --text3: #777;
-    --accent: #6b7fd7; --accent2: #8a9ee8;
-    --danger: #e05555; --success: #4caf7d; --warn: #d4a843;
-    --font: 'Segoe UI', system-ui, sans-serif;
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg:#1a1a1a;--surface:#242424;--surface2:#2e2e2e;
+    --border:#3a3a3a;--text:#e8e8e8;--text2:#aaa;--text3:#777;
+    --accent:#6b7fd7;--accent2:#8a9ee8;
+    --danger:#e05555;--success:#4caf7d;--warn:#d4a843;
+    --font:'Segoe UI',system-ui,sans-serif;
   }
-  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
 
-  #screen-login { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(160deg,#1a1a1a 60%,#1e2035 100%); }
-  .login-box { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:48px 40px; width:380px; max-width:95vw; }
-  .login-title { text-align:center; font-size:22px; font-weight:700; letter-spacing:2px; margin-bottom:8px; text-transform:uppercase; }
-  .login-sub { text-align:center; font-size:12px; color:var(--text3); letter-spacing:1px; margin-bottom:36px; }
-  .field-group { margin-bottom:18px; }
-  .field-group label { display:block; font-size:11px; color:var(--text2); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
-  .field-group input { width:100%; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:14px; outline:none; transition:border-color 0.2s; }
-  .field-group input:focus { border-color:var(--accent); }
-  .btn-primary { width:100%; padding:11px; background:var(--accent); border:none; border-radius:6px; color:#fff; font-size:14px; font-weight:600; cursor:pointer; transition:background 0.2s; margin-top:8px; }
-  .btn-primary:hover { background:var(--accent2); }
-  .msg { margin-top:14px; padding:10px 14px; border-radius:6px; font-size:13px; text-align:center; display:none; }
-  .msg.error { background:rgba(224,85,85,0.15); border:1px solid rgba(224,85,85,0.3); color:#e07777; }
-  .msg.success { background:rgba(76,175,125,0.15); border:1px solid rgba(76,175,125,0.3); color:#6ecfa0; }
+  #screen-login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#1a1a1a 60%,#1e2035 100%);}
+  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:48px 40px;width:380px;max-width:95vw;}
+  .login-title{text-align:center;font-size:22px;font-weight:700;letter-spacing:2px;color:var(--text);margin-bottom:8px;text-transform:uppercase;}
+  .login-sub{text-align:center;font-size:12px;color:var(--text3);letter-spacing:1px;margin-bottom:36px;}
+  .field-group{margin-bottom:18px;}
+  .field-group label{display:block;font-size:11px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+  .field-group input{width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s;}
+  .field-group input:focus{border-color:var(--accent);}
+  .btn-primary{width:100%;padding:11px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;margin-top:8px;}
+  .btn-primary:hover{background:var(--accent2);}
+  .msg{margin-top:14px;padding:10px 14px;border-radius:6px;font-size:13px;text-align:center;display:none;}
+  .msg.error{background:rgba(224,85,85,.15);border:1px solid rgba(224,85,85,.3);color:#e07777;}
+  .msg.success{background:rgba(76,175,125,.15);border:1px solid rgba(76,175,125,.3);color:#6ecfa0;}
 
-  #screen-main { display:none; flex-direction:column; min-height:100vh; }
-  .topbar { background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 24px; height:56px; gap:16px; position:sticky; top:0; z-index:100; }
-  .topbar-title { font-size:13px; font-weight:700; letter-spacing:2px; color:var(--accent); text-transform:uppercase; flex:1; }
-  .topbar-user { display:flex; align-items:center; gap:8px; }
-  .avatar { width:30px; height:30px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; }
-  .btn-logout { background:none; border:1px solid var(--border); border-radius:5px; color:var(--text2); font-size:11px; padding:5px 10px; cursor:pointer; transition:all 0.2s; }
-  .btn-logout:hover { border-color:var(--danger); color:var(--danger); }
-  .layout { display:flex; flex:1; }
+  #screen-main{display:none;flex-direction:column;min-height:100vh;}
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;height:56px;gap:16px;position:sticky;top:0;z-index:100;}
+  .topbar-title{font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;flex:1;}
+  .topbar-user{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+  .btn-logout{background:none;border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;padding:5px 10px;cursor:pointer;transition:all .2s;}
+  .btn-logout:hover{border-color:var(--danger);color:var(--danger);}
+  .layout{display:flex;flex:1;}
+  .sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);padding:12px 0 20px;flex-shrink:0;overflow-y:auto;}
+  .sidebar-label{font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;padding:0 20px;margin:14px 0 6px;}
+  .menu-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border-left:2px solid transparent;}
+  .menu-item:hover{background:var(--surface2);color:var(--text);}
+  .menu-item.active{background:rgba(107,127,215,.12);color:var(--accent);border-left-color:var(--accent);}
+  .menu-icon{font-size:15px;width:20px;text-align:center;}
+  .content{flex:1;padding:28px;overflow-y:auto;}
 
-  .sidebar { width:230px; background:var(--surface); border-right:1px solid var(--border); padding:12px 0 20px; flex-shrink:0; overflow-y:auto; }
-  .sidebar-label { font-size:10px; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase; padding:0 20px; margin:14px 0 6px; }
-  .menu-item { display:flex; align-items:center; gap:10px; padding:9px 20px; cursor:pointer; font-size:13px; color:var(--text2); transition:all 0.15s; border-left:2px solid transparent; }
-  .menu-item:hover { background:var(--surface2); color:var(--text); }
-  .menu-item.active { background:rgba(107,127,215,0.12); color:var(--accent); border-left-color:var(--accent); }
-  .menu-icon { font-size:15px; width:20px; text-align:center; }
-  .content { flex:1; padding:28px; overflow-y:auto; }
+  .panel{display:none;}.panel.active{display:block;}
+  .panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+  .panel-title{font-size:18px;font-weight:600;}
+  .panel-actions{display:flex;gap:8px;}
+  .btn-new{background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;padding:8px 16px;cursor:pointer;transition:background .2s;}
+  .btn-new:hover{background:var(--accent2);}
+  .btn-secondary{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;font-weight:600;padding:8px 16px;cursor:pointer;transition:all .2s;}
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
 
-  .panel { display:none; }
-  .panel.active { display:block; }
-  .panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
-  .panel-title { font-size:18px; font-weight:600; }
-  .panel-actions { display:flex; gap:8px; }
-  .btn-new { background:var(--accent); border:none; border-radius:6px; color:#fff; font-size:12px; font-weight:600; padding:8px 16px; cursor:pointer; transition:background 0.2s; }
-  .btn-new:hover { background:var(--accent2); }
-  .btn-secondary { background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text2); font-size:12px; font-weight:600; padding:8px 16px; cursor:pointer; transition:all 0.2s; }
-  .btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+  .search-bar{display:flex;gap:10px;margin-bottom:16px;}
+  .search-bar input{flex:1;padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;}
+  .search-bar input:focus{border-color:var(--accent);}
+  .btn-search{padding:9px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;}
+  .btn-search:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-clear{padding:9px 14px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:13px;cursor:pointer;transition:all .15s;}
+  .btn-clear:hover{color:var(--danger);border-color:var(--danger);}
 
-  .search-bar { display:flex; gap:10px; margin-bottom:16px; }
-  .search-bar input { flex:1; padding:9px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none; }
-  .search-bar input:focus { border-color:var(--accent); }
-  .btn-search { padding:9px 18px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text2); font-size:13px; cursor:pointer; transition:all 0.15s; }
-  .btn-search:hover { border-color:var(--accent); color:var(--accent); }
-  .btn-clear { padding:9px 14px; background:none; border:1px solid var(--border); border-radius:6px; color:var(--text3); font-size:13px; cursor:pointer; transition:all 0.15s; }
-  .btn-clear:hover { color:var(--danger); border-color:var(--danger); }
+  .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  thead{background:var(--surface2);}
+  th{padding:11px 16px;text-align:left;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+  td{padding:11px 16px;font-size:13px;border-top:1px solid var(--border);color:var(--text2);}
+  tr:hover td{background:var(--surface2);}
+  .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+  .badge-master{background:rgba(107,127,215,.2);color:var(--accent);}
+  .badge-empresa{background:rgba(212,168,67,.2);color:var(--warn);}
+  .badge-ativo{background:rgba(76,175,125,.15);color:var(--success);}
+  .badge-inativo{background:rgba(224,85,85,.15);color:var(--danger);}
+  .action-btns{display:flex;gap:6px;flex-wrap:wrap;}
+  .btn-sm{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid;font-weight:500;transition:all .15s;}
+  .btn-edit{border-color:var(--accent);color:var(--accent);background:transparent;}
+  .btn-edit:hover{background:rgba(107,127,215,.15);}
+  .btn-deact{border-color:var(--warn);color:var(--warn);background:transparent;}
+  .btn-deact:hover{background:rgba(212,168,67,.15);}
+  .btn-react{border-color:var(--success);color:var(--success);background:transparent;}
+  .btn-react:hover{background:rgba(76,175,125,.15);}
+  .btn-access{border-color:#a78bfa;color:#a78bfa;background:transparent;}
+  .btn-access:hover{background:rgba(167,139,250,.15);}
 
-  .tbl-wrap { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-  table { width:100%; border-collapse:collapse; }
-  thead { background:var(--surface2); }
-  th { padding:11px 16px; text-align:left; font-size:11px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; font-weight:600; }
-  td { padding:11px 16px; font-size:13px; border-top:1px solid var(--border); color:var(--text2); }
-  tr:hover td { background:var(--surface2); }
-  .badge { display:inline-block; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:600; }
-  .badge-master { background:rgba(107,127,215,0.2); color:var(--accent); }
-  .badge-ativo { background:rgba(76,175,125,0.15); color:var(--success); }
-  .badge-inativo { background:rgba(224,85,85,0.15); color:var(--danger); }
-  .action-btns { display:flex; gap:6px; flex-wrap:wrap; }
-  .btn-sm { padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; border:1px solid; font-weight:500; transition:all 0.15s; }
-  .btn-edit { border-color:var(--accent); color:var(--accent); background:transparent; }
-  .btn-edit:hover { background:rgba(107,127,215,0.15); }
-  .btn-deact { border-color:var(--warn); color:var(--warn); background:transparent; }
-  .btn-deact:hover { background:rgba(212,168,67,0.15); }
-  .btn-react { border-color:var(--success); color:var(--success); background:transparent; }
-  .btn-react:hover { background:rgba(76,175,125,0.15); }
-  .btn-access { border-color:#a78bfa; color:#a78bfa; background:transparent; }
-  .btn-access:hover { background:rgba(167,139,250,0.15); }
-  .btn-label { border-color:var(--warn); color:var(--warn); background:transparent; }
-  .btn-label:hover { background:rgba(212,168,67,0.15); }
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center;padding:16px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;width:640px;max-width:100%;max-height:90vh;overflow-y:auto;}
+  .modal-sm{width:480px;}
+  .modal-title{font-size:16px;font-weight:600;margin-bottom:6px;}
+  .modal-sub{font-size:12px;color:var(--text3);margin-bottom:24px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .col-1{grid-column:span 1;}.col-2{grid-column:span 2;}
+  .form-section{font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px;grid-column:span 2;margin-top:8px;}
+  .mfield label{display:block;font-size:11px;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px;}
+  .mfield label .req{color:var(--danger);margin-left:2px;}
+  .mfield input,.mfield select,.mfield textarea{width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;font-family:var(--font);transition:border-color .2s;}
+  .mfield input:focus,.mfield select:focus,.mfield textarea:focus{border-color:var(--accent);}
+  .mfield select option{background:var(--surface2);}
+  .mfield textarea{resize:vertical;min-height:70px;}
+  .mfield .field-hint{font-size:11px;color:var(--text3);margin-top:4px;min-height:16px;}
+  .mfield .field-hint.loading{color:var(--warn);}
+  .mfield .field-hint.ok{color:var(--success);}
+  .mfield .field-hint.err{color:var(--danger);}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;}
+  .btn-cancel{padding:9px 20px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:13px;cursor:pointer;}
+  .btn-cancel:hover{border-color:var(--text2);}
+  .btn-save{padding:9px 20px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-save:hover{background:var(--accent2);}
+  .modal-msg{margin-top:12px;padding:9px 12px;border-radius:6px;font-size:12px;display:none;}
+  .modal-msg.error{background:rgba(224,85,85,.15);color:#e07777;}
+  .modal-msg.success{background:rgba(76,175,125,.15);color:#6ecfa0;}
 
-  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:200; align-items:center; justify-content:center; padding:16px; }
-  .modal-overlay.open { display:flex; }
-  .modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:32px; width:640px; max-width:100%; max-height:90vh; overflow-y:auto; }
-  .modal-sm { width:460px; }
-  .modal-title { font-size:16px; font-weight:600; margin-bottom:6px; }
-  .modal-sub { font-size:12px; color:var(--text3); margin-bottom:24px; }
+  .access-section-title{font-size:12px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .access-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .access-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);cursor:pointer;transition:all .15s;}
+  .access-item:hover{border-color:var(--accent);}
+  .access-item.selected{border-color:var(--accent);background:rgba(107,127,215,.1);}
+  .access-item input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0;}
+  .access-item label{font-size:13px;color:var(--text2);cursor:pointer;}
+  .access-item.selected label{color:var(--text);}
 
-  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  .col-1 { grid-column:span 1; }
-  .col-2 { grid-column:span 2; }
-  .form-section { font-size:11px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:span 2; margin-top:8px; }
-  .mfield label { display:block; font-size:11px; color:var(--text2); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:5px; }
-  .mfield label .req { color:var(--danger); margin-left:2px; }
-  .mfield input, .mfield select, .mfield textarea { width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none; font-family:var(--font); transition:border-color 0.2s; }
-  .mfield input:focus, .mfield select:focus, .mfield textarea:focus { border-color:var(--accent); }
-  .mfield select option { background:var(--surface2); }
-  .mfield textarea { resize:vertical; min-height:70px; }
-  .mfield .field-hint { font-size:11px; color:var(--text3); margin-top:4px; min-height:16px; }
-  .mfield .field-hint.loading { color:var(--warn); }
-  .mfield .field-hint.ok { color:var(--success); }
-  .mfield .field-hint.err { color:var(--danger); }
+  .menus-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:auto;margin-top:16px;}
+  .menus-table-wrap table{width:100%;border-collapse:collapse;min-width:600px;}
+  .menus-table-wrap thead{background:var(--surface2);}
+  .menus-table-wrap th{padding:10px 16px;text-align:center;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+  .menus-table-wrap th:first-child{text-align:left;}
+  .menus-table-wrap td{padding:10px 16px;font-size:13px;border-top:1px solid var(--border);color:var(--text2);text-align:center;}
+  .menus-table-wrap td:first-child{text-align:left;color:var(--text);font-weight:500;}
+  .menus-table-wrap tr:hover td{background:var(--surface2);}
+  .toggle-btn{background:none;border:none;font-size:18px;cursor:pointer;transition:transform .15s;}
+  .toggle-btn:hover{transform:scale(1.2);}
 
-  .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:24px; }
-  .btn-cancel { padding:9px 20px; background:none; border:1px solid var(--border); border-radius:6px; color:var(--text2); font-size:13px; cursor:pointer; }
-  .btn-cancel:hover { border-color:var(--text2); }
-  .btn-save { padding:9px 20px; background:var(--accent); border:none; border-radius:6px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
-  .btn-save:hover { background:var(--accent2); }
-  .modal-msg { margin-top:12px; padding:9px 12px; border-radius:6px; font-size:12px; display:none; }
-  .modal-msg.error { background:rgba(224,85,85,0.15); color:#e07777; }
-  .modal-msg.success { background:rgba(76,175,125,0.15); color:#6ecfa0; }
+  .labels-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:16px;}
+  .labels-table-wrap table{width:100%;border-collapse:collapse;}
+  .labels-table-wrap thead{background:var(--surface2);}
+  .labels-table-wrap th{padding:10px 16px;text-align:left;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+  .labels-table-wrap td{padding:10px 16px;font-size:13px;border-top:1px solid var(--border);color:var(--text2);}
+  .labels-table-wrap tr:hover td{background:var(--surface2);}
 
-  .access-section-title { font-size:12px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
-  .access-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .access-item { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface2); border-radius:6px; border:1px solid var(--border); cursor:pointer; transition:all 0.15s; }
-  .access-item:hover { border-color:var(--accent); }
-  .access-item.selected { border-color:var(--accent); background:rgba(107,127,215,0.1); }
-  .access-item input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; flex-shrink:0; }
-  .access-item label { font-size:13px; color:var(--text2); cursor:pointer; }
-  .access-item.selected label { color:var(--text); }
+  .info-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:flex-start;gap:16px;}
+  .info-card-icon{font-size:24px;margin-top:2px;}
+  .info-card-body{flex:1;}
+  .info-card-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+  .info-card-desc{font-size:12px;color:var(--text3);line-height:1.6;}
 
-  /* TABELA ACESSOS */
-  .menus-table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-top:16px; }
-  .menus-table-wrap table { width:100%; border-collapse:collapse; }
-  .menus-table-wrap thead { background:var(--surface2); }
-  .menus-table-wrap th { padding:10px 14px; text-align:center; font-size:11px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; font-weight:600; }
-  .menus-table-wrap th:first-child { text-align:left; width:220px; }
-  .menus-table-wrap td { padding:10px 14px; font-size:13px; border-top:1px solid var(--border); color:var(--text2); text-align:center; }
-  .menus-table-wrap td:first-child { text-align:left; color:var(--text); font-weight:500; }
-  .menus-table-wrap tr:hover td { background:var(--surface2); }
-  .check-yes { color:var(--success); font-size:16px; cursor:pointer; }
-  .check-no  { color:var(--danger);  font-size:16px; cursor:pointer; }
-  .check-yes-static { color:var(--success); font-size:16px; }
-  .check-no-static  { color:var(--danger);  font-size:16px; }
-
-  .info-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px 24px; margin-bottom:16px; display:flex; align-items:flex-start; gap:16px; }
-  .info-card-icon { font-size:24px; margin-top:2px; }
-  .info-card-body { flex:1; }
-  .info-card-title { font-size:14px; font-weight:600; margin-bottom:4px; }
-  .info-card-desc { font-size:12px; color:var(--text3); line-height:1.6; }
-
-  .placeholder-box { background:var(--surface); border:1px dashed var(--border); border-radius:10px; padding:60px 40px; text-align:center; }
-  .placeholder-icon { font-size:40px; margin-bottom:16px; }
-  .placeholder-title { font-size:16px; font-weight:600; margin-bottom:8px; }
-  .placeholder-desc { font-size:13px; color:var(--text3); line-height:1.6; }
-
-  .section-label { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:12px; }
-  .loading { text-align:center; padding:40px; color:var(--text3); font-size:13px; }
-  .empty { text-align:center; padding:40px; color:var(--text3); font-size:13px; }
-  .total-badge { font-size:12px; color:var(--text3); margin-left:8px; font-weight:400; }
-
-  /* LABELS TABLE */
-  .labels-table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-top:16px; }
-  .labels-table-wrap table { width:100%; border-collapse:collapse; }
-  .labels-table-wrap thead { background:var(--surface2); }
-  .labels-table-wrap th { padding:10px 16px; text-align:left; font-size:11px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; font-weight:600; }
-  .labels-table-wrap td { padding:10px 16px; font-size:13px; border-top:1px solid var(--border); color:var(--text2); }
-  .labels-table-wrap td:first-child { color:var(--text); font-weight:500; }
-  .labels-table-wrap tr:hover td { background:var(--surface2); }
-
-  /* NOVA FUNC ROW */
-  .nova-func-row { display:flex; gap:10px; margin-top:12px; align-items:center; }
-  .nova-func-row input, .nova-func-row select { flex:1; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none; }
-  .nova-func-row input:focus, .nova-func-row select:focus { border-color:var(--accent); }
-  .nova-func-row select option { background:var(--surface2); }
-
-  .tab-bar { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:0; }
-  .tab-btn { padding:8px 18px; border:none; background:none; color:var(--text3); font-size:13px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.15s; }
-  .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
-  .tab-btn:hover { color:var(--text); }
-  .tab-content { display:none; }
-  .tab-content.active { display:block; }
+  .placeholder-box{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:60px 40px;text-align:center;}
+  .placeholder-icon{font-size:40px;margin-bottom:16px;}
+  .placeholder-title{font-size:16px;font-weight:600;margin-bottom:8px;}
+  .placeholder-desc{font-size:13px;color:var(--text3);line-height:1.6;}
+  .section-label{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;}
+  .loading{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
+  .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
+  .total-badge{font-size:12px;color:var(--text3);margin-left:8px;font-weight:400;}
 </style>
 </head>
 <body>
@@ -200,7 +175,7 @@
     <span class="topbar-title">Gestão de Negócios</span>
     <div class="topbar-user">
       <div class="avatar" id="top-avatar">M</div>
-      <span id="top-username" style="font-size:12px;color:var(--text2)"></span>
+      <span id="top-username"></span>
       <button class="btn-logout" onclick="doLogout()">Sair</button>
     </div>
   </div>
@@ -214,40 +189,38 @@
 <div class="modal-overlay" id="modal-usuario">
   <div class="modal modal-sm">
     <div class="modal-title" id="modal-user-titulo">Novo Usuário</div>
-    <div class="modal-sub" id="modal-user-sub">Preencha os dados do novo usuário</div>
+    <div class="modal-sub" id="modal-user-sub"></div>
     <div class="form-grid">
       <div class="mfield col-2"><label>Usuário <span class="req">*</span></label><input type="text" id="m-usuario" placeholder="ex: joao.silva"></div>
       <div class="mfield col-2"><label>Nome Completo</label><input type="text" id="m-nome" placeholder="ex: João da Silva"></div>
       <div class="mfield col-1"><label>Senha <span class="req">*</span></label><input type="password" id="m-senha" placeholder="••••••••"></div>
-      <div class="mfield col-1"><label>Nível <span class="req">*</span></label>
-        <select id="m-nivel" onchange="onNivelChange()">
+      <div class="mfield col-1" id="wrap-nivel">
+        <label>Nível <span class="req">*</span></label>
+        <select id="m-nivel">
           <option value="usuario">Usuário</option>
           <option value="master_empresa">Master de Empresa</option>
           <option value="master_sistema">Master do Sistema</option>
         </select>
       </div>
-      <div class="mfield col-1" id="m-perfil-wrap"><label>Perfil</label>
-        <select id="m-perfil">
-          <option value="">Selecione...</option>
-          <option value="master">Master Sistema</option>
-          <option value="padaria">Padaria</option>
-          <option value="clinica">Clínica Médica</option>
-          <option value="petshop">Petshop</option>
-          <option value="academia">Academia</option>
-          <option value="hospital">Hospital</option>
-        </select>
+      <div class="mfield col-1" id="wrap-perfil">
+        <label>Perfil</label>
+        <select id="m-perfil"><option value="">Selecione...</option></select>
       </div>
       <div class="mfield col-1"><label>Empresa</label><input type="text" id="m-empresa" placeholder="Nome da empresa"></div>
     </div>
+    <div id="wrap-acessos-new" style="display:none;margin-top:16px;">
+      <div class="access-section-title">Menus que este usuário poderá acessar</div>
+      <div class="access-grid" id="new-user-acessos"></div>
+    </div>
     <div class="modal-msg" id="modal-user-msg"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModalUsuario()">Cancelar</button>
+      <button class="btn-cancel" onclick="closeModal('modal-usuario')">Cancelar</button>
       <button class="btn-save" onclick="salvarUsuario()">Salvar</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL ACESSOS USUÁRIO -->
+<!-- MODAL ACESSOS -->
 <div class="modal-overlay" id="modal-acessos">
   <div class="modal modal-sm">
     <div class="modal-title" id="modal-access-titulo">Gerenciar Acessos</div>
@@ -256,59 +229,78 @@
     <div class="access-grid" id="access-checkboxes"><div class="loading">Carregando...</div></div>
     <div class="modal-msg" id="modal-access-msg"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModalAcessos()">Cancelar</button>
+      <button class="btn-cancel" onclick="closeModal('modal-acessos')">Cancelar</button>
       <button class="btn-save" onclick="salvarAcessos()">Salvar Acessos</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL NOVA FUNCIONALIDADE -->
-<div class="modal-overlay" id="modal-nova-func">
+<!-- MODAL NOVO PERFIL -->
+<div class="modal-overlay" id="modal-perfil">
   <div class="modal modal-sm">
-    <div class="modal-title">Nova Funcionalidade</div>
-    <div class="modal-sub" id="modal-nova-func-sub">Adicionar funcionalidade ao perfil</div>
+    <div class="modal-title">Novo Perfil de Negócio</div>
+    <div class="modal-sub">Crie um novo tipo de empresa/negócio</div>
     <div class="form-grid">
-      <div class="mfield col-2"><label>Perfil</label><input type="text" id="nf-perfil-label" disabled style="opacity:0.6"></div>
-      <div class="mfield col-2"><label>Funcionalidade <span class="req">*</span></label>
-        <select id="nf-func">
-          <option value="">Selecione...</option>
-          <option value="clientes">Cadastro de Clientes</option>
-          <option value="fornecedores">Cadastro de Fornecedores</option>
-          <option value="produtos">Cadastro de Produtos</option>
-          <option value="servicos">Cadastro de Serviços</option>
-          <option value="estoque">Controle de Estoque</option>
-          <option value="agendamentos">Agendamentos</option>
-          <option value="financeiro">Financeiro</option>
-          <option value="relatorios">Relatórios</option>
-        </select>
-      </div>
+      <div class="mfield col-2"><label>Nome do Perfil <span class="req">*</span></label><input type="text" id="p-nome" placeholder="ex: Posto de Gasolina"></div>
+      <div class="mfield col-2"><label>Código (letras minúsculas, sem espaços) <span class="req">*</span></label><input type="text" id="p-codigo" placeholder="ex: posto" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')"></div>
     </div>
-    <div class="modal-msg" id="modal-nova-func-msg"></div>
+    <div class="modal-msg" id="modal-perfil-msg"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModalNovaFunc()">Cancelar</button>
-      <button class="btn-save" onclick="salvarNovaFunc()">Adicionar</button>
+      <button class="btn-cancel" onclick="closeModal('modal-perfil')">Cancelar</button>
+      <button class="btn-save" onclick="salvarPerfil()">Criar Perfil</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL EDITAR LABEL -->
+<!-- MODAL NOVA FUNCIONALIDADE -->
+<div class="modal-overlay" id="modal-func">
+  <div class="modal modal-sm">
+    <div class="modal-title">Nova Funcionalidade</div>
+    <div class="modal-sub">Adicionar um novo menu ao sistema</div>
+    <div class="form-grid">
+      <div class="mfield col-2"><label>Nome da Funcionalidade <span class="req">*</span></label><input type="text" id="f-nome" placeholder="ex: Lava Jato"></div>
+      <div class="mfield col-2"><label>Código (letras minúsculas, sem espaços) <span class="req">*</span></label><input type="text" id="f-codigo" placeholder="ex: lavajato" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')"></div>
+      <div class="mfield col-2">
+        <label>Aplicar nos perfis (opcional)</label>
+        <div class="access-grid" id="func-perfis" style="margin-top:8px;"></div>
+      </div>
+    </div>
+    <div class="modal-msg" id="modal-func-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-func')">Cancelar</button>
+      <button class="btn-save" onclick="salvarFuncionalidade()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LABEL -->
 <div class="modal-overlay" id="modal-label">
   <div class="modal modal-sm">
-    <div class="modal-title">Personalizar Nome</div>
-    <div class="modal-sub" id="modal-label-sub">Defina como este campo será exibido neste perfil</div>
+    <div class="modal-title">Personalizar Label</div>
+    <div class="modal-sub">Renomeie campos da interface por perfil. O banco de dados não é alterado.</div>
     <div class="form-grid">
-      <div class="mfield col-2"><label>Perfil</label><input type="text" id="lbl-perfil-display" disabled style="opacity:0.6"></div>
-      <div class="mfield col-2"><label>Chave</label><input type="text" id="lbl-chave-display" disabled style="opacity:0.6"></div>
-      <div class="mfield col-2"><label>Nome exibido na interface <span class="req">*</span></label><input type="text" id="lbl-valor" placeholder="Ex: Paciente, Cliente, Aluno..."></div>
-      <div class="mfield col-2" style="background:rgba(107,127,215,0.08);border-radius:6px;padding:10px;border:1px solid var(--border);">
-        <label style="color:var(--accent)">⚠️ Importante</label>
-        <div style="font-size:12px;color:var(--text3);margin-top:4px;line-height:1.6">Esta alteração afeta apenas a <strong style="color:var(--text2)">exibição na interface</strong>. O banco de dados permanece inalterado.</div>
+      <div class="mfield col-2">
+        <label>Perfil <span class="req">*</span></label>
+        <select id="lbl-perfil" onchange="carregarLabelsExistentes()"><option value="">Selecione...</option></select>
       </div>
+      <div class="mfield col-2">
+        <label>Chave do campo <span class="req">*</span></label>
+        <input type="text" id="lbl-chave" placeholder="ex: clientes_menu, clientes_campo_nome">
+        <div class="field-hint">Use chaves como: clientes_menu, clientes_titulo, clientes_novo, clientes_single, clientes_campo_nome, clientes_campo_cpf, clientes_th_nome</div>
+      </div>
+      <div class="mfield col-2">
+        <label>Novo nome na interface <span class="req">*</span></label>
+        <input type="text" id="lbl-valor" placeholder="ex: Pacientes">
+      </div>
+    </div>
+    <div id="labels-existentes-wrap" style="margin-top:16px;display:none;">
+      <div class="section-label">Labels configurados para este perfil</div>
+      <div id="labels-existentes"></div>
     </div>
     <div class="modal-msg" id="modal-label-msg"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModalLabel()">Cancelar</button>
-      <button class="btn-save" onclick="salvarLabel()">Salvar</button>
+      <button class="btn-cancel" onclick="closeModal('modal-label')">Cancelar</button>
+      <button class="btn-save" onclick="salvarLabel()">Salvar Label</button>
     </div>
   </div>
 </div>
@@ -320,8 +312,8 @@
     <div class="modal-sub" id="modal-cli-sub">Preencha os dados</div>
     <div class="form-grid">
       <div class="form-section">Dados Pessoais</div>
-      <div class="mfield col-2"><label id="lbl-cli-nome-field">Nome Completo <span class="req">*</span></label><input type="text" id="cli-nome" placeholder="Nome completo"></div>
-      <div class="mfield col-1"><label>CPF</label><input type="text" id="cli-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)"></div>
+      <div class="mfield col-2"><label id="lbl-cli-nome">Nome Completo <span class="req">*</span></label><input type="text" id="cli-nome" placeholder="Nome completo"></div>
+      <div class="mfield col-1"><label id="lbl-cli-cpf">CPF</label><input type="text" id="cli-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)"></div>
       <div class="mfield col-1"><label>Data de Nascimento</label><input type="date" id="cli-nasc"></div>
       <div class="mfield col-1"><label>Sexo</label>
         <select id="cli-sexo"><option value="">Selecione...</option><option value="M">Masculino</option><option value="F">Feminino</option><option value="O">Outro</option></select>
@@ -333,17 +325,17 @@
       <div class="mfield col-1"></div>
       <div class="mfield col-2"><label>Endereço</label><input type="text" id="cli-end" placeholder="Rua, Avenida..."></div>
       <div class="mfield col-1"><label>Número</label><input type="text" id="cli-num" placeholder="Nº"></div>
-      <div class="mfield col-1"><label>Complemento</label><input type="text" id="cli-comp" placeholder="Apto, Bloco, Sala..."></div>
+      <div class="mfield col-1"><label>Complemento</label><input type="text" id="cli-comp" placeholder="Apto, Bloco..."></div>
       <div class="mfield col-2"><label>Bairro</label><input type="text" id="cli-bairro" placeholder="Bairro"></div>
       <div class="mfield col-1"><label>Cidade</label><input type="text" id="cli-cidade" placeholder="Cidade"></div>
       <div class="mfield col-1"><label>Estado</label><input type="text" id="cli-estado" placeholder="UF" maxlength="2" style="text-transform:uppercase"></div>
       <div class="mfield col-2"><label>País</label><input type="text" id="cli-pais" placeholder="País"></div>
       <div class="form-section">Informações Adicionais</div>
-      <div class="mfield col-2"><label>Observações</label><textarea id="cli-obs" placeholder="Observações relevantes..."></textarea></div>
+      <div class="mfield col-2"><label>Observações</label><textarea id="cli-obs" placeholder="Observações..."></textarea></div>
     </div>
     <div class="modal-msg" id="modal-cli-msg"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModalCliente()">Cancelar</button>
+      <button class="btn-cancel" onclick="closeModal('modal-cliente')">Cancelar</button>
       <button class="btn-save" onclick="salvarCliente()">Salvar</button>
     </div>
   </div>
@@ -355,44 +347,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const hdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 
 let currentUser=null,editingUserId=null,editingClienteId=null,accessUserId=null,accessUserPerfil=null;
-let novaFuncPerfil=null,labelEditando=null;
-let perfilLabels={};   // cache dos labels do perfil atual
-let perfilFuncsCache={}; // cache das funcs por perfil
-
-const MENUS_SISTEMA=[
-  {grupo:'Administração',nivel:'admin',itens:[
-    {id:'usuarios',icon:'👤',label:'Gestão de Usuários'},
-    {id:'acessos', icon:'🔐',label:'Gestão de Acessos'}
-  ]},
-  {grupo:'Cadastros',nivel:'todos',itens:[
-    {id:'clientes',    icon:'🧑‍🤝‍🧑',label:'Clientes',    func:'clientes'},
-    {id:'fornecedores',icon:'🚚',    label:'Fornecedores',func:'fornecedores'},
-    {id:'produtos',    icon:'📦',    label:'Produtos',    func:'produtos'},
-    {id:'servicos',    icon:'🛠️',    label:'Serviços',    func:'servicos'}
-  ]},
-  {grupo:'Operacional',nivel:'todos',itens:[
-    {id:'estoque',     icon:'🏭',label:'Controle de Estoque',func:'estoque'},
-    {id:'agendamentos',icon:'📅',label:'Agendamentos',       func:'agendamentos'}
-  ]},
-  {grupo:'Financeiro',nivel:'todos',itens:[
-    {id:'financeiro',icon:'💰',label:'Financeiro',func:'financeiro'},
-    {id:'relatorios',icon:'📊',label:'Relatórios',func:'relatorios'}
-  ]}
-];
-
-const TODOS_MENUS=[
-  {func:'clientes',    label:'Cadastro de Clientes'},
-  {func:'fornecedores',label:'Cadastro de Fornecedores'},
-  {func:'produtos',    label:'Cadastro de Produtos'},
-  {func:'servicos',    label:'Cadastro de Serviços'},
-  {func:'estoque',     label:'Controle de Estoque'},
-  {func:'agendamentos',label:'Agendamentos'},
-  {func:'financeiro',  label:'Financeiro'},
-  {func:'relatorios',  label:'Relatórios'}
-];
-
-const PERFIS_COLS=['padaria','clinica','petshop','academia','hospital'];
-const PERFIS_LABEL_MAP={master:'Master Sistema',padaria:'Padaria',clinica:'Clínica Médica',petshop:'Petshop',academia:'Academia',hospital:'Hospital'};
+let perfisCache=[],funcCache=[],labelsCache={};
 
 async function api(path,opts={}){
   const res=await fetch(SUPA_URL+'/rest/v1/'+path,{headers:{...hdrs,...(opts.headers||{})},...opts});
@@ -401,24 +356,39 @@ async function api(path,opts={}){
   return res.json();
 }
 function showMsg(el,txt,type){el.textContent=txt;el.className='msg '+type;el.style.display='block';}
-function showModalMsg(el,txt,type){el.textContent=txt;el.className='modal-msg '+type;el.style.display='block';}
-function nivelLabel(n){return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário';}
-function pfLabel(c){return PERFIS_LABEL_MAP[c]||c||'-';}
-function getLabel(chave,fallback){return perfilLabels[chave]||fallback;}
+function showMM(id,txt,type){const el=document.getElementById(id);el.textContent=txt;el.className='modal-msg '+type;el.style.display='block';}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function toggleCheck(id,item){const c=document.getElementById(id);c.checked=!c.checked;item.classList.toggle('selected',c.checked);}
+
+function nivelLabel(n){
+  return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário';
+}
+function nivelBadgeClass(n){
+  return n==='master_sistema'?'badge-master':n==='master_empresa'?'badge-empresa':'badge-ativo';
+}
+function perfilNome(codigo){
+  const p=perfisCache.find(x=>x.codigo===codigo);
+  return p?p.descricao:codigo||'-';
+}
+function getLabel(chave,padrao){
+  const p=currentUser?.perfil||'';
+  return(labelsCache[p]&&labelsCache[p][chave])||padrao;
+}
 
 /* MÁSCARAS */
 function mascaraCPF(el){let v=el.value.replace(/\D/g,'');v=v.replace(/(\d{3})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
 function mascaraTel(el){let v=el.value.replace(/\D/g,'');if(v.length<=10)v=v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3');else v=v.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3');el.value=v.trim().replace(/-$/,'');}
 function mascaraCEP(el){let v=el.value.replace(/\D/g,'');v=v.replace(/(\d{5})(\d)/,'$1-$2');el.value=v;}
 
-/* BUSCA CEP */
 async function buscarCEP(){
   const cep=document.getElementById('cli-cep').value.replace(/\D/g,'');
   const hint=document.getElementById('cep-hint');
   if(cep.length!==8){hint.textContent='';return;}
   hint.className='field-hint loading';hint.textContent='Buscando CEP...';
   try{
-    const d=await(await fetch('https://viacep.com.br/ws/'+cep+'/json/')).json();
+    const r=await fetch('https://viacep.com.br/ws/'+cep+'/json/');
+    const d=await r.json();
     if(d.erro){hint.className='field-hint err';hint.textContent='CEP inválido';return;}
     document.getElementById('cli-end').value=d.logradouro||'';
     document.getElementById('cli-bairro').value=d.bairro||'';
@@ -452,11 +422,7 @@ async function doLogin(){
       document.getElementById('screen-main').style.display='flex';
       document.getElementById('top-username').textContent=u.nome||u.usuario;
       document.getElementById('top-avatar').textContent=(u.nome||u.usuario)[0].toUpperCase();
-      // Carregar labels do perfil
-      if(u.perfil && u.perfil!=='master'){
-        const lbls=await api('perfil_labels?perfil_codigo=eq.'+u.perfil+'&select=chave,label').catch(()=>[]);
-        (lbls||[]).forEach(l=>{perfilLabels[l.chave]=l.label;});
-      }
+      await Promise.all([carregarPerfisCache(),carregarFuncCache(),carregarLabels()]);
       await construirInterface();
     },800);
   }catch(e){showMsg(msg,'Erro de conexão: '+e.message,'error');}
@@ -465,34 +431,43 @@ document.getElementById('inp-pass').addEventListener('keydown',e=>{if(e.key==='E
 document.getElementById('inp-user').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 
 function doLogout(){
-  currentUser=null;perfilLabels={};
+  currentUser=null;labelsCache={};perfisCache=[];funcCache=[];
   document.getElementById('screen-main').style.display='none';
   document.getElementById('screen-login').style.display='flex';
-  ['inp-user','inp-pass'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('inp-user').value='';
+  document.getElementById('inp-pass').value='';
   document.getElementById('login-msg').style.display='none';
   document.getElementById('sidebar').innerHTML='';
   document.getElementById('content-area').innerHTML='';
 }
 
-/* INTERFACE DINÂMICA */
+async function carregarPerfisCache(){try{perfisCache=await api('perfis?ativo=eq.true&select=*&order=id.asc')||[];}catch(e){perfisCache=[];}}
+async function carregarFuncCache(){try{funcCache=await api('perfil_funcionalidades?ativo=eq.true&select=*&order=id.asc')||[];}catch(e){funcCache=[];}}
+async function carregarLabels(){
+  if(!currentUser?.perfil)return;
+  try{
+    const rows=await api('perfil_labels?perfil_codigo=eq.'+currentUser.perfil+'&select=chave,label');
+    labelsCache[currentUser.perfil]={};
+    (rows||[]).forEach(r=>labelsCache[currentUser.perfil][r.chave]=r.label);
+  }catch(e){console.warn('Labels:',e.message);}
+}
+
+/* CONSTRUIR INTERFACE */
 async function construirInterface(){
-  const isMasterSistema=currentUser.nivel==='master_sistema';
-  const isMasterEmpresa=currentUser.nivel==='master_empresa';
-  const perfil=currentUser.perfil;
+  const isMasterSistema = currentUser.nivel==='master_sistema';
+  const isMasterEmpresa = currentUser.nivel==='master_empresa';
+  const isUsuario       = currentUser.nivel==='usuario';
   let funcPermitidas=new Set();
 
-  if(isMasterSistema){
-    // vê tudo
-  } else if(isMasterEmpresa && perfil && perfil!=='master'){
-    // Busca funcs do perfil no banco
-    const funcs=await api('perfil_funcionalidades?perfil_codigo=eq.'+perfil+'&ativo=eq.true&select=funcionalidade').catch(()=>[]);
-    (funcs||[]).forEach(f=>funcPermitidas.add(f.funcionalidade));
-    // Se tiver acessos customizados no banco, usa eles
-    const acessosBanco=await api('usuario_acessos?usuario_id=eq.'+currentUser.id+'&ativo=eq.true&select=funcionalidade').catch(()=>[]);
-    if(acessosBanco&&acessosBanco.length>0){funcPermitidas=new Set();acessosBanco.forEach(a=>funcPermitidas.add(a.funcionalidade));}
-  } else if(!isMasterSistema){
-    const acessos=await api('usuario_acessos?usuario_id=eq.'+currentUser.id+'&ativo=eq.true&select=funcionalidade').catch(()=>[]);
-    (acessos||[]).forEach(a=>funcPermitidas.add(a.funcionalidade));
+  if(isMasterEmpresa && currentUser.perfil && currentUser.perfil!=='master'){
+    // Herda todos os menus do perfil
+    funcCache.filter(f=>f.perfil_codigo===currentUser.perfil).forEach(f=>funcPermitidas.add(f.funcionalidade));
+    // Se tiver customização no banco, usa ela
+    const banco=await api('usuario_acessos?usuario_id=eq.'+currentUser.id+'&ativo=eq.true&select=funcionalidade').catch(()=>[]);
+    if(banco&&banco.length>0){funcPermitidas=new Set();banco.forEach(a=>funcPermitidas.add(a.funcionalidade));}
+  } else if(isUsuario){
+    const banco=await api('usuario_acessos?usuario_id=eq.'+currentUser.id+'&ativo=eq.true&select=funcionalidade').catch(()=>[]);
+    (banco||[]).forEach(a=>funcPermitidas.add(a.funcionalidade));
   }
 
   const sidebar=document.getElementById('sidebar');
@@ -500,106 +475,155 @@ async function construirInterface(){
   sidebar.innerHTML='';contentArea.innerHTML='';
   let primeiroMenu=null;
 
-  MENUS_SISTEMA.forEach(grupo=>{
-    const itensVisiveis=grupo.itens.filter(item=>{
-      if(isMasterSistema) return true;
-      if(grupo.nivel==='admin') return isMasterEmpresa && (item.id==='usuarios'); // master empresa vê só gestão de usuários do admin
-      return item.func ? funcPermitidas.has(item.func) : false;
-    });
-    if(!itensVisiveis.length) return;
-    const lbl=document.createElement('div');
-    lbl.className='sidebar-label';lbl.textContent=grupo.grupo;
-    sidebar.appendChild(lbl);
-    itensVisiveis.forEach(item=>{
+  // GRUPO ADMINISTRAÇÃO
+  // master_sistema: vê Gestão de Usuários + Gestão de Acessos + Personalizar Labels
+  // master_empresa: vê APENAS Gestão de Usuários
+  // usuario:        NÃO vê nada de administração
+  const adminItens=[];
+  if(isMasterSistema){
+    adminItens.push({id:'usuarios',icon:'👤',label:'Gestão de Usuários'});
+    adminItens.push({id:'acessos', icon:'🔐',label:'Gestão de Acessos'});
+    adminItens.push({id:'labels',  icon:'🏷️',label:'Personalizar Labels'});
+  } else if(isMasterEmpresa){
+    adminItens.push({id:'usuarios',icon:'👤',label:'Gestão de Usuários'});
+  }
+
+  if(adminItens.length){
+    adicionarGrupo(sidebar,contentArea,'Administração',adminItens,()=>primeiroMenu===null,id=>{ if(!primeiroMenu) primeiroMenu=id; });
+  }
+
+  // GRUPOS FUNCIONAIS
+  const grupos=[
+    {nome:'Cadastros',itens:[
+      {id:'clientes',    icon:'🧑‍🤝‍🧑',func:'clientes'},
+      {id:'fornecedores',icon:'🚚',    func:'fornecedores'},
+      {id:'produtos',    icon:'📦',    func:'produtos'},
+      {id:'servicos',    icon:'🛠️',    func:'servicos'}
+    ]},
+    {nome:'Operacional',itens:[
+      {id:'estoque',     icon:'🏭',func:'estoque'},
+      {id:'agendamentos',icon:'📅',func:'agendamentos'}
+    ]},
+    {nome:'Financeiro',itens:[
+      {id:'financeiro',  icon:'💰',func:'financeiro'},
+      {id:'relatorios',  icon:'📊',func:'relatorios'}
+    ]}
+  ];
+
+  grupos.forEach(grupo=>{
+    const visiveis=grupo.itens.filter(item=>isMasterSistema||funcPermitidas.has(item.func));
+    if(!visiveis.length) return;
+    const lbl=document.createElement('div');lbl.className='sidebar-label';lbl.textContent=grupo.nome;sidebar.appendChild(lbl);
+    visiveis.forEach(item=>{
+      const funcObj=funcCache.find(f=>f.funcionalidade===item.func&&f.perfil_codigo===currentUser.perfil);
+      const labelMenu=getLabel(item.func+'_menu',funcObj?.label||capitalize(item.id));
       if(!primeiroMenu) primeiroMenu=item.id;
-      // Aplicar label personalizado no menu
-      const labelMenu = item.func==='clientes' ? getLabel('clientes_menu',item.label) : item.label;
-      const el=document.createElement('div');
-      el.className='menu-item';el.id='menu-'+item.id;
-      el.innerHTML=`<span class="menu-icon">${item.icon}</span> ${labelMenu}`;
-      el.onclick=()=>showPanel(item.id);
-      sidebar.appendChild(el);
-      const panel=document.createElement('div');
-      panel.className='panel';panel.id='panel-'+item.id;
-      panel.innerHTML=renderPanel(item.id);
-      contentArea.appendChild(panel);
+      addMenuPanel(sidebar,contentArea,{...item,label:labelMenu});
     });
   });
 
   if(primeiroMenu) showPanel(primeiroMenu);
-  else contentArea.innerHTML=`<div class="placeholder-box"><div class="placeholder-icon">🔒</div><div class="placeholder-title">Sem acessos configurados</div><div class="placeholder-desc">Nenhum menu foi liberado para o seu usuário.<br>Entre em contato com o administrador.</div></div>`;
+  else contentArea.innerHTML=`<div class="placeholder-box"><div class="placeholder-icon">🔒</div><div class="placeholder-title">Sem acessos configurados</div><div class="placeholder-desc">Nenhum menu foi liberado para o seu usuário ainda.</div></div>`;
 }
 
+function adicionarGrupo(sidebar,contentArea,grupoNome,itens,checkPrimeiro,setPrimeiro){
+  const lbl=document.createElement('div');lbl.className='sidebar-label';lbl.textContent=grupoNome;sidebar.appendChild(lbl);
+  itens.forEach(item=>{setPrimeiro(item.id);addMenuPanel(sidebar,contentArea,item);});
+}
+
+function addMenuPanel(sidebar,contentArea,item){
+  const el=document.createElement('div');
+  el.className='menu-item';el.id='menu-'+item.id;
+  el.innerHTML=`<span class="menu-icon">${item.icon}</span> ${item.label}`;
+  el.onclick=()=>showPanel(item.id);
+  sidebar.appendChild(el);
+  const panel=document.createElement('div');
+  panel.className='panel';panel.id='panel-'+item.id;
+  panel.innerHTML=renderPanel(item.id);
+  contentArea.appendChild(panel);
+}
+
+function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
 function renderPanel(id){
-  const labels={clientes:getLabel('clientes_titulo','Clientes'),fornecedores:'Fornecedores',produtos:'Produtos',servicos:'Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
   const icons={clientes:'🧑‍🤝‍🧑',fornecedores:'🚚',produtos:'📦',servicos:'🛠️',estoque:'🏭',agendamentos:'📅',financeiro:'💰',relatorios:'📊'};
-  const isMasterSistema=currentUser.nivel==='master_sistema';
-  const isMasterEmpresa=currentUser.nivel==='master_empresa';
-
+  const defLabels={clientes:'Clientes',fornecedores:'Fornecedores',produtos:'Produtos',servicos:'Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
   switch(id){
-    case 'usuarios': return `
-      <div class="panel-header">
-        <span class="panel-title">Gestão de Usuários</span>
-        <button class="btn-new" onclick="openModalUsuario('new')">+ Novo Usuário</button>
-      </div>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th>#</th><th>Usuário</th><th>Nome</th><th>Perfil</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="tbl-usuarios"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
-      </table></div>`;
-
-    case 'acessos': return `
-      <div class="panel-header">
-        <span class="panel-title">Gestão de Acessos</span>
-      </div>
-      <div class="tab-bar">
-        <button class="tab-btn active" onclick="showTab('tab-permissoes',this)">Permissões por Perfil</button>
-        ${isMasterSistema?'<button class="tab-btn" onclick="showTab(\'tab-labels\',this)">Nomes Personalizados</button>':''}
-      </div>
-      <div class="tab-content active" id="tab-permissoes">
-        <div class="info-card">
-          <div class="info-card-icon">ℹ️</div>
-          <div class="info-card-body">
-            <div class="info-card-title">Como funciona</div>
-            <div class="info-card-desc">Cada perfil possui menus padrão pré-configurados. Ao criar um usuário ele herda automaticamente todos os menus do perfil. Use o botão <strong>Acessos</strong> na lista de usuários para restringir menus individualmente.${isMasterSistema?' Clique em ✔/✘ para alterar as permissões de cada perfil.':''}</div>
-          </div>
-        </div>
-        <div class="menus-table-wrap" id="permissoes-table"><div class="loading">Carregando...</div></div>
-      </div>
-      ${isMasterSistema?`
-      <div class="tab-content" id="tab-labels">
-        <div class="info-card">
-          <div class="info-card-icon">🏷️</div>
-          <div class="info-card-body">
-            <div class="info-card-title">Nomes personalizados por perfil</div>
-            <div class="info-card-desc">Altere como os campos e menus são exibidos para cada perfil. Ex: "Clientes" pode virar "Pacientes" no perfil Hospital. O banco de dados <strong>não é alterado</strong>.</div>
-          </div>
-        </div>
-        <div class="labels-table-wrap" id="labels-table"><div class="loading">Carregando...</div></div>
-      </div>`:''}`;
-
-    case 'clientes': return `
-      <div class="panel-header">
-        <span class="panel-title">${getLabel('clientes_titulo','Clientes')} <span class="total-badge" id="cli-total"></span></span>
-        <button class="btn-new" onclick="openModalCliente('new')">+ ${getLabel('clientes_novo','Novo Cliente')}</button>
-      </div>
-      <div class="search-bar">
-        <input type="text" id="cli-busca" placeholder="Buscar por nome ou CPF..." onkeydown="if(event.key==='Enter')buscarClientes()">
-        <button class="btn-search" onclick="buscarClientes()">Buscar</button>
-        <button class="btn-clear" onclick="limparBusca()">✕ Limpar</button>
-      </div>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th>#</th><th>${getLabel('clientes_single','Cliente')}</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="tbl-clientes"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
-      </table></div>`;
-
-    default: return `
-      <div class="panel-header"><span class="panel-title">${labels[id]||id}</span></div>
-      <div class="placeholder-box">
-        <div class="placeholder-icon">${icons[id]||'📋'}</div>
-        <div class="placeholder-title">${labels[id]||id}</div>
-        <div class="placeholder-desc">Este módulo será construído na próxima etapa.<br>A estrutura já está configurada e pronta.</div>
-      </div>`;
+    case 'usuarios': return renderUsuarios();
+    case 'acessos':  return renderAcessos();
+    case 'labels':   return renderLabels();
+    case 'clientes': return renderClientes();
+    default:{
+      const tit=getLabel(id+'_titulo',defLabels[id]||id);
+      return `<div class="panel-header"><span class="panel-title">${tit}</span></div>
+        <div class="placeholder-box"><div class="placeholder-icon">${icons[id]||'📋'}</div>
+        <div class="placeholder-title">${tit}</div>
+        <div class="placeholder-desc">Este módulo será construído na próxima etapa.</div></div>`;
+    }
   }
+}
+
+function renderUsuarios(){
+  return `<div class="panel-header"><span class="panel-title">Gestão de Usuários</span>
+    <button class="btn-new" onclick="openModalUsuario('new')">+ Novo Usuário</button></div>
+    <div class="tbl-wrap"><table>
+    <thead><tr><th>#</th><th>Usuário</th><th>Nome</th><th>Perfil</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody id="tbl-usuarios"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
+    </table></div>`;
+}
+
+function renderAcessos(){
+  const perfisNomes=perfisCache.filter(p=>p.codigo!=='master');
+  const funcsUnicas=[...new Set(funcCache.map(f=>f.funcionalidade))];
+  const allLabels={clientes:'Cadastro de Clientes',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',servicos:'Cadastro de Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
+  const thead=`<thead><tr><th>Funcionalidade</th>${perfisNomes.map(p=>`<th>${p.descricao}</th>`).join('')}</tr></thead>`;
+  const tbody=funcsUnicas.map(func=>{
+    const lf=funcCache.find(f=>f.funcionalidade===func);
+    const labelFunc=lf?.label||allLabels[func]||func;
+    return `<tr><td>${labelFunc}</td>${perfisNomes.map(p=>{
+      const tem=funcCache.some(f=>f.perfil_codigo===p.codigo&&f.funcionalidade===func&&f.ativo);
+      return `<td><button class="toggle-btn" onclick="toggleFuncPerfil('${p.codigo}','${func}',${!tem},'${labelFunc}')">${tem?'✅':'❌'}</button></td>`;
+    }).join('')}</tr>`;
+  }).join('');
+  return `<div class="panel-header"><span class="panel-title">Gestão de Acessos</span>
+    <div class="panel-actions">
+      <button class="btn-secondary" onclick="openModal('modal-perfil')">+ Novo Perfil</button>
+      <button class="btn-secondary" onclick="openModalFunc()">+ Nova Funcionalidade</button>
+    </div></div>
+    <div class="info-card"><div class="info-card-icon">ℹ️</div><div class="info-card-body">
+    <div class="info-card-title">Como funciona</div>
+    <div class="info-card-desc">Clique em ✅ para remover ou ❌ para adicionar uma funcionalidade a um perfil. Use os botões acima para criar novos perfis ou funcionalidades.</div>
+    </div></div>
+    <div class="menus-table-wrap"><table>${thead}<tbody>${tbody}</tbody></table></div>`;
+}
+
+function renderLabels(){
+  return `<div class="panel-header"><span class="panel-title">Personalizar Labels</span>
+    <button class="btn-new" onclick="openModalLabel()">+ Novo Label</button></div>
+    <div class="info-card"><div class="info-card-icon">🏷️</div><div class="info-card-body">
+    <div class="info-card-title">Como funciona</div>
+    <div class="info-card-desc">Personalize os nomes exibidos na interface para cada perfil. Exemplo: mudar "Clientes" para "Pacientes" no perfil Hospital, ou "Clientes" para "Alunos" na Academia. O banco de dados <strong>nunca é alterado</strong> — apenas o texto na tela muda.
+    <br><br><strong>Chaves disponíveis:</strong> clientes_menu, clientes_titulo, clientes_novo, clientes_single, clientes_th_nome, clientes_campo_nome, clientes_campo_cpf</div>
+    </div></div>
+    <div id="labels-painel-wrap"><div class="loading">Carregando...</div></div>`;
+}
+
+function renderClientes(){
+  const tit=getLabel('clientes_titulo','Clientes');
+  const novo=getLabel('clientes_novo','Novo Cliente');
+  return `<div class="panel-header">
+    <span class="panel-title">${tit} <span class="total-badge" id="cli-total"></span></span>
+    <button class="btn-new" onclick="openModalCliente('new')">+ ${novo}</button></div>
+    <div class="search-bar">
+      <input type="text" id="cli-busca" placeholder="Buscar por nome ou CPF..." onkeydown="if(event.key==='Enter')buscarClientes()">
+      <button class="btn-search" onclick="buscarClientes()">Buscar</button>
+      <button class="btn-clear" onclick="limparBusca()">✕ Limpar</button>
+    </div>
+    <div class="tbl-wrap"><table>
+    <thead><tr><th>#</th><th id="th-cli-nome">${getLabel('clientes_th_nome','Nome')}</th>
+    <th>CPF</th><th>Telefone</th><th>E-mail</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody id="tbl-clientes"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
+    </table></div>`;
 }
 
 function showPanel(name){
@@ -607,219 +631,164 @@ function showPanel(name){
   document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
   const panel=document.getElementById('panel-'+name);
   const menu=document.getElementById('menu-'+name);
-  if(panel) panel.classList.add('active');
-  if(menu)  menu.classList.add('active');
-  if(name==='usuarios')  carregarUsuarios();
-  if(name==='acessos')   { carregarPermissoes(); if(currentUser.nivel==='master_sistema') carregarLabels(); }
-  if(name==='clientes')  carregarClientes();
+  if(panel)panel.classList.add('active');
+  if(menu)menu.classList.add('active');
+  if(name==='usuarios') carregarUsuarios();
+  if(name==='clientes') carregarClientes();
+  if(name==='labels')   carregarLabelsTabela();
 }
 
-function showTab(tabId,btn){
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById(tabId).classList.add('active');
-  btn.classList.add('active');
-}
-
-/* PERMISSÕES POR PERFIL */
-async function carregarPermissoes(){
-  const wrap=document.getElementById('permissoes-table');
-  if(!wrap) return;
-  wrap.innerHTML='<div class="loading">Carregando...</div>';
+/* TOGGLE FUNC/PERFIL */
+async function toggleFuncPerfil(perfil,func,adicionar,labelFunc){
   try{
-    const funcs=await api('perfil_funcionalidades?select=perfil_codigo,funcionalidade,label,ativo&order=funcionalidade.asc');
-    // Montar mapa perfil -> funcs ativas
-    const mapa={};
-    (funcs||[]).forEach(f=>{
-      if(!mapa[f.perfil_codigo]) mapa[f.perfil_codigo]=new Set();
-      if(f.ativo) mapa[f.perfil_codigo].add(f.funcionalidade);
-    });
-    const isMaster=currentUser.nivel==='master_sistema';
-    const cols=PERFIS_COLS;
-    wrap.innerHTML=`<table>
-      <thead><tr>
-        <th>Menu / Funcionalidade</th>
-        ${cols.map(p=>`<th>${pfLabel(p)}</th>`).join('')}
-        ${isMaster?'<th>Incluir</th>':''}
-      </tr></thead>
-      <tbody>
-        ${TODOS_MENUS.map(m=>`<tr>
-          <td>${m.label}</td>
-          ${cols.map(p=>{
-            const tem=(mapa[p]||new Set()).has(m.func);
-            if(isMaster) return `<td><span class="${tem?'check-yes':'check-no'}" onclick="togglePermissao('${p}','${m.func}',${tem},this)" title="Clique para alterar">${tem?'✔':'✘'}</span></td>`;
-            return `<td><span class="${tem?'check-yes-static':'check-no-static'}">${tem?'✔':'✘'}</span></td>`;
-          }).join('')}
-          ${isMaster?`<td><button class="btn-sm btn-new" style="padding:2px 8px;font-size:11px" onclick="openModalNovaFunc(null,'${m.func}','${m.label}')">+</button></td>`:''}
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
-  }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
-}
-
-async function togglePermissao(perfil,func,temAtual,el){
-  const novoAtivo=!temAtual;
-  try{
-    // Verifica se existe registro
-    const existing=await api('perfil_funcionalidades?perfil_codigo=eq.'+perfil+'&funcionalidade=eq.'+func+'&select=id');
-    if(existing&&existing.length){
-      await api('perfil_funcionalidades?perfil_codigo=eq.'+perfil+'&funcionalidade=eq.'+func,{method:'PATCH',body:JSON.stringify({ativo:novoAtivo})});
+    if(adicionar){
+      await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify({perfil_codigo:perfil,funcionalidade:func,label:labelFunc,ativo:true})});
     } else {
-      const labelMap={clientes:'Cadastro de Clientes',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',servicos:'Cadastro de Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
-      await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify({perfil_codigo:perfil,funcionalidade:func,label:labelMap[func]||func,ativo:true})});
+      const row=funcCache.find(f=>f.perfil_codigo===perfil&&f.funcionalidade===func);
+      if(row) await api('perfil_funcionalidades?id=eq.'+row.id,{method:'PATCH',body:JSON.stringify({ativo:false})});
     }
-    el.className=novoAtivo?'check-yes':'check-no';
-    el.textContent=novoAtivo?'✔':'✘';
-    el.onclick=()=>togglePermissao(perfil,func,novoAtivo,el);
+    await carregarFuncCache();
+    const p=document.getElementById('panel-acessos');
+    if(p&&p.classList.contains('active'))p.innerHTML=renderAcessos();
   }catch(e){alert('Erro: '+e.message);}
 }
 
-/* MODAL NOVA FUNCIONALIDADE */
-function openModalNovaFunc(perfil,funcPre,labelPre){
-  novaFuncPerfil=perfil;
-  document.getElementById('nf-perfil-label').value=perfil?pfLabel(perfil):'Todos os perfis';
-  document.getElementById('nf-func').value=funcPre||'';
-  document.getElementById('modal-nova-func-msg').style.display='none';
-  document.getElementById('modal-nova-func').classList.add('open');
-}
-function closeModalNovaFunc(){document.getElementById('modal-nova-func').classList.remove('open');}
-async function salvarNovaFunc(){
-  const func=document.getElementById('nf-func').value;
-  const msgEl=document.getElementById('modal-nova-func-msg');
-  if(!func){showModalMsg(msgEl,'Selecione uma funcionalidade','error');return;}
-  const labelMap={clientes:'Cadastro de Clientes',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',servicos:'Cadastro de Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
-  const perfis=novaFuncPerfil?[novaFuncPerfil]:PERFIS_COLS;
+/* NOVO PERFIL */
+async function salvarPerfil(){
+  const nome=document.getElementById('p-nome').value.trim();
+  const codigo=document.getElementById('p-codigo').value.trim();
+  if(!nome){showMM('modal-perfil-msg','Informe o nome','error');return;}
+  if(!codigo){showMM('modal-perfil-msg','Informe o código','error');return;}
   try{
-    for(const p of perfis){
-      const existing=await api('perfil_funcionalidades?perfil_codigo=eq.'+p+'&funcionalidade=eq.'+func+'&select=id');
-      if(!existing||!existing.length){
-        await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify({perfil_codigo:p,funcionalidade:func,label:labelMap[func]||func,ativo:true})});
-      }
-    }
-    showModalMsg(msgEl,'Funcionalidade adicionada com sucesso!','success');
-    setTimeout(()=>{closeModalNovaFunc();carregarPermissoes();},900);
-  }catch(e){showModalMsg(msgEl,'Erro: '+e.message,'error');}
+    await api('perfis',{method:'POST',body:JSON.stringify({codigo,descricao:nome,ativo:true})});
+    showMM('modal-perfil-msg','Perfil criado!','success');
+    await carregarPerfisCache();
+    setTimeout(()=>{closeModal('modal-perfil');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))p.innerHTML=renderAcessos();},900);
+  }catch(e){showMM('modal-perfil-msg','Erro: '+e.message,'error');}
 }
 
-/* LABELS PERSONALIZADOS */
-async function carregarLabels(){
-  const wrap=document.getElementById('labels-table');
-  if(!wrap) return;
-  wrap.innerHTML='<div class="loading">Carregando...</div>';
+/* NOVA FUNCIONALIDADE */
+async function openModalFunc(){
+  document.getElementById('f-nome').value='';
+  document.getElementById('f-codigo').value='';
+  document.getElementById('modal-func-msg').style.display='none';
+  const perfisNomes=perfisCache.filter(p=>p.codigo!=='master');
+  document.getElementById('func-perfis').innerHTML=perfisNomes.map(p=>`
+    <div class="access-item" onclick="toggleCheck('fp-${p.codigo}',this)">
+      <input type="checkbox" id="fp-${p.codigo}" value="${p.codigo}" onclick="event.stopPropagation()">
+      <label for="fp-${p.codigo}">${p.descricao}</label>
+    </div>`).join('');
+  openModal('modal-func');
+}
+
+async function salvarFuncionalidade(){
+  const nome=document.getElementById('f-nome').value.trim();
+  const codigo=document.getElementById('f-codigo').value.trim();
+  if(!nome){showMM('modal-func-msg','Informe o nome','error');return;}
+  if(!codigo){showMM('modal-func-msg','Informe o código','error');return;}
+  const perfisSel=[...document.querySelectorAll('#func-perfis input:checked')].map(c=>c.value);
   try{
-    const data=await api('perfil_labels?select=*&order=perfil_codigo.asc,chave.asc');
-    if(!data||!data.length){
-      wrap.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text3)">Nenhum nome personalizado configurado ainda.<br>Use o botão abaixo para adicionar.</div>`;
-      adicionarBtnNovoLabel(wrap);
-      return;
+    if(perfisSel.length){
+      await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify(perfisSel.map(p=>({perfil_codigo:p,funcionalidade:codigo,label:nome,ativo:true})))});
     }
-    wrap.innerHTML=`<table>
-      <thead><tr><th>Perfil</th><th>Chave</th><th>Nome Exibido</th><th>Ações</th></tr></thead>
-      <tbody>
-        ${data.map(l=>`<tr>
-          <td>${pfLabel(l.perfil_codigo)}</td>
-          <td style="color:var(--text3);font-size:12px">${l.chave}</td>
-          <td>${l.label}</td>
-          <td><div class="action-btns">
-            <button class="btn-sm btn-edit" onclick="openModalLabel('${l.perfil_codigo}','${l.chave}','${l.label.replace(/'/g,"\\'")}')">Editar</button>
-            <button class="btn-sm btn-deact" onclick="excluirLabel(${l.id})">Excluir</button>
-          </div></td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-    <div style="padding:12px 16px;border-top:1px solid var(--border)">
-      <button class="btn-new" style="font-size:12px" onclick="openModalLabel('','','')">+ Novo Nome Personalizado</button>
-    </div>`;
-  }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+    showMM('modal-func-msg','Funcionalidade adicionada!','success');
+    await carregarFuncCache();
+    setTimeout(()=>{closeModal('modal-func');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))p.innerHTML=renderAcessos();},900);
+  }catch(e){showMM('modal-func-msg','Erro: '+e.message,'error');}
 }
 
-function adicionarBtnNovoLabel(wrap){
-  const btn=document.createElement('div');
-  btn.style.cssText='padding:16px;text-align:center';
-  btn.innerHTML='<button class="btn-new" onclick="openModalLabel(\'\',\'\',\'\')">+ Novo Nome Personalizado</button>';
-  wrap.appendChild(btn);
-}
-
-function openModalLabel(perfil,chave,valor){
-  labelEditando={perfil,chave};
-  // Preencher selects dinamicamente se necessário
-  const pEl=document.getElementById('lbl-perfil-display');
-  const cEl=document.getElementById('lbl-chave-display');
-  // Converter para selects se novo
-  const sub=document.getElementById('modal-label-sub');
-  if(!perfil){
-    sub.textContent='Defina o perfil, a chave e o nome personalizado';
-    pEl.disabled=false; pEl.style.opacity='1';
-    // Substituir por select
-    pEl.outerHTML='<select id="lbl-perfil-display" style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"><option value="">Selecione o perfil...</option>'+PERFIS_COLS.map(p=>`<option value="${p}">${pfLabel(p)}</option>`).join('')+'</select>';
-    cEl.outerHTML='<select id="lbl-chave-display" style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"><option value="">Selecione a chave...</option><option value="clientes_menu">Menu: Clientes</option><option value="clientes_titulo">Título: Cadastro de Clientes</option><option value="clientes_single">Singular: Cliente</option><option value="clientes_novo">Botão: Novo Cliente</option></select>';
-  } else {
-    sub.textContent='Altere o nome exibido na interface para este perfil';
-    const pEl2=document.getElementById('lbl-perfil-display');
-    if(pEl2){pEl2.value=pfLabel(perfil);pEl2.disabled=true;pEl2.style.opacity='0.6';}
-    const cEl2=document.getElementById('lbl-chave-display');
-    if(cEl2){cEl2.value=chave;cEl2.disabled=true;cEl2.style.opacity='0.6';}
-  }
-  document.getElementById('lbl-valor').value=valor;
+/* LABELS */
+async function openModalLabel(){
   document.getElementById('modal-label-msg').style.display='none';
-  document.getElementById('modal-label').classList.add('open');
+  document.getElementById('lbl-chave').value='';
+  document.getElementById('lbl-valor').value='';
+  document.getElementById('labels-existentes-wrap').style.display='none';
+  const sel=document.getElementById('lbl-perfil');
+  sel.innerHTML='<option value="">Selecione...</option>'+perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
+  openModal('modal-label');
 }
-function closeModalLabel(){document.getElementById('modal-label').classList.remove('open');}
 
-async function salvarLabel(){
-  const pEl=document.getElementById('lbl-perfil-display');
-  const cEl=document.getElementById('lbl-chave-display');
-  const perfil=labelEditando.perfil||pEl.value;
-  const chave=labelEditando.chave||cEl.value;
-  const valor=document.getElementById('lbl-valor').value.trim();
-  const msgEl=document.getElementById('modal-label-msg');
-  if(!perfil||!chave||!valor){showModalMsg(msgEl,'Preencha todos os campos','error');return;}
+async function carregarLabelsExistentes(){
+  const perfil=document.getElementById('lbl-perfil').value;
+  const wrap=document.getElementById('labels-existentes-wrap');
+  const cont=document.getElementById('labels-existentes');
+  if(!perfil){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  cont.innerHTML='<div style="color:var(--text3);font-size:12px">Carregando...</div>';
   try{
-    const existing=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+chave+'&select=id');
-    if(existing&&existing.length){
-      await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+chave,{method:'PATCH',body:JSON.stringify({label:valor})});
-    } else {
-      await api('perfil_labels',{method:'POST',body:JSON.stringify({perfil_codigo:perfil,chave,label:valor})});
-    }
-    showModalMsg(msgEl,'Nome personalizado salvo com sucesso!','success');
-    setTimeout(()=>{closeModalLabel();carregarLabels();},900);
-  }catch(e){showModalMsg(msgEl,'Erro: '+e.message,'error');}
+    const rows=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&select=*&order=chave.asc');
+    if(!rows||!rows.length){cont.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum label configurado ainda.</div>';return;}
+    cont.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
+      <thead><tr><th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">CHAVE</th><th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">LABEL</th><th></th></tr></thead>
+      <tbody>${rows.map(r=>`<tr style="border-top:1px solid var(--border)">
+        <td style="padding:6px 8px;color:var(--text2)">${r.chave}</td>
+        <td style="padding:6px 8px;color:var(--accent)">${r.label}</td>
+        <td style="padding:6px 8px"><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id})">Remover</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch(e){cont.innerHTML='Erro: '+e.message;}
 }
 
-async function excluirLabel(id){
-  if(!confirm('Excluir este nome personalizado?')) return;
+async function deletarLabel(id){
   try{
     await api('perfil_labels?id=eq.'+id,{method:'DELETE',headers:{...hdrs,'Prefer':''}});
-    carregarLabels();
+    await carregarLabelsExistentes();
+    await carregarLabels();
   }catch(e){alert('Erro: '+e.message);}
+}
+
+async function salvarLabel(){
+  const perfil=document.getElementById('lbl-perfil').value;
+  const chave=document.getElementById('lbl-chave').value.trim();
+  const valor=document.getElementById('lbl-valor').value.trim();
+  if(!perfil){showMM('modal-label-msg','Selecione um perfil','error');return;}
+  if(!chave){showMM('modal-label-msg','Informe a chave','error');return;}
+  if(!valor){showMM('modal-label-msg','Informe o label','error');return;}
+  try{
+    await api('perfil_labels',{method:'POST',headers:{...hdrs,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({perfil_codigo:perfil,chave,label:valor})});
+    showMM('modal-label-msg','Label salvo com sucesso!','success');
+    await carregarLabels();
+    await carregarLabelsExistentes();
+    if(document.getElementById('labels-painel-wrap')) carregarLabelsTabela();
+  }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
+}
+
+async function carregarLabelsTabela(){
+  const wrap=document.getElementById('labels-painel-wrap');if(!wrap)return;
+  try{
+    const rows=await api('perfil_labels?select=id,perfil_codigo,chave,label&order=perfil_codigo.asc,chave.asc');
+    if(!rows||!rows.length){wrap.innerHTML='<div class="empty">Nenhum label personalizado configurado ainda.</div>';return;}
+    wrap.innerHTML=`<div class="labels-table-wrap"><table>
+      <thead><tr><th>Perfil</th><th>Chave</th><th>Label na Interface</th><th>Ação</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td>${perfilNome(r.perfil_codigo)}</td>
+        <td style="color:var(--text3);font-size:12px">${r.chave}</td>
+        <td style="color:var(--accent)">${r.label}</td>
+        <td><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id});carregarLabelsTabela()">Remover</button></td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
 
 /* CLIENTES */
 async function carregarClientes(filtro=''){
-  const tbody=document.getElementById('tbl-clientes');
-  if(!tbody) return;
+  const tbody=document.getElementById('tbl-clientes');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
   try{
-    let query='clientes?select=*&order=nome.asc';
-    if(filtro){const f=encodeURIComponent('%'+filtro+'%');query='clientes?select=*&order=nome.asc&or=(nome.ilike.'+f+',cpf.ilike.'+f+')';}
-    const data=await api(query);
+    let q='clientes?select=*&order=nome.asc';
+    if(filtro){const f=encodeURIComponent('%'+filtro+'%');q='clientes?select=*&order=nome.asc&or=(nome.ilike.'+f+',cpf.ilike.'+f+')';}
+    const data=await api(q);
     const total=document.getElementById('cli-total');
-    if(total) total.textContent=data&&data.length?'('+data.length+')':'';
-    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">'+(filtro?'Nenhum resultado para "'+filtro+'"':'Nenhum registro cadastrado.')+'</td></tr>';return;}
-    const nomeSingular=getLabel('clientes_single','Cliente');
+    if(total)total.textContent=data&&data.length?'('+data.length+')':'';
+    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">'+(filtro?'Nenhum registro encontrado.':'Nenhum registro cadastrado.')+'</td></tr>';return;}
     tbody.innerHTML=data.map(c=>`<tr>
       <td style="color:var(--text3)">${c.id}</td>
       <td style="font-weight:500;color:var(--text)">${c.nome}</td>
-      <td>${c.cpf||'-'}</td>
-      <td>${c.telefone||'-'}</td>
-      <td>${c.email||'-'}</td>
-      <td>${c.cidade||'-'}</td>
+      <td>${c.cpf||'-'}</td><td>${c.telefone||'-'}</td>
+      <td>${c.email||'-'}</td><td>${c.cidade||'-'}</td>
       <td><span class="badge ${c.ativo?'badge-ativo':'badge-inativo'}">${c.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
         <button class="btn-sm btn-edit" onclick="openModalCliente('edit',${c.id})">Editar</button>
         ${c.ativo?`<button class="btn-sm btn-deact" onclick="toggleCliente(${c.id},false)">Desativar</button>`:`<button class="btn-sm btn-react" onclick="toggleCliente(${c.id},true)">Reativar</button>`}
-      </div></td>
-    </tr>`).join('');
+      </div></td></tr>`).join('');
   }catch(e){tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`;}
 }
 function buscarClientes(){carregarClientes(document.getElementById('cli-busca').value.trim());}
@@ -833,19 +802,18 @@ function openModalCliente(mode,id){
   editingClienteId=null;
   document.getElementById('modal-cli-msg').style.display='none';
   document.getElementById('cep-hint').textContent='';
-  const nomeSingular=getLabel('clientes_single','Cliente');
+  const single=getLabel('clientes_single','Cliente');
+  document.getElementById('modal-cli-titulo').textContent=mode==='new'?getLabel('clientes_novo','Novo Cliente'):'Editar '+single;
+  document.getElementById('modal-cli-sub').textContent='Preencha os dados do '+single.toLowerCase();
+  document.getElementById('lbl-cli-nome').innerHTML=getLabel('clientes_campo_nome','Nome Completo')+' <span class="req">*</span>';
+  document.getElementById('lbl-cli-cpf').textContent=getLabel('clientes_campo_cpf','CPF');
   if(mode==='new'){
-    document.getElementById('modal-cli-titulo').textContent='Novo '+nomeSingular;
-    document.getElementById('modal-cli-sub').textContent='Preencha os dados do '+nomeSingular.toLowerCase();
     ['cli-nome','cli-cpf','cli-tel','cli-email','cli-cep','cli-end','cli-num','cli-comp','cli-bairro','cli-cidade','cli-estado','cli-obs'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('cli-sexo').value='';document.getElementById('cli-nasc').value='';document.getElementById('cli-pais').value='Brasil';
   } else {
-    document.getElementById('modal-cli-titulo').textContent='Editar '+nomeSingular;
-    document.getElementById('modal-cli-sub').textContent='Altere os dados necessários';
     editingClienteId=id;
     api('clientes?id=eq.'+id+'&select=*').then(data=>{
-      if(!data||!data.length) return;
-      const c=data[0];
+      if(!data||!data.length)return;const c=data[0];
       document.getElementById('cli-nome').value=c.nome||'';
       document.getElementById('cli-cpf').value=c.cpf||'';
       document.getElementById('cli-nasc').value=c.data_nasc||'';
@@ -863,55 +831,70 @@ function openModalCliente(mode,id){
       document.getElementById('cli-obs').value=c.observacoes||'';
     });
   }
-  // Atualizar label do campo nome
-  const lbl=document.getElementById('lbl-cli-nome-field');
-  if(lbl) lbl.innerHTML=getLabel('clientes_single','Cliente')+' - Nome Completo <span class="req">*</span>';
-  document.getElementById('modal-cliente').classList.add('open');
+  openModal('modal-cliente');
 }
-function closeModalCliente(){document.getElementById('modal-cliente').classList.remove('open');}
 
 async function salvarCliente(){
   const nome=document.getElementById('cli-nome').value.trim();
-  const msgEl=document.getElementById('modal-cli-msg');
-  msgEl.style.display='none';
-  if(!nome){showModalMsg(msgEl,'Informe o nome','error');return;}
-  const body={nome,cpf:document.getElementById('cli-cpf').value.trim()||null,data_nasc:document.getElementById('cli-nasc').value||null,sexo:document.getElementById('cli-sexo').value||null,telefone:document.getElementById('cli-tel').value.trim()||null,email:document.getElementById('cli-email').value.trim()||null,cep:document.getElementById('cli-cep').value.trim()||null,endereco:document.getElementById('cli-end').value.trim()||null,numero:document.getElementById('cli-num').value.trim()||null,complemento:document.getElementById('cli-comp').value.trim()||null,bairro:document.getElementById('cli-bairro').value.trim()||null,cidade:document.getElementById('cli-cidade').value.trim()||null,estado:document.getElementById('cli-estado').value.trim()||null,pais:document.getElementById('cli-pais').value.trim()||'Brasil',observacoes:document.getElementById('cli-obs').value.trim()||null,alterado_em:new Date().toISOString()};
+  const msgEl=document.getElementById('modal-cli-msg');msgEl.style.display='none';
+  if(!nome){showMM('modal-cli-msg','Informe o nome','error');return;}
+  const body={
+    nome,cpf:document.getElementById('cli-cpf').value.trim()||null,
+    data_nasc:document.getElementById('cli-nasc').value||null,
+    sexo:document.getElementById('cli-sexo').value||null,
+    telefone:document.getElementById('cli-tel').value.trim()||null,
+    email:document.getElementById('cli-email').value.trim()||null,
+    cep:document.getElementById('cli-cep').value.trim()||null,
+    endereco:document.getElementById('cli-end').value.trim()||null,
+    numero:document.getElementById('cli-num').value.trim()||null,
+    complemento:document.getElementById('cli-comp').value.trim()||null,
+    bairro:document.getElementById('cli-bairro').value.trim()||null,
+    cidade:document.getElementById('cli-cidade').value.trim()||null,
+    estado:document.getElementById('cli-estado').value.trim()||null,
+    pais:document.getElementById('cli-pais').value.trim()||'Brasil',
+    observacoes:document.getElementById('cli-obs').value.trim()||null,
+    alterado_em:new Date().toISOString()
+  };
   try{
-    if(!editingClienteId){await api('clientes',{method:'POST',body:JSON.stringify({...body,ativo:true})});showModalMsg(msgEl,'Cadastro realizado com sucesso!','success');}
-    else{await api('clientes?id=eq.'+editingClienteId,{method:'PATCH',body:JSON.stringify(body)});showModalMsg(msgEl,'Cadastro atualizado com sucesso!','success');}
-    setTimeout(()=>{closeModalCliente();carregarClientes(document.getElementById('cli-busca')?.value||'');},900);
-  }catch(e){showModalMsg(msgEl,'Erro: '+e.message,'error');}
+    if(!editingClienteId){await api('clientes',{method:'POST',body:JSON.stringify({...body,ativo:true})});showMM('modal-cli-msg','Cadastro realizado com sucesso!','success');}
+    else{await api('clientes?id=eq.'+editingClienteId,{method:'PATCH',body:JSON.stringify(body)});showMM('modal-cli-msg','Atualizado com sucesso!','success');}
+    setTimeout(()=>{closeModal('modal-cliente');carregarClientes(document.getElementById('cli-busca')?.value||'');},900);
+  }catch(e){showMM('modal-cli-msg','Erro: '+e.message,'error');}
 }
 
 /* USUÁRIOS */
 async function carregarUsuarios(){
-  const tbody=document.getElementById('tbl-usuarios');
-  if(!tbody) return;
+  const tbody=document.getElementById('tbl-usuarios');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
   const isMasterSistema=currentUser.nivel==='master_sistema';
   const isMasterEmpresa=currentUser.nivel==='master_empresa';
   try{
-    let query='usuarios?select=*&order=id.asc';
-    // Master de empresa vê apenas usuários do seu perfil/empresa
-    if(isMasterEmpresa) query='usuarios?select=*&order=id.asc&perfil=eq.'+currentUser.perfil+'&nivel=neq.master_sistema';
-    const data=await api(query);
+    // master_sistema: vê TODOS os usuários
+    // master_empresa: vê apenas usuários comuns do seu mesmo perfil
+    let q='usuarios?select=*&order=id.asc';
+    if(isMasterEmpresa) q+='&perfil=eq.'+currentUser.perfil+'&nivel=eq.usuario';
+    const data=await api(q);
     if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">Nenhum usuário encontrado.</td></tr>';return;}
     tbody.innerHTML=data.map(u=>`<tr>
       <td style="color:var(--text3)">${u.id}</td>
       <td style="font-weight:500;color:var(--text)">${u.usuario}</td>
       <td>${u.nome||'-'}</td>
-      <td>${pfLabel(u.perfil)}</td>
+      <td>${perfilNome(u.perfil)}</td>
       <td>${u.empresa||'-'}</td>
-      <td><span class="badge badge-master">${nivelLabel(u.nivel)}</span></td>
+      <td><span class="badge ${nivelBadgeClass(u.nivel)}">${nivelLabel(u.nivel)}</span></td>
       <td><span class="badge ${u.ativo?'badge-ativo':'badge-inativo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
         <button class="btn-sm btn-edit" onclick="openModalUsuario('edit',${u.id})">Editar</button>
-        ${u.nivel!=='master_sistema'&&u.nivel!=='master_empresa'&&u.perfil&&u.perfil!=='master'
-          ?`<button class="btn-sm btn-access" onclick="openModalAcessos(${u.id},'${u.perfil}','${(u.nome||u.usuario).replace(/'/g,"\\'")}')">Acessos</button>`:''}
+        ${podeGerenciarAcesso(u)?`<button class="btn-sm btn-access" onclick="openModalAcessos(${u.id},'${u.perfil}','${(u.nome||u.usuario).replace(/'/g,"\\'")}')">Acessos</button>`:''}
         ${u.ativo?`<button class="btn-sm btn-deact" onclick="toggleAtivo(${u.id},false)">Desativar</button>`:`<button class="btn-sm btn-react" onclick="toggleAtivo(${u.id},true)">Reativar</button>`}
-      </div></td>
-    </tr>`).join('');
+      </div></td></tr>`).join('');
   }catch(e){tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`;}
+}
+
+function podeGerenciarAcesso(u){
+  if(currentUser.nivel==='master_sistema') return u.nivel!=='master_sistema';
+  if(currentUser.nivel==='master_empresa') return u.nivel==='usuario';
+  return false;
 }
 
 async function toggleAtivo(id,ativo){
@@ -919,127 +902,118 @@ async function toggleAtivo(id,ativo){
   catch(e){alert('Erro: '+e.message);}
 }
 
-function onNivelChange(){
-  // Master de empresa só pode criar usuários comuns
-  const nivel=document.getElementById('m-nivel').value;
-  if(currentUser.nivel==='master_empresa'){
-    document.getElementById('m-nivel').value='usuario';
-  }
-}
-
-function openModalUsuario(mode,id){
+async function openModalUsuario(mode,id){
   editingUserId=null;
   document.getElementById('modal-user-msg').style.display='none';
+  const isMasterSistema=currentUser.nivel==='master_sistema';
   const isMasterEmpresa=currentUser.nivel==='master_empresa';
-  // Ajustar opções de nível conforme quem está criando
-  const nivelSel=document.getElementById('m-nivel');
-  nivelSel.innerHTML=isMasterEmpresa
-    ?'<option value="usuario">Usuário</option>'
-    :'<option value="usuario">Usuário</option><option value="master_empresa">Master de Empresa</option><option value="master_sistema">Master do Sistema</option>';
-  // Fixar perfil para master de empresa
-  const perfilSel=document.getElementById('m-perfil');
-  if(isMasterEmpresa){
-    perfilSel.innerHTML=`<option value="${currentUser.perfil}">${pfLabel(currentUser.perfil)}</option>`;
-    perfilSel.disabled=true;
-    document.getElementById('m-empresa').value=currentUser.empresa||'';
-    document.getElementById('m-empresa').disabled=true;
-  } else {
-    perfilSel.disabled=false;
-    perfilSel.innerHTML='<option value="">Selecione...</option><option value="master">Master Sistema</option><option value="padaria">Padaria</option><option value="clinica">Clínica Médica</option><option value="petshop">Petshop</option><option value="academia">Academia</option><option value="hospital">Hospital</option>';
-    document.getElementById('m-empresa').disabled=false;
-  }
+
+  // Popular select de perfis
+  const selPerfil=document.getElementById('m-perfil');
+  selPerfil.innerHTML='<option value="">Selecione...</option>'+perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
+
+  // Mostrar/ocultar campos conforme quem está logado
+  document.getElementById('wrap-nivel').style.display=isMasterEmpresa?'none':'block';
+  document.getElementById('wrap-perfil').style.display=isMasterEmpresa?'none':'block';
+  document.getElementById('wrap-acessos-new').style.display='none';
+
   if(mode==='new'){
     document.getElementById('modal-user-titulo').textContent='Novo Usuário';
-    document.getElementById('modal-user-sub').textContent='Preencha os dados do novo usuário';
-    ['m-usuario','m-nome'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('modal-user-sub').textContent=isMasterEmpresa
+      ?'Novo usuário do perfil '+perfilNome(currentUser.perfil)
+      :'Preencha os dados do novo usuário';
+    ['m-usuario','m-nome','m-empresa'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('m-senha').value='';
     document.getElementById('m-nivel').value='usuario';
-    if(!isMasterEmpresa){document.getElementById('m-perfil').value='';document.getElementById('m-empresa').value='';}
+    document.getElementById('m-perfil').value='';
     document.getElementById('m-usuario').disabled=false;
+
+    if(isMasterEmpresa){
+      // Mostra checkboxes dos menus do perfil para o master de empresa escolher
+      document.getElementById('wrap-acessos-new').style.display='block';
+      const funcsDisponiveis=funcCache.filter(f=>f.perfil_codigo===currentUser.perfil&&f.ativo);
+      document.getElementById('new-user-acessos').innerHTML=funcsDisponiveis.map(f=>`
+        <div class="access-item" onclick="toggleCheck('na-${f.funcionalidade}',this)">
+          <input type="checkbox" id="na-${f.funcionalidade}" value="${f.funcionalidade}" onclick="event.stopPropagation()">
+          <label for="na-${f.funcionalidade}">${f.label||f.funcionalidade}</label>
+        </div>`).join('');
+    }
   } else {
     document.getElementById('modal-user-titulo').textContent='Editar Usuário';
     document.getElementById('modal-user-sub').textContent='Altere os dados necessários';
     editingUserId=id;
-    api('usuarios?id=eq.'+id+'&select=*').then(data=>{
-      if(!data||!data.length) return;
-      const u=data[0];
-      document.getElementById('m-usuario').value=u.usuario;
-      document.getElementById('m-nome').value=u.nome||'';
-      document.getElementById('m-senha').value=u.senha;
-      document.getElementById('m-nivel').value=u.nivel;
-      if(!isMasterEmpresa){document.getElementById('m-perfil').value=u.perfil||'';document.getElementById('m-empresa').value=u.empresa||'';}
-      document.getElementById('m-usuario').disabled=true;
-    });
+    const data=await api('usuarios?id=eq.'+id+'&select=*');
+    if(!data||!data.length)return;
+    const u=data[0];
+    document.getElementById('m-usuario').value=u.usuario;
+    document.getElementById('m-nome').value=u.nome||'';
+    document.getElementById('m-senha').value=u.senha;
+    document.getElementById('m-nivel').value=u.nivel;
+    document.getElementById('m-perfil').value=u.perfil||'';
+    document.getElementById('m-empresa').value=u.empresa||'';
+    document.getElementById('m-usuario').disabled=true;
   }
-  document.getElementById('modal-usuario').classList.add('open');
+  openModal('modal-usuario');
 }
-function closeModalUsuario(){document.getElementById('modal-usuario').classList.remove('open');}
 
 async function salvarUsuario(){
+  const isMasterEmpresa=currentUser.nivel==='master_empresa';
   const usuario=document.getElementById('m-usuario').value.trim();
   const nome=document.getElementById('m-nome').value.trim();
   const senha=document.getElementById('m-senha').value.trim();
-  const nivel=document.getElementById('m-nivel').value;
-  const perfil=document.getElementById('m-perfil').value;
-  const empresa=document.getElementById('m-empresa').value.trim();
-  const msgEl=document.getElementById('modal-user-msg');
-  msgEl.style.display='none';
-  if(!usuario){showModalMsg(msgEl,'Informe o usuário','error');return;}
-  if(!senha){showModalMsg(msgEl,'Informe a senha','error');return;}
+  const nivel=isMasterEmpresa?'usuario':document.getElementById('m-nivel').value;
+  const perfil=isMasterEmpresa?currentUser.perfil:document.getElementById('m-perfil').value;
+  const empresa=isMasterEmpresa?(currentUser.empresa||''):document.getElementById('m-empresa').value.trim();
+  if(!usuario){showMM('modal-user-msg','Informe o usuário','error');return;}
+  if(!senha){showMM('modal-user-msg','Informe a senha','error');return;}
   const body={nome,senha,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
   try{
     if(!editingUserId){
-      await api('usuarios',{method:'POST',body:JSON.stringify({...body,usuario,ativo:true})});
-      showModalMsg(msgEl,'Usuário criado com sucesso!','success');
+      const novo=await api('usuarios',{method:'POST',body:JSON.stringify({...body,usuario,ativo:true})});
+      const novoId=novo&&novo[0]?novo[0].id:null;
+      if(novoId&&isMasterEmpresa){
+        const sel=[...document.querySelectorAll('#new-user-acessos input:checked')].map(c=>c.value);
+        if(sel.length) await api('usuario_acessos',{method:'POST',body:JSON.stringify(sel.map(f=>({usuario_id:novoId,funcionalidade:f,ativo:true})))});
+      }
+      showMM('modal-user-msg','Usuário criado com sucesso!','success');
     } else {
       await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(body)});
-      showModalMsg(msgEl,'Usuário atualizado com sucesso!','success');
+      showMM('modal-user-msg','Usuário atualizado com sucesso!','success');
     }
-    setTimeout(()=>{closeModalUsuario();carregarUsuarios();},900);
-  }catch(e){showModalMsg(msgEl,'Erro: '+e.message,'error');}
+    setTimeout(()=>{closeModal('modal-usuario');carregarUsuarios();},900);
+  }catch(e){showMM('modal-user-msg','Erro: '+e.message,'error');}
 }
 
 /* MODAL ACESSOS */
 async function openModalAcessos(userId,perfil,nome){
   accessUserId=userId;accessUserPerfil=perfil;
   document.getElementById('modal-access-titulo').textContent='Acessos: '+nome;
-  document.getElementById('modal-access-sub').textContent='Perfil: '+pfLabel(perfil);
+  document.getElementById('modal-access-sub').textContent='Perfil: '+perfilNome(perfil);
   document.getElementById('modal-access-msg').style.display='none';
   document.getElementById('access-checkboxes').innerHTML='<div class="loading">Carregando...</div>';
-  document.getElementById('modal-acessos').classList.add('open');
+  openModal('modal-acessos');
   try{
-    const [funcs,acessos]=await Promise.all([
-      api('perfil_funcionalidades?perfil_codigo=eq.'+perfil+'&ativo=eq.true&select=funcionalidade,label'),
-      api('usuario_acessos?usuario_id=eq.'+userId+'&ativo=eq.true&select=funcionalidade')
-    ]);
+    const funcsDisponiveis=funcCache.filter(f=>f.perfil_codigo===perfil&&f.ativo);
+    const acessos=await api('usuario_acessos?usuario_id=eq.'+userId+'&ativo=eq.true&select=funcionalidade');
     const ativos=new Set((acessos||[]).map(a=>a.funcionalidade));
-    if(!funcs||!funcs.length){document.getElementById('access-checkboxes').innerHTML='<div class="empty">Sem funcionalidades para este perfil.</div>';return;}
-    document.getElementById('access-checkboxes').innerHTML=funcs.map(f=>`
+    if(!funcsDisponiveis.length){document.getElementById('access-checkboxes').innerHTML='<div class="empty">Sem funcionalidades para este perfil.</div>';return;}
+    document.getElementById('access-checkboxes').innerHTML=funcsDisponiveis.map(f=>`
       <div class="access-item ${ativos.has(f.funcionalidade)?'selected':''}" onclick="toggleCheck('chk-${f.funcionalidade}',this)">
         <input type="checkbox" id="chk-${f.funcionalidade}" value="${f.funcionalidade}" ${ativos.has(f.funcionalidade)?'checked':''} onclick="event.stopPropagation()">
-        <label for="chk-${f.funcionalidade}">${f.label}</label>
+        <label for="chk-${f.funcionalidade}">${f.label||f.funcionalidade}</label>
       </div>`).join('');
   }catch(e){document.getElementById('access-checkboxes').innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
-function toggleCheck(id,item){const c=document.getElementById(id);c.checked=!c.checked;item.classList.toggle('selected',c.checked);}
-function closeModalAcessos(){document.getElementById('modal-acessos').classList.remove('open');}
+
 async function salvarAcessos(){
-  const msgEl=document.getElementById('modal-access-msg');msgEl.style.display='none';
-  const sel=[...document.querySelectorAll('#access-checkboxes input[type=checkbox]')].filter(c=>c.checked).map(c=>c.value);
+  const sel=[...document.querySelectorAll('#access-checkboxes input:checked')].map(c=>c.value);
   try{
     await api('usuario_acessos?usuario_id=eq.'+accessUserId,{method:'DELETE',headers:{...hdrs,'Prefer':''}});
     if(sel.length) await api('usuario_acessos',{method:'POST',body:JSON.stringify(sel.map(f=>({usuario_id:accessUserId,funcionalidade:f,ativo:true})))});
-    showModalMsg(msgEl,'Acessos salvos com sucesso!','success');
-    setTimeout(()=>closeModalAcessos(),900);
-  }catch(e){showModalMsg(msgEl,'Erro: '+e.message,'error');}
+    showMM('modal-access-msg','Acessos salvos com sucesso!','success');
+    setTimeout(()=>closeModal('modal-acessos'),900);
+  }catch(e){showMM('modal-access-msg','Erro: '+e.message,'error');}
 }
-
-// Permitir criar tabela perfil_labels se não existir via API
-async function garantirTabelaLabels(){
-  try{ await api('perfil_labels?limit=1'); }
-  catch(e){ console.warn('Tabela perfil_labels pode não existir ainda'); }
-}
-garantirTabelaLabels();
 </script>
 </body>
 </html>
