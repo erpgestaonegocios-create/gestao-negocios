@@ -1917,18 +1917,21 @@ async function carregarAlertas(){
       e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo)
     );
 
-    // Aniversariantes próximos 7 dias
+    // Aniversariantes próximos 7 dias — comparação só por data (sem horas)
+    const hojeZero=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate());
     const anivs=(aniversariantes||[]).filter(c=>{
       if(!c.data_nascimento)return false;
       const nasc=new Date(c.data_nascimento+'T12:00');
+      // Aniversário deste ano
       const nascEsteAno=new Date(hoje.getFullYear(),nasc.getMonth(),nasc.getDate());
-      const diff=(nascEsteAno-hoje)/(1000*60*60*24);
-      return diff>=0&&diff<=7;
+      const diffMs=nascEsteAno-hojeZero;
+      const diffDias=Math.round(diffMs/(1000*60*60*24));
+      return diffDias>=0&&diffDias<=7;
     }).map(c=>{
       const nasc=new Date(c.data_nascimento+'T12:00');
       const nascEsteAno=new Date(hoje.getFullYear(),nasc.getMonth(),nasc.getDate());
-      const diff=Math.round((nascEsteAno-hoje)/(1000*60*60*24));
-      return {...c,diasParaAniv:diff};
+      const diffDias=Math.round((nascEsteAno-hojeZero)/(1000*60*60*24));
+      return {...c,diasParaAniv:diffDias};
     });
 
     let html='';
@@ -2031,7 +2034,7 @@ async function carregarAlertas(){
             <div style="font-weight:600;color:var(--text)">${c.nome}</div>
             <div style="font-size:12px;color:var(--accent)">${label}</div>
           </div>
-          ${c.telefone?`<button class="btn-sm" style="border-color:#25D366;color:#25D366;background:transparent" onclick="enviarWhatsAppAniversario('${c.telefone}','${c.nome.replace(/'/g,"\\'")}')">📱 Parabéns</button>`:''}
+          ${c.telefone?`<button class="btn-sm" style="border-color:#25D366;color:#25D366;background:transparent" onclick="enviarWhatsAppAniversario('${c.telefone}','${c.nome.replace(/'/g,"\\'")}','${c.data_nascimento||''}')">📱 Parabéns</button>`:''}
         </div>`;
       }).join('');
     }
@@ -2122,11 +2125,11 @@ function carregarWhatsApp(){
     {id:'msg_agendamento_hoje', titulo:'📅 Lembrete de Agendamento (hoje)', msg:`Olá {nome}! 👋 Lembrando que você tem um agendamento hoje na ${empresa}.\n\n🕐 Horário: {hora}\n💼 Serviço: {servico}\n\nTe aguardamos! Qualquer dúvida, estamos à disposição.`},
     {id:'msg_cobranca_vencendo', titulo:'💰 Cobrança — Vencimento Próximo', msg:`Olá {nome}! Passando para informar que seu pagamento de {descricao} no valor de {valor} vence em {vencimento}.\n\nQualquer dúvida, entre em contato. Obrigado! 🙏`},
     {id:'msg_cobranca_vencida', titulo:'💰 Cobrança — Pagamento Vencido', msg:`Olá {nome}! Identificamos que o pagamento de {descricao} no valor de {valor} venceu em {vencimento}.\n\nPor gentileza, entre em contato para regularizarmos. Estamos à disposição! 😊`},
-    {id:'msg_aniversario', titulo:'🎂 Feliz Aniversário', msg:`Olá {nome}! 🎉🎂 Toda a equipe da ${empresa} deseja a você um feliz aniversário! Que seu dia seja repleto de alegrias e realizações. Parabéns! 🥳`},
+    {id:'msg_aniversario', titulo:'🎂 Feliz Aniversário', msg:`Olá {nome}! 🎉🎂 Hoje, dia {data}, toda a equipe da ${empresa} deseja a você um feliz aniversário! Que seu dia seja repleto de alegrias e realizações. Parabéns! 🥳`},
   ].map(m=>`
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">${m.titulo}</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Variáveis: {nome}, {hora}, {servico}, {valor}, {vencimento}, {descricao}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Variáveis disponíveis: {nome}, {hora}, {hora_fim}, {data}, {servico}, {profissional}, {valor}, {vencimento}, {descricao}, {empresa}, {hoje}, {agora}, {telefone}, {email}, {dias}</div>
       <textarea id="${m.id}" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;line-height:1.6;resize:vertical;min-height:90px;font-family:inherit;outline:none">${m.msg}</textarea>
     </div>`).join('')}
   <button class="btn-primary" onclick="salvarMensagensWpp()" style="margin-top:8px">💾 Salvar Modelos</button>
@@ -2158,48 +2161,110 @@ function abrirWhatsApp(telefone,mensagem){
   window.open(url,'_blank');
 }
 
+// ── Motor central de substituição de variáveis ─────────────────
+// Todas as mensagens passam por aqui. Adicione novas variáveis aqui
+// e elas funcionarão automaticamente em qualquer modelo presente ou futuro.
+function aplicarVariaveis(modelo, vars){
+  let msg = modelo;
+  // Garante que todas as chaves possíveis sejam substituídas
+  const tudo = {
+    // Dados do cliente
+    nome:        vars.nome        || '',
+    telefone:    vars.telefone    || '',
+    email:       vars.email       || '',
+    // Dados de agendamento
+    hora:        vars.hora        || '',
+    hora_fim:    vars.hora_fim    || '',
+    data:        vars.data        || '',
+    data_fim:    vars.data_fim    || '',
+    dia:         vars.data        || '', // alias
+    servico:     vars.servico     || '',
+    profissional:vars.profissional|| '',
+    // Dados financeiros
+    descricao:   vars.descricao   || '',
+    valor:       vars.valor       || '',
+    vencimento:  vars.vencimento  || '',
+    parcela:     vars.parcela     || '',
+    // Dados da empresa
+    empresa:     vars.empresa     || empresaConfig?.nome_empresa || perfilNome(currentUser?.perfil) || '',
+    // Data/hora atuais
+    hoje:        new Date().toLocaleDateString('pt-BR'),
+    agora:       new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    // Qualquer variável extra passada
+    ...vars
+  };
+  // Substituir todas as ocorrências de {variavel} no modelo
+  Object.entries(tudo).forEach(([k,v])=>{
+    msg = msg.replace(new RegExp('{'+k+'}','g'), v||'');
+  });
+  // Limpar variáveis não substituídas que sobrarem
+  msg = msg.replace(/\{[a-z_]+\}/g, '');
+  return msg;
+}
+
 function enviarWhatsAppAgendamento(ag,tipo){
   if(!ag.clientes)return alert('Agendamento sem cliente vinculado.');
-  // Buscar telefone do cliente
-  api('clientes?id=eq.'+ag.clientes.id+'&select=telefone,nome').then(rows=>{
+  api('clientes?id=eq.'+ag.clientes.id+'&select=telefone,nome,email').then(rows=>{
     const cli=rows&&rows[0];
     if(!cli?.telefone)return alert('Cliente sem telefone cadastrado.');
     const msgId=tipo==='amanha'?'msg_agendamento_amanha':'msg_agendamento_hoje';
     const modeloEl=document.getElementById(msgId);
     const modelo=modeloEl?.value||localStorage.getItem('wpp_'+msgId)||'';
-    const hr=new Date(ag.data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    const msg=modelo
-      .replace(/{nome}/g,cli.nome)
-      .replace(/{hora}/g,hr)
-      .replace(/{servico}/g,ag.servicos?.nome||'—');
+    const dtInicio=new Date(ag.data_hora);
+    const dtFim=ag.data_hora_fim?new Date(ag.data_hora_fim):null;
+    const msg=aplicarVariaveis(modelo,{
+      nome:        cli.nome,
+      telefone:    cli.telefone,
+      email:       cli.email||'',
+      hora:        dtInicio.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      hora_fim:    dtFim?dtFim.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'',
+      data:        dtInicio.toLocaleDateString('pt-BR'),
+      servico:     ag.servicos?.nome||'',
+      profissional:ag.profissional||'',
+    });
     abrirWhatsApp(cli.telefone,msg);
-  }).catch(()=>alert('Erro ao buscar telefone do cliente.'));
+  }).catch(()=>alert('Erro ao buscar dados do cliente.'));
 }
 
 function enviarWhatsAppCobranca(lan){
   if(!lan.clientes)return alert('Lançamento sem cliente vinculado.');
-  api('clientes?id=eq.'+lan.clientes.id+'&select=telefone,nome').then(rows=>{
+  api('clientes?id=eq.'+lan.clientes.id+'&select=telefone,nome,email').then(rows=>{
     const cli=rows&&rows[0];
     if(!cli?.telefone)return alert('Cliente sem telefone cadastrado.');
     const venc=new Date(lan.data_vencimento+'T12:00');
     const hoje=new Date();
     const vencido=venc<hoje;
+    const diffDias=Math.round((venc-hoje)/(1000*60*60*24));
     const msgId=vencido?'msg_cobranca_vencida':'msg_cobranca_vencendo';
     const modeloEl=document.getElementById(msgId);
     const modelo=modeloEl?.value||localStorage.getItem('wpp_'+msgId)||'';
-    const msg=modelo
-      .replace(/{nome}/g,cli.nome)
-      .replace(/{descricao}/g,lan.descricao)
-      .replace(/{valor}/g,'R$ '+parseFloat(lan.valor).toFixed(2).replace('.',','))
-      .replace(/{vencimento}/g,venc.toLocaleDateString('pt-BR'));
+    const msg=aplicarVariaveis(modelo,{
+      nome:       cli.nome,
+      telefone:   cli.telefone,
+      email:      cli.email||'',
+      descricao:  lan.descricao,
+      valor:      'R$ '+parseFloat(lan.valor).toFixed(2).replace('.',','),
+      vencimento: venc.toLocaleDateString('pt-BR'),
+      parcela:    lan.descricao,
+      dias:       vencido?String(Math.abs(diffDias)):String(diffDias),
+    });
     abrirWhatsApp(cli.telefone,msg);
   }).catch(()=>alert('Erro ao buscar dados do cliente.'));
 }
 
-function enviarWhatsAppAniversario(telefone,nome){
+function enviarWhatsAppAniversario(telefone,nome,dataNasc){
   const modeloEl=document.getElementById('msg_aniversario');
   const modelo=modeloEl?.value||localStorage.getItem('wpp_msg_aniversario')||'';
-  const msg=modelo.replace(/{nome}/g,nome);
+  let dataFmt='';
+  if(dataNasc){
+    const d=new Date(dataNasc+'T12:00');
+    dataFmt=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long'});
+  }
+  const msg=aplicarVariaveis(modelo,{
+    nome:  nome,
+    data:  dataFmt,
+    dia:   dataFmt,
+  });
   abrirWhatsApp(telefone,msg);
 }
 
