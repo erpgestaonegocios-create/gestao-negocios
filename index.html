@@ -380,6 +380,11 @@
         <input type="text" id="cfg-nome" placeholder="ex: Hospital João XXIII">
       </div>
       <div class="mfield col-2">
+        <label>Código de Acesso <span class="req">*</span></label>
+        <input type="text" id="cfg-codigo" placeholder="ex: hospital-joao-xxiii" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')">
+        <div class="field-hint">Identificador único para o link do cliente. Apenas letras minúsculas, números e hífen.</div>
+      </div>
+      <div class="mfield col-2">
         <label>Logo da Empresa</label>
         <div class="logo-preview-wrap">
           <div class="logo-preview" id="cfg-logo-preview">🏢</div>
@@ -529,7 +534,7 @@ async function carregarConfigEmpresa(){
   const codigo = params.get('empresa');
   if(!codigo) return;
   try{
-    const rows = await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(codigo)+'&select=*');
+    const rows = await api('empresa_config?codigo_acesso=eq.'+encodeURIComponent(codigo)+'&select=*');
     if(!rows||!rows.length) return;
     empresaConfig = rows[0];
     aplicarConfigEmpresaLogin(empresaConfig);
@@ -564,6 +569,7 @@ carregarConfigEmpresa();
 async function openModalConfigEmpresa(){
   document.getElementById('modal-cfg-msg').style.display='none';
   document.getElementById('cfg-nome').value='';
+  document.getElementById('cfg-codigo').value='';
   cfgLogoBase64='';
   document.getElementById('cfg-logo-preview').innerHTML='🏢';
   await popularSelectPerfis('cfg-perfil','Selecione o perfil...');
@@ -578,6 +584,7 @@ async function onCfgPerfilChange(){
     if(rows&&rows.length){
       const cfg = rows[0];
       document.getElementById('cfg-nome').value = cfg.nome_empresa||'';
+      document.getElementById('cfg-codigo').value = cfg.codigo_acesso||'';
       cfgLogoBase64 = cfg.logo_base64||'';
       const prev = document.getElementById('cfg-logo-preview');
       if(cfgLogoBase64){
@@ -618,14 +625,16 @@ function removerLogo(){
 async function salvarConfigEmpresa(){
   const perfil = document.getElementById('cfg-perfil').value;
   const nome = document.getElementById('cfg-nome').value.trim();
+  const codigo = document.getElementById('cfg-codigo').value.trim();
   if(!perfil){showMM('modal-cfg-msg','Selecione o perfil','error');return;}
   if(!nome){showMM('modal-cfg-msg','Informe o nome da empresa','error');return;}
+  if(!codigo){showMM('modal-cfg-msg','Informe o código de acesso','error');return;}
   try{
-    const body = {perfil_codigo:perfil, nome_empresa:nome, logo_base64:cfgLogoBase64||null};
+    const body = {perfil_codigo:perfil, nome_empresa:nome, codigo_acesso:codigo, logo_base64:cfgLogoBase64||null};
     // Verificar se já existe
     const ex = await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil)+'&select=id').catch(()=>[]);
     if(ex&&ex.length>0){
-      await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil),{method:'PATCH',body:JSON.stringify({nome_empresa:nome,logo_base64:cfgLogoBase64||null})});
+      await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil),{method:'PATCH',body:JSON.stringify({nome_empresa:nome,codigo_acesso:codigo,logo_base64:cfgLogoBase64||null})});
     } else {
       await api('empresa_config',{method:'POST',body:JSON.stringify(body)});
     }
@@ -1233,15 +1242,16 @@ async function carregarListaEmpresas(){
     // Gerar URL base real do arquivo
     const urlBase=window.location.href.split('?')[0];
     let html='<div class="tbl-wrap"><table>';
-    html+='<thead><tr><th>Perfil</th><th>Nome da Empresa</th><th>Logo</th><th>Link para o Cliente</th><th>Ação</th></tr></thead><tbody>';
+    html+='<thead><tr><th>Perfil</th><th>Nome da Empresa</th><th>Código</th><th>Logo</th><th>Link para o Cliente</th><th>Ação</th></tr></thead><tbody>';
     rows.forEach(r=>{
       const logo=r.logo_base64
         ?'<img src="'+r.logo_base64+'" style="width:40px;height:40px;border-radius:6px;object-fit:cover">'
         :'<span style="color:var(--text3)">—</span>';
-      const link=urlBase+'?empresa='+r.perfil_codigo;
+      const link=urlBase+'?empresa='+(r.codigo_acesso||r.perfil_codigo);
       html+='<tr>';
       html+='<td>'+perfilNome(r.perfil_codigo)+'</td>';
       html+='<td style="font-weight:500;color:var(--text)">'+r.nome_empresa+'</td>';
+      html+='<td><code style="font-size:11px;background:var(--surface2);padding:2px 6px;border-radius:4px;color:var(--text2)">'+(r.codigo_acesso||'—')+'</code></td>';
       html+='<td>'+logo+'</td>';
       html+='<td>';
       html+='<code style="font-size:11px;color:var(--accent);background:var(--surface2);padding:2px 6px;border-radius:4px;word-break:break-all">'+link+'</code>';
