@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <title>Gestão de Negócios</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -162,6 +163,20 @@
   .filtro-bar select{padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;min-width:200px;}
   .filtro-bar select:focus{border-color:var(--accent);}
   .filtro-hint{font-size:12px;color:var(--text3);font-style:italic;}
+  .import-zone{border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;margin:16px 0;}
+  .import-zone:hover,.import-zone.drag{border-color:var(--accent);background:rgba(107,127,215,.05);}
+  .import-zone-icon{font-size:36px;margin-bottom:8px;}
+  .import-zone-text{font-size:13px;color:var(--text2);}
+  .import-zone-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+  .import-preview{margin-top:16px;max-height:200px;overflow-y:auto;}
+  .import-row-ok{color:var(--success);font-size:12px;padding:2px 0;}
+  .import-row-err{color:var(--danger);font-size:12px;padding:2px 0;}
+  .import-progress{height:4px;background:var(--surface2);border-radius:2px;margin:8px 0;overflow:hidden;}
+  .import-progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;}
+  .campo-spec{background:var(--surface2);border-radius:8px;padding:14px 16px;margin-bottom:12px;font-size:12px;}
+  .campo-spec-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+  .campo-tag{display:inline-block;padding:2px 8px;background:rgba(107,127,215,.15);color:var(--accent);border-radius:4px;font-size:11px;margin:2px;font-family:monospace;}
+  .campo-tag.obrig{background:rgba(224,85,85,.15);color:var(--danger);}
 </style>
 </head>
 <body>
@@ -793,6 +808,46 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-fin-categoria')">Cancelar</button>
       <button class="btn-save" onclick="salvarCategoria()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORTAÇÃO -->
+<div class="modal-overlay" id="modal-importacao">
+  <div class="modal">
+    <div class="modal-title" id="imp-titulo">Importar Dados</div>
+    <div class="modal-sub" id="imp-sub">Faça upload de um arquivo Excel (.xlsx) ou CSV (.csv)</div>
+
+    <!-- Especificação dos campos -->
+    <div class="campo-spec" id="imp-campos-spec"></div>
+
+    <!-- Zona de upload -->
+    <div class="import-zone" id="imp-zone"
+      onclick="document.getElementById('imp-file').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="event.preventDefault();this.classList.remove('drag');handleImportDrop(event)">
+      <div class="import-zone-icon">📂</div>
+      <div class="import-zone-text" id="imp-zone-text">Clique para selecionar ou arraste o arquivo aqui</div>
+      <div class="import-zone-sub">Formatos aceitos: .xlsx, .xls, .csv — máx. 5MB</div>
+    </div>
+    <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(event)">
+
+    <!-- Preview e progresso -->
+    <div id="imp-preview" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span id="imp-preview-title" style="font-size:13px;font-weight:600;color:var(--text)"></span>
+        <button class="btn-secondary" onclick="limparImport()" style="font-size:11px;padding:4px 10px">✕ Limpar</button>
+      </div>
+      <div class="import-progress"><div class="import-progress-bar" id="imp-bar" style="width:0%"></div></div>
+      <div id="imp-status" style="font-size:12px;color:var(--text3);margin-bottom:8px"></div>
+      <div class="import-preview" id="imp-log"></div>
+    </div>
+
+    <div class="modal-msg" id="modal-imp-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-importacao')">Fechar</button>
+      <button class="btn-save" id="imp-btn-importar" onclick="executarImportacao()" style="display:none">⬆️ Importar</button>
     </div>
   </div>
 </div>
@@ -1849,6 +1904,332 @@ async function salvarLabelGuiado(){
   }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
 }
 
+// ─── IMPORTAÇÃO DE DADOS ─────────────────────────────────────────
+let importConfig = null; // config do módulo atual
+let importDados  = [];   // linhas lidas do arquivo
+
+// Configurações por módulo — campos obrigatórios, mapeamentos e inserção
+const IMPORT_CONFIGS = {
+  clientes: {
+    titulo: 'Importar Clientes',
+    tabela: 'clientes',
+    campos: [
+      {col:'nome',          label:'nome',            obrig:true,  desc:'Nome completo do cliente'},
+      {col:'cpf',           label:'cpf',             obrig:false, desc:'CPF (somente números ou formatado)'},
+      {col:'data_nascimento',label:'data_nascimento', obrig:false, desc:'Data de nascimento (YYYY-MM-DD ou DD/MM/YYYY)'},
+      {col:'sexo',          label:'sexo',            obrig:false, desc:'M, F ou O'},
+      {col:'telefone',      label:'telefone',        obrig:false, desc:'Telefone com DDD'},
+      {col:'email',         label:'email',           obrig:false, desc:'E-mail'},
+      {col:'cep',           label:'cep',             obrig:false, desc:'CEP'},
+      {col:'endereco',      label:'endereco',        obrig:false, desc:'Rua, Avenida...'},
+      {col:'numero',        label:'numero',          obrig:false, desc:'Número'},
+      {col:'complemento',   label:'complemento',     obrig:false, desc:'Complemento'},
+      {col:'bairro',        label:'bairro',          obrig:false, desc:'Bairro'},
+      {col:'cidade',        label:'cidade',          obrig:false, desc:'Cidade'},
+      {col:'estado',        label:'estado',          obrig:false, desc:'UF (2 letras)'},
+      {col:'pais',          label:'pais',            obrig:false, desc:'País (padrão: Brasil)'},
+      {col:'observacoes',   label:'observacoes',     obrig:false, desc:'Observações'},
+    ],
+    fixo: r => ({ativo:true, pais: r.pais||'Brasil'}),
+  },
+  fornecedores: {
+    titulo: 'Importar Fornecedores',
+    tabela: 'fornecedores',
+    campos: [
+      {col:'nome',                label:'nome',                 obrig:true,  desc:'Nome ou Razão Social'},
+      {col:'tipo',                label:'tipo',                 obrig:true,  desc:'pj (Pessoa Jurídica) ou pf (Pessoa Física)'},
+      {col:'cnpj',               label:'cnpj',                 obrig:false, desc:'CNPJ (para tipo=pj)'},
+      {col:'cpf',                label:'cpf',                  obrig:false, desc:'CPF (para tipo=pf)'},
+      {col:'telefone',           label:'telefone',             obrig:false, desc:'Telefone com DDD'},
+      {col:'email',              label:'email',                obrig:false, desc:'E-mail'},
+      {col:'cep',                label:'cep',                  obrig:false, desc:'CEP'},
+      {col:'endereco',           label:'endereco',             obrig:false, desc:'Rua, Avenida...'},
+      {col:'numero',             label:'numero',               obrig:false, desc:'Número'},
+      {col:'complemento',        label:'complemento',          obrig:false, desc:'Complemento'},
+      {col:'bairro',             label:'bairro',               obrig:false, desc:'Bairro'},
+      {col:'cidade',             label:'cidade',               obrig:false, desc:'Cidade'},
+      {col:'estado',             label:'estado',               obrig:false, desc:'UF (2 letras)'},
+      {col:'pais',               label:'pais',                 obrig:false, desc:'País (padrão: Brasil)'},
+      {col:'representante_nome', label:'representante_nome',   obrig:false, desc:'Nome do representante'},
+      {col:'representante_telefone',label:'representante_telefone',obrig:false,desc:'Telefone do representante'},
+      {col:'representante_email',label:'representante_email',  obrig:false, desc:'E-mail do representante'},
+      {col:'observacoes',        label:'observacoes',          obrig:false, desc:'Observações'},
+    ],
+    fixo: r => ({ativo:true, tipo: r.tipo||'pj', pais: r.pais||'Brasil'}),
+  },
+  produtos: {
+    titulo: 'Importar Produtos',
+    tabela: 'produtos',
+    campos: [
+      {col:'codigo',        label:'codigo',          obrig:false, desc:'Código do produto (ex: PROD-001)'},
+      {col:'nome',          label:'nome',            obrig:true,  desc:'Nome do produto'},
+      {col:'descricao',     label:'descricao',       obrig:false, desc:'Descrição detalhada'},
+      {col:'categoria',     label:'categoria',       obrig:false, desc:'Categoria ou grupo'},
+      {col:'unidade',       label:'unidade',         obrig:false, desc:'Unidade: un, kg, g, lt, ml, m, m2, cx, pc, par, outro'},
+      {col:'preco_custo',   label:'preco_custo',     obrig:false, desc:'Preço de custo (número decimal, ex: 10.50)'},
+      {col:'preco_venda',   label:'preco_venda',     obrig:false, desc:'Preço de venda (número decimal, ex: 15.90)'},
+      {col:'estoque_minimo',label:'estoque_minimo',  obrig:false, desc:'Quantidade mínima em estoque'},
+      {col:'estoque_maximo',label:'estoque_maximo',  obrig:false, desc:'Quantidade máxima em estoque'},
+      {col:'observacoes',   label:'observacoes',     obrig:false, desc:'Observações'},
+    ],
+    fixo: r => ({ativo:true, unidade: r.unidade||'un'}),
+  },
+  servicos: {
+    titulo: 'Importar Serviços',
+    tabela: 'servicos',
+    campos: [
+      {col:'codigo',          label:'codigo',          obrig:false, desc:'Código do serviço (ex: SERV-001)'},
+      {col:'nome',            label:'nome',            obrig:true,  desc:'Nome do serviço'},
+      {col:'descricao',       label:'descricao',       obrig:false, desc:'Descrição detalhada'},
+      {col:'preco',           label:'preco',           obrig:false, desc:'Preço (número decimal, ex: 150.00)'},
+      {col:'duracao_minutos', label:'duracao_minutos', obrig:false, desc:'Duração total em minutos (ex: 60 = 1 hora)'},
+      {col:'observacoes',     label:'observacoes',     obrig:false, desc:'Observações'},
+    ],
+    fixo: r => ({ativo:true}),
+  },
+  financeiro_categorias: {
+    titulo: 'Importar Categorias Financeiras',
+    tabela: 'financeiro_categorias',
+    campos: [
+      {col:'nome', label:'nome', obrig:true,  desc:'Nome da categoria'},
+      {col:'tipo', label:'tipo', obrig:true,  desc:'receita, despesa ou ambos'},
+    ],
+    fixo: r => ({ativo:true}),
+  },
+  financeiro_lancamentos: {
+    titulo: 'Importar Lançamentos Financeiros',
+    tabela: 'financeiro_lancamentos',
+    campos: [
+      {col:'tipo',            label:'tipo',            obrig:true,  desc:'receita ou despesa'},
+      {col:'descricao',       label:'descricao',       obrig:true,  desc:'Descrição do lançamento'},
+      {col:'valor',           label:'valor',           obrig:true,  desc:'Valor (número decimal, ex: 150.00)'},
+      {col:'data_vencimento', label:'data_vencimento', obrig:true,  desc:'Data de vencimento (YYYY-MM-DD ou DD/MM/YYYY)'},
+      {col:'data_pagamento',  label:'data_pagamento',  obrig:false, desc:'Data de pagamento (YYYY-MM-DD ou DD/MM/YYYY)'},
+      {col:'status',          label:'status',          obrig:false, desc:'pendente, pago, vencido ou cancelado (padrão: pendente)'},
+      {col:'observacoes',     label:'observacoes',     obrig:false, desc:'Observações'},
+    ],
+    fixo: r => ({status: r.status||'pendente', alterado_em: new Date().toISOString()}),
+  },
+};
+
+function openModalImportacao(modulo){
+  const cfg=IMPORT_CONFIGS[modulo];
+  if(!cfg){alert('Módulo de importação não configurado: '+modulo);return;}
+  importConfig=cfg;
+  importConfig.modulo=modulo;
+  importDados=[];
+  // Reset UI
+  document.getElementById('imp-titulo').textContent=cfg.titulo;
+  document.getElementById('imp-sub').textContent='Faça upload de um arquivo Excel (.xlsx) ou CSV (.csv) com as colunas abaixo.';
+  document.getElementById('imp-zone-text').textContent='Clique para selecionar ou arraste o arquivo aqui';
+  document.getElementById('imp-preview').style.display='none';
+  document.getElementById('imp-btn-importar').style.display='none';
+  document.getElementById('imp-file').value='';
+  document.getElementById('modal-imp-msg').style.display='none';
+  document.getElementById('imp-log').innerHTML='';
+  document.getElementById('imp-bar').style.width='0%';
+  // Montar especificação dos campos
+  const spec=document.getElementById('imp-campos-spec');
+  const obrig=cfg.campos.filter(f=>f.obrig);
+  const opcio=cfg.campos.filter(f=>!f.obrig);
+  spec.innerHTML=`
+    <div class="campo-spec-title">📋 Estrutura do arquivo — colunas esperadas (na ordem)</div>
+    <div style="margin-bottom:10px">
+      ${cfg.campos.map((f,i)=>`<span class="campo-tag ${f.obrig?'obrig':''}" title="${f.desc}">${i+1}. ${f.col}${f.obrig?' *':''}</span>`).join(' ')}
+    </div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.6">
+      <span style="color:var(--danger)">* Obrigatório</span> &nbsp;|&nbsp;
+      A primeira linha do arquivo deve ser o cabeçalho com os nomes exatos das colunas acima.<br>
+      <strong>Campos obrigatórios:</strong> ${obrig.map(f=>f.col).join(', ')}<br>
+      ${obrig.map(f=>`<em>${f.col}:</em> ${f.desc}`).join(' &nbsp;·&nbsp; ')}
+    </div>
+    <div style="margin-top:10px">
+      <button class="btn-secondary" onclick="baixarModeloImportacao()" style="font-size:11px;padding:5px 12px">📥 Baixar modelo Excel</button>
+    </div>`;
+  openModal('modal-importacao');
+}
+
+function baixarModeloImportacao(){
+  if(!importConfig)return;
+  const cabecalho=importConfig.campos.map(f=>f.col);
+  const ws=XLSX.utils.aoa_to_sheet([cabecalho]);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Dados');
+  XLSX.writeFile(wb,'modelo_'+importConfig.modulo+'.xlsx');
+}
+
+function handleImportDrop(event){
+  const files=event.dataTransfer.files;
+  if(files&&files[0]) processarArquivoImport(files[0]);
+}
+
+function handleImportFile(event){
+  const file=event.target.files[0];
+  if(file) processarArquivoImport(file);
+}
+
+function processarArquivoImport(file){
+  if(file.size>5*1024*1024){showMM('modal-imp-msg','Arquivo muito grande. Máximo 5MB.','error');return;}
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(!['xlsx','xls','csv'].includes(ext)){showMM('modal-imp-msg','Formato inválido. Use .xlsx, .xls ou .csv','error');return;}
+  document.getElementById('imp-zone-text').textContent='📄 '+file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      let rows=[];
+      if(ext==='csv'){
+        // CSV: parsear manualmente
+        const txt=e.target.result;
+        const lines=txt.split(/\r?\n/).filter(l=>l.trim());
+        const sep=lines[0].includes(';')?';':',';
+        const headers=lines[0].split(sep).map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase());
+        rows=lines.slice(1).filter(l=>l.trim()).map(l=>{
+          const vals=l.split(sep).map(v=>v.trim().replace(/^"|"$/g,''));
+          const obj={};
+          headers.forEach((h,i)=>obj[h]=vals[i]||'');
+          return obj;
+        });
+      } else {
+        const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        rows=XLSX.utils.sheet_to_json(ws,{raw:false,dateNF:'yyyy-mm-dd'});
+        // Normalizar chaves para minúsculas
+        rows=rows.map(r=>{
+          const obj={};
+          Object.keys(r).forEach(k=>obj[k.toLowerCase().trim()]=String(r[k]||'').trim());
+          return obj;
+        });
+      }
+      if(!rows.length){showMM('modal-imp-msg','Arquivo vazio ou sem dados.','error');return;}
+      // Validar campos obrigatórios
+      const erros=[];
+      const cfg=importConfig;
+      const obrigCols=cfg.campos.filter(f=>f.obrig).map(f=>f.col);
+      const primeiraLinha=rows[0];
+      obrigCols.forEach(col=>{
+        if(!(col in primeiraLinha)){
+          erros.push('Coluna obrigatória ausente: "'+col+'"');
+        }
+      });
+      if(erros.length){showMM('modal-imp-msg',erros.join(' | '),'error');return;}
+      importDados=rows;
+      // Preview
+      const prev=document.getElementById('imp-preview');
+      const prevTitle=document.getElementById('imp-preview-title');
+      const log=document.getElementById('imp-log');
+      prev.style.display='block';
+      prevTitle.textContent=rows.length+' registro(s) encontrado(s) — pronto para importar';
+      log.innerHTML=rows.slice(0,5).map((r,i)=>{
+        const obrigOk=obrigCols.every(c=>r[c]&&r[c].toString().trim());
+        return `<div class="${obrigOk?'import-row-ok':'import-row-err'}">${obrigOk?'✅':'❌'} Linha ${i+2}: ${obrigCols.map(c=>r[c]||'—').join(' | ')}</div>`;
+      }).join('')+(rows.length>5?`<div style="font-size:11px;color:var(--text3);padding:4px 0">... e mais ${rows.length-5} registro(s)</div>`:'');
+      document.getElementById('imp-btn-importar').style.display='block';
+      document.getElementById('modal-imp-msg').style.display='none';
+    }catch(err){showMM('modal-imp-msg','Erro ao ler arquivo: '+err.message,'error');}
+  };
+  if(ext==='csv') reader.readAsText(file,'UTF-8');
+  else reader.readAsArrayBuffer(file);
+}
+
+function limparImport(){
+  importDados=[];
+  document.getElementById('imp-preview').style.display='none';
+  document.getElementById('imp-btn-importar').style.display='none';
+  document.getElementById('imp-file').value='';
+  document.getElementById('imp-zone-text').textContent='Clique para selecionar ou arraste o arquivo aqui';
+  document.getElementById('modal-imp-msg').style.display='none';
+}
+
+function normalizarData(val){
+  if(!val)return null;
+  const s=String(val).trim();
+  // Já no formato YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  // DD/MM/YYYY
+  const m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(m)return m[3]+'-'+m[2]+'-'+m[1];
+  // Número serial do Excel
+  if(/^\d+$/.test(s)){
+    const d=new Date(Math.round((parseInt(s)-25569)*86400000));
+    return d.toISOString().slice(0,10);
+  }
+  return s||null;
+}
+
+async function executarImportacao(){
+  if(!importDados.length){showMM('modal-imp-msg','Nenhum dado carregado.','error');return;}
+  const cfg=importConfig;
+  const pf=currentUser.perfil||'master';
+  const btn=document.getElementById('imp-btn-importar');
+  const bar=document.getElementById('imp-bar');
+  const status=document.getElementById('imp-status');
+  const log=document.getElementById('imp-log');
+  btn.disabled=true;btn.textContent='⏳ Importando...';
+  log.innerHTML='';
+  let ok=0,erro=0;
+  const LOTE=50; // inserir em lotes de 50 para não sobrecarregar
+  const total=importDados.length;
+  for(let i=0;i<total;i+=LOTE){
+    const lote=importDados.slice(i,i+LOTE);
+    const bodies=lote.map((r,idx)=>{
+      try{
+        const body={perfil_codigo:pf};
+        cfg.campos.forEach(f=>{
+          let val=r[f.col]!==undefined?String(r[f.col]).trim():null;
+          if(val==='')val=null;
+          // Normalizar datas
+          if(f.col.includes('data')&&val) val=normalizarData(val);
+          // Normalizar números
+          if(['valor','preco','preco_custo','preco_venda','estoque_minimo','estoque_maximo','duracao_minutos'].includes(f.col)&&val){
+            val=parseFloat(val.replace(',','.'))||null;
+          }
+          body[f.col]=val;
+        });
+        // Aplicar campos fixos
+        const fixo=cfg.fixo(r);
+        Object.assign(body,fixo);
+        return {body,linha:i+idx+2,valido:true};
+      }catch(e){
+        return {body:null,linha:i+idx+2,valido:false,erro:e.message};
+      }
+    });
+    const validos=bodies.filter(b=>b.valido).map(b=>b.body);
+    if(validos.length){
+      try{
+        await api(cfg.tabela,{method:'POST',body:JSON.stringify(validos)});
+        ok+=validos.length;
+        validos.forEach((_,j)=>{
+          log.innerHTML+=`<div class="import-row-ok">✅ Linha ${bodies[j].linha}: importado</div>`;
+        });
+      }catch(e){
+        erro+=validos.length;
+        log.innerHTML+=`<div class="import-row-err">❌ Lote ${Math.floor(i/LOTE)+1}: ${e.message}</div>`;
+      }
+    }
+    bodies.filter(b=>!b.valido).forEach(b=>{
+      erro++;
+      log.innerHTML+=`<div class="import-row-err">❌ Linha ${b.linha}: ${b.erro}</div>`;
+    });
+    // Atualizar progresso
+    const pct=Math.round(((i+LOTE)/total)*100);
+    bar.style.width=Math.min(pct,100)+'%';
+    status.textContent=`Processando... ${Math.min(i+LOTE,total)} de ${total}`;
+    log.scrollTop=log.scrollHeight;
+    await new Promise(r=>setTimeout(r,50)); // yield para atualizar a UI
+  }
+  bar.style.width='100%';
+  status.textContent=`Concluído: ${ok} importado(s), ${erro} erro(s)`;
+  if(ok>0) showMM('modal-imp-msg',`✅ ${ok} registro(s) importado(s) com sucesso!${erro>0?' ('+erro+' erro(s))':''}`,ok&&!erro?'success':'error');
+  btn.disabled=false;btn.textContent='⬆️ Importar';
+  // Recarregar o painel atual
+  const modulo=cfg.modulo;
+  if(modulo==='clientes') carregarClientes();
+  else if(modulo==='fornecedores') carregarFornecedores();
+  else if(modulo==='produtos') carregarProdutos();
+  else if(modulo==='servicos') carregarServicos();
+  else if(modulo==='financeiro_categorias'||modulo==='financeiro_lancamentos') carregarLancamentos();
+}
+
 // ─── PAINEL: RELATÓRIOS ──────────────────────────────────────────
 let relAbaAtual='alertas';
 
@@ -2388,6 +2769,8 @@ function renderFinanceiro(){
   <div class="panel-header">
     <span class="panel-title">Financeiro</span>
     <div class="panel-actions">
+      <button class="btn-secondary" onclick="openModalImportacao('financeiro_categorias')">📥 Categorias</button>
+      <button class="btn-secondary" onclick="openModalImportacao('financeiro_lancamentos')">📥 Lançamentos</button>
       <button class="btn-secondary" onclick="openModalCategoria()">+ Categoria</button>
       <button class="btn-secondary" id="fin-btn-caixa" onclick="finAba('caixa')">💵 Caixa</button>
       <button class="btn-new" id="fin-btn-novo" onclick="openModalLancamento('new')">+ Novo Lançamento</button>
@@ -3600,7 +3983,10 @@ function renderServicos(){
   const novo=getLabel('servicos_novo','Novo Serviço');
   return `<div class="panel-header">
     <span class="panel-title">${tit} <span class="total-badge" id="serv-total"></span></span>
-    <button class="btn-new" onclick="openModalServico('new')">+ ${novo}</button></div>
+    <div class="panel-actions">
+      <button class="btn-secondary" onclick="openModalImportacao('servicos')">📥 Importar</button>
+      <button class="btn-new" onclick="openModalServico('new')">+ ${novo}</button>
+    </div></div>
     <div class="search-bar">
       <input type="text" id="serv-busca" placeholder="Buscar por nome ou código..." onkeydown="if(event.key==='Enter')buscarServicos()">
       <button class="btn-search" onclick="buscarServicos()">Buscar</button>
@@ -3753,7 +4139,10 @@ function renderProdutos(){
   const novo=getLabel('produtos_novo','Novo Produto');
   return `<div class="panel-header">
     <span class="panel-title">${tit} <span class="total-badge" id="prod-total"></span></span>
-    <button class="btn-new" onclick="openModalProduto('new')">+ ${novo}</button></div>
+    <div class="panel-actions">
+      <button class="btn-secondary" onclick="openModalImportacao('produtos')">📥 Importar</button>
+      <button class="btn-new" onclick="openModalProduto('new')">+ ${novo}</button>
+    </div></div>
     <div class="search-bar">
       <input type="text" id="prod-busca" placeholder="Buscar por nome, código ou categoria..." onkeydown="if(event.key==='Enter')buscarProdutos()">
       <button class="btn-search" onclick="buscarProdutos()">Buscar</button>
@@ -3927,7 +4316,10 @@ function renderFornecedores(){
   const novo=getLabel('fornecedores_novo','Novo Fornecedor');
   return `<div class="panel-header">
     <span class="panel-title">${tit} <span class="total-badge" id="forn-total"></span></span>
-    <button class="btn-new" onclick="openModalFornecedor('new')">+ ${novo}</button></div>
+    <div class="panel-actions">
+      <button class="btn-secondary" onclick="openModalImportacao('fornecedores')">📥 Importar</button>
+      <button class="btn-new" onclick="openModalFornecedor('new')">+ ${novo}</button>
+    </div></div>
     <div class="search-bar">
       <input type="text" id="forn-busca" placeholder="Buscar por nome, CNPJ ou CPF..." onkeydown="if(event.key==='Enter')buscarFornecedores()">
       <button class="btn-search" onclick="buscarFornecedores()">Buscar</button>
@@ -4116,7 +4508,10 @@ function renderClientes(){
   const novo=getLabel('clientes_novo','Novo Cliente');
   return `<div class="panel-header">
     <span class="panel-title">${tit} <span class="total-badge" id="cli-total"></span></span>
-    <button class="btn-new" onclick="openModalCliente('new')">+ ${novo}</button></div>
+    <div class="panel-actions">
+      <button class="btn-secondary" onclick="openModalImportacao('clientes')">📥 Importar</button>
+      <button class="btn-new" onclick="openModalCliente('new')">+ ${novo}</button>
+    </div></div>
     <div class="search-bar">
       <input type="text" id="cli-busca" placeholder="Buscar por nome ou CPF..." onkeydown="if(event.key==='Enter')buscarClientes()">
       <button class="btn-search" onclick="buscarClientes()">Buscar</button>
