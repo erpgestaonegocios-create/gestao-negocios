@@ -1724,9 +1724,14 @@ function renderEstoque(){
     <tbody id="tbl-estoque"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
   </table></div>
   <div style="margin-top:24px">
-    <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
-      <span>📋 Últimas Movimentações</span>
-      <button class="btn-secondary" onclick="carregarHistorico()">Atualizar</button>
+    <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <span id="hist-titulo">📋 Histórico de Movimentações</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="hist-filtro-produto" onchange="selecionarProdutoHistoricoSelect()" style="padding:7px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none;min-width:200px">
+          <option value="">Todos os produtos</option>
+        </select>
+        <button class="btn-secondary" onclick="carregarHistorico()">Atualizar</button>
+      </div>
     </div>
     <div id="est-historico"><div class="loading">Carregando...</div></div>
   </div>`;
@@ -1749,7 +1754,15 @@ async function carregarEstoque(){
       saldo: saldosCache[p.id]??0
     }));
     renderTabelaEstoque(produtosEstoqueCache);
-    carregarHistorico();
+    // Popular select de produtos no filtro do histórico
+    const selHist=document.getElementById('hist-filtro-produto');
+    if(selHist){
+      selHist.innerHTML='<option value="">Todos os produtos</option>'
+        +(produtos||[]).map(p=>'<option value="'+p.id+'">'+p.nome+'</option>').join('');
+    }
+    // Histórico só carrega quando produto for selecionado
+    const wrap=document.getElementById('est-historico');
+    if(wrap)wrap.innerHTML='<div class="empty" style="padding:20px;color:var(--text3)">← Clique no nome de um produto para ver o histórico de movimentações.</div>';
   }catch(e){
     const tbody=document.getElementById('tbl-estoque');
     if(tbody)tbody.innerHTML=`<tr><td colspan="7" class="empty">Erro: ${e.message}</td></tr>`;
@@ -1802,7 +1815,11 @@ function renderTabelaEstoque(lista){
     }
     const saldoColor=min!=null&&p.saldo<min?'color:var(--danger);font-weight:700':'color:var(--text);font-weight:600';
     return `<tr>
-      <td style="font-weight:500;color:var(--text)">${p.nome}</td>
+      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s"
+        onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'"
+        onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'"
+        onclick="selecionarProdutoHistorico(${p.id},'${p.nome.replace(/'/g,"\'")}')"
+        title="Ver histórico de ${p.nome}">${p.nome}</span></td>
       <td><span class="badge" style="background:var(--surface2);color:var(--text2)">${p.unidade||'un'}</span></td>
       <td style="${saldoColor};font-size:16px">${p.saldo}</td>
       <td style="color:var(--text3)">${min??'-'}</td>
@@ -1825,12 +1842,44 @@ function filtrarEstoque(){
   renderTabelaEstoque(lista);
 }
 
+function selecionarProdutoHistoricoSelect(){
+  const sel=document.getElementById('hist-filtro-produto');
+  const opt=sel.options[sel.selectedIndex];
+  const titulo=document.getElementById('hist-titulo');
+  if(sel.value&&opt){
+    if(titulo)titulo.textContent='📋 Histórico — '+opt.text;
+  } else {
+    if(titulo)titulo.textContent='📋 Histórico de Movimentações';
+  }
+  carregarHistorico();
+}
+
+function selecionarProdutoHistorico(prodId, prodNome){
+  const sel=document.getElementById('hist-filtro-produto');
+  if(sel) sel.value=prodId;
+  // Atualizar título do histórico
+  const titulo=document.getElementById('hist-titulo');
+  if(titulo) titulo.textContent='📋 Histórico — '+prodNome;
+  carregarHistorico();
+  // Scroll suave até o histórico
+  setTimeout(()=>{
+    const wrap=document.getElementById('est-historico');
+    if(wrap) wrap.scrollIntoView({behavior:'smooth',block:'start'});
+  },100);
+}
+
 async function carregarHistorico(){
   const wrap=document.getElementById('est-historico');if(!wrap)return;
   const pf=currentUser.perfil||'master';
+  const prodFiltro=document.getElementById('hist-filtro-produto')?.value||'';
   try{
-    const movs=await api('estoque_movimentos?select=*,produtos(nome,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=criado_em.desc&limit=20');
-    if(!movs||!movs.length){wrap.innerHTML='<div class="empty" style="padding:20px">Nenhuma movimentação registrada ainda.</div>';return;}
+    let q='estoque_movimentos?select=*,produtos(nome,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=criado_em.desc&limit=50';
+    if(prodFiltro) q+='&produto_id=eq.'+prodFiltro;
+    const movs=await api(q);
+    if(!movs||!movs.length){
+      const msg=prodFiltro?'Nenhuma movimentação registrada para este produto.':'Clique no nome de um produto para ver o histórico.';
+      wrap.innerHTML='<div class="empty" style="padding:20px;color:var(--text3)">'+msg+'</div>';return;
+    }
     const tipoIcon={entrada:'📥',saida:'📤',ajuste:'⚖️',transferencia:'🔄'};
     const tipoLabel={entrada:'Entrada',saida:'Saída',ajuste:'Ajuste',transferencia:'Transferência'};
     const tipoColor={entrada:'var(--success)',saida:'var(--danger)',ajuste:'var(--warn)',transferencia:'var(--accent)'};
@@ -1899,6 +1948,10 @@ async function onEstProdutoChange(){
     const saldo=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
     document.getElementById('est-saldo-atual').textContent=saldo+' '+unidade;
     wrap.style.display='block';
+    // Guardar máximo do produto para validação em tempo real
+    const prodInfo=await api('produtos?id=eq.'+pid+'&select=estoque_maximo');
+    const max=prodInfo&&prodInfo[0]&&prodInfo[0].estoque_maximo!=null?parseFloat(prodInfo[0].estoque_maximo):null;
+    document.getElementById('est-produto').dataset.max=max!=null?max:'';
     onEstQtdChange();
   }catch(e){}
 }
@@ -1915,13 +1968,49 @@ function onEstQtdChange(){
   const qtd=parseFloat(document.getElementById('est-quantidade').value)||0;
   const saldoTxt=document.getElementById('est-saldo-atual').textContent;
   const saldoAtual=parseFloat(saldoTxt)||0;
+  const maxVal=document.getElementById('est-produto').dataset.max;
+  const estoqueMax=maxVal!==''&&maxVal!=null?parseFloat(maxVal):null;
   const hint=document.getElementById('est-qtd-hint');
-  if(!qtd){hint.textContent='';return;}
-  if(tipo==='entrada') hint.textContent='Novo saldo: '+(saldoAtual+qtd);
-  else if(tipo==='saida') hint.textContent='Novo saldo: '+(saldoAtual-qtd)+(saldoAtual-qtd<0?' ⚠️ Saldo ficará negativo':'');
-  else if(tipo==='ajuste') hint.textContent='Diferença: '+(qtd-saldoAtual>=0?'+':'')+(qtd-saldoAtual);
-  else if(tipo==='transferencia') hint.textContent='Saída de: '+qtd;
-  hint.className='field-hint'+(tipo==='saida'&&saldoAtual-qtd<0?' err':'');
+  const btn=document.getElementById('est-btn-salvar');
+  if(!qtd){hint.textContent='';hint.className='field-hint';if(btn)btn.disabled=false;return;}
+  let novoSaldo=saldoAtual;
+  let erro=false;
+  if(tipo==='entrada'){
+    novoSaldo=saldoAtual+qtd;
+    if(estoqueMax!=null&&novoSaldo>estoqueMax){
+      hint.textContent='⚠️ Excede o máximo ('+estoqueMax+'). Máximo que pode entrar: '+(estoqueMax-saldoAtual);
+      hint.className='field-hint err';
+      if(btn)btn.disabled=true;
+      erro=true;
+    } else {
+      hint.textContent='Novo saldo: '+novoSaldo+(estoqueMax!=null?' (máx: '+estoqueMax+')':'');
+      hint.className='field-hint ok';
+    }
+  } else if(tipo==='saida'){
+    novoSaldo=saldoAtual-qtd;
+    if(novoSaldo<0){
+      hint.textContent='⚠️ Saldo ficará negativo: '+novoSaldo;
+      hint.className='field-hint err';
+    } else {
+      hint.textContent='Novo saldo: '+novoSaldo;
+      hint.className='field-hint ok';
+    }
+  } else if(tipo==='ajuste'){
+    novoSaldo=qtd;
+    if(estoqueMax!=null&&novoSaldo>estoqueMax){
+      hint.textContent='⚠️ Excede o máximo permitido ('+estoqueMax+')';
+      hint.className='field-hint err';
+      if(btn)btn.disabled=true;
+      erro=true;
+    } else {
+      hint.textContent='Diferença: '+(qtd-saldoAtual>=0?'+':'')+(qtd-saldoAtual);
+      hint.className='field-hint';
+    }
+  } else if(tipo==='transferencia'){
+    hint.textContent='Saída de: '+qtd;
+    hint.className='field-hint';
+  }
+  if(!erro&&btn)btn.disabled=false;
 }
 
 async function salvarMovimento(){
@@ -1936,12 +2025,21 @@ async function salvarMovimento(){
     const rows=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade');
     const saldoAtual=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
     const saldoId=rows&&rows.length?rows[0].id:null;
+    // Buscar estoque máximo do produto
+    const prodData=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,nome');
+    const estoqueMax=prodData&&prodData[0]&&prodData[0].estoque_maximo!=null?parseFloat(prodData[0].estoque_maximo):null;
     // Calcular novo saldo
     let novoSaldo;
     if(tipo==='entrada') novoSaldo=saldoAtual+qtd;
     else if(tipo==='saida') novoSaldo=saldoAtual-qtd;
     else if(tipo==='ajuste') novoSaldo=qtd;
     else if(tipo==='transferencia') novoSaldo=saldoAtual-qtd;
+    // Validar máximo para entrada e ajuste
+    if(estoqueMax!=null&&(tipo==='entrada'||tipo==='ajuste')&&novoSaldo>estoqueMax){
+      showMM('modal-est-msg',
+        'Quantidade excede o estoque máximo permitido ('+estoqueMax+'). Saldo atual: '+saldoAtual+'. Máximo que pode entrar: '+(estoqueMax-saldoAtual)+'.','error');
+      return;
+    }
     // Registrar movimento
     await api('estoque_movimentos',{method:'POST',body:JSON.stringify({
       perfil_codigo:pf,
@@ -2166,7 +2264,11 @@ async function carregarProdutos(filtro=''){
         ?'<img src="'+p.imagem_base64+'" style="width:36px;height:36px;border-radius:6px;object-fit:cover">'
         :'<span style="font-size:22px">📦</span>'}</td>
       <td style="color:var(--text3);font-size:12px">${p.codigo||'-'}</td>
-      <td style="font-weight:500;color:var(--text)">${p.nome}</td>
+      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s"
+        onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'"
+        onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'"
+        onclick="selecionarProdutoHistorico(${p.id},'${p.nome.replace(/'/g,"\'")}')"
+        title="Ver histórico de ${p.nome}">${p.nome}</span></td>
       <td>${p.categoria||'-'}</td>
       <td><span class="badge" style="background:var(--surface2);color:var(--text2)">${p.unidade||'un'}</span></td>
       <td style="color:var(--success);font-weight:600">${fmt(p.preco_venda)}</td>
