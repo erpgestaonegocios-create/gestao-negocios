@@ -578,15 +578,11 @@ function renderUsuarios(){
     </table></div>`;
 }
 
-async function popularFiltroPerfis(){
+function popularFiltroPerfis(){
   const sel=document.getElementById('filtro-perfil-usuarios');
   if(!sel)return;
-  try{
-    const perfisRaw=await api('perfis?ativo=eq.true&select=*&order=id.asc');
-    perfisCache=perfisRaw||[];
-    sel.innerHTML='<option value="">Selecione o perfil...</option>'+
-      perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
-  }catch(e){sel.innerHTML='<option value="">Erro ao carregar</option>';}
+  sel.innerHTML='<option value="">Selecione o perfil...</option>'+
+    perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
 }
 
 async function carregarUsuariosPorPerfil(){
@@ -621,7 +617,7 @@ function renderAcessos(){
 async function carregarAcessosTabela(){
   const wrap=document.getElementById('acessos-tabela-wrap');if(!wrap)return;
   try{
-    await Promise.all([carregarPerfisCache(),carregarFuncCache()]);
+    // Usa caches já carregados no login — sem novas chamadas à API
     const perfisNomes=perfisCache.filter(p=>p.codigo!=='master');
     const funcsMap={};
     funcCache.forEach(f=>{if(!funcsMap[f.funcionalidade])funcsMap[f.funcionalidade]=f.label||f.funcionalidade;});
@@ -637,7 +633,7 @@ async function carregarAcessosTabela(){
       return `<td><button class="toggle-btn" title="${tem?'Remover':'Adicionar'}" onclick="toggleFuncPerfil('${p.codigo}','${func}',${!tem},'${funcsMap[func].replace(/'/g,"\\'")}')">${tem?'✅':'❌'}</button></td>`;
     }).join('')}</tr>`).join('');
     wrap.innerHTML=`<div class="menus-table-wrap"><table>${thead}<tbody>${tbody}</tbody></table></div>`;
-  }catch(e){if(wrap)wrap.innerHTML=`<div class="empty">Erro ao carregar: ${e.message}</div>`;}
+  }catch(e){if(wrap)wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
 }
 
 function renderLabelsPanel(){
@@ -675,16 +671,13 @@ function showPanel(name){
   const menu=document.getElementById('menu-'+name);
   if(panel)panel.classList.add('active');
   if(menu)menu.classList.add('active');
-  // Usar setTimeout(0) para garantir que o DOM do painel está visível antes de carregar dados
   if(name==='usuarios'){
-    setTimeout(()=>{
-      if(currentUser.nivel==='master_sistema') popularFiltroPerfis();
-      else carregarUsuarios();
-    },0);
+    if(currentUser.nivel==='master_sistema') popularFiltroPerfis();
+    else carregarUsuarios();
   }
-  if(name==='acessos') setTimeout(()=>carregarAcessosTabela(),0);
-  if(name==='clientes')setTimeout(()=>carregarClientes(),0);
-  if(name==='labels')  setTimeout(()=>carregarLabelsTabela(),0);
+  if(name==='acessos') carregarAcessosTabela();
+  if(name==='clientes')carregarClientes();
+  if(name==='labels')  carregarLabelsTabela();
 }
 
 /* TOGGLE FUNC/PERFIL */
@@ -753,29 +746,16 @@ async function openModalLabel(){
   const selPerfil=document.getElementById('lbl-perfil');
   const selCampo=document.getElementById('lbl-campo');
 
-  // Mostra loading no select de perfis enquanto busca
-  selPerfil.innerHTML='<option value="">Carregando perfis...</option>';
-  selPerfil.disabled=true;
-  openModal('modal-label');
+  // Usa o cache carregado no login — sem nova chamada à API
+  selPerfil.innerHTML='<option value="">Selecione o perfil...</option>'+
+    perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
+  selPerfil.value='';
 
-  try{
-    // Força busca direta no banco — não depende de cache
-    const perfisRaw=await api('perfis?ativo=eq.true&select=*&order=id.asc');
-    perfisCache=perfisRaw||[];
-    selPerfil.innerHTML='<option value="">Selecione o perfil...</option>'+
-      perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
-  }catch(e){
-    selPerfil.innerHTML='<option value="">Erro ao carregar perfis</option>';
-    showMM('modal-label-msg','Erro ao carregar perfis: '+e.message,'error');
-  } finally {
-    selPerfil.disabled=false;
-    selPerfil.value='';
-  }
-
-  // Popular select de campos
   selCampo.innerHTML='<option value="">Selecione o campo...</option>'+
     CAMPOS_LABELS.map(c=>`<option value="${c.chave}" data-padrao="${c.padrao}">${c.nome}</option>`).join('');
   selCampo.value='';
+
+  openModal('modal-label');
 }
 
 function onLabelPerfilChange(){
@@ -1024,13 +1004,7 @@ async function openModalUsuario(mode,id){
   const isMasterSistema=currentUser.nivel==='master_sistema';
   const isMasterEmpresa=currentUser.nivel==='master_empresa';
 
-  // Busca perfis diretamente do banco para garantir dados frescos
-  try{
-    const perfisRaw=await api('perfis?ativo=eq.true&select=*&order=id.asc');
-    perfisCache=perfisRaw||[];
-  }catch(e){}
-
-  // Populate perfil select
+  // Usa o cache — sem nova chamada à API
   const selPerfil=document.getElementById('m-perfil');
   selPerfil.innerHTML='<option value="">Selecione...</option>'+
     perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
