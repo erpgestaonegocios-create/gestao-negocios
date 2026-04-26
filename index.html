@@ -1174,6 +1174,7 @@ function renderPanel(id){
     case 'acessos':  return renderAcessos();
     case 'labels':   return renderLabelsPanel();
     case 'config-empresa': return renderConfigEmpresaPanel();
+    case 'relatorios':   return renderRelatorios();
     case 'financeiro':   return renderFinanceiro();
     case 'agendamentos': return renderAgendamentos();
     case 'estoque':      return renderEstoque();
@@ -1202,6 +1203,7 @@ function showPanel(name){
   // O DOM do painel já existe (criado em addMenuPanel), então não há race condition
   if(name==='usuarios') onShowUsuarios();
   if(name==='acessos')  onShowAcessos();
+  if(name==='relatorios')   carregarRelatorios();
   if(name==='financeiro')   carregarFinanceiro();
   if(name==='agendamentos') carregarAgendamentos();
   if(name==='estoque')      carregarEstoque();
@@ -1845,6 +1847,457 @@ async function salvarLabelGuiado(){
       closeModal('modal-label');
     },800);
   }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
+}
+
+// ─── PAINEL: RELATÓRIOS ──────────────────────────────────────────
+let relAbaAtual='alertas';
+
+function renderRelatorios(){
+  return `
+  <div class="panel-header">
+    <span class="panel-title">Relatórios & Alertas</span>
+  </div>
+  <!-- Abas -->
+  <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)">
+    <button id="rel-aba-alertas" onclick="relAba('alertas')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">🔔 Alertas</button>
+    <button id="rel-aba-relatorios" onclick="relAba('relatorios')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">📊 Relatórios</button>
+    <button id="rel-aba-whatsapp" onclick="relAba('whatsapp')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">📱 WhatsApp</button>
+    <button id="rel-aba-ia" onclick="relAba('ia')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">🤖 Análise IA</button>
+  </div>
+  <div id="rel-conteudo"><div class="loading">Carregando...</div></div>`;
+}
+
+function relAba(aba){
+  relAbaAtual=aba;
+  ['alertas','relatorios','whatsapp','ia'].forEach(a=>{
+    const btn=document.getElementById('rel-aba-'+a);
+    if(!btn)return;
+    if(a===aba){btn.style.borderBottomColor='var(--accent)';btn.style.color='var(--accent)';btn.style.fontWeight='600';}
+    else{btn.style.borderBottomColor='transparent';btn.style.color='var(--text3)';btn.style.fontWeight='400';}
+  });
+  const wrap=document.getElementById('rel-conteudo');
+  if(!wrap)return;
+  wrap.innerHTML='<div class="loading">Carregando...</div>';
+  if(aba==='alertas') carregarAlertas();
+  else if(aba==='relatorios') carregarRelatoriosDados();
+  else if(aba==='whatsapp') carregarWhatsApp();
+  else if(aba==='ia') carregarAnaliseIA();
+}
+
+async function carregarRelatorios(){
+  relAba('alertas');
+}
+
+// ── ABA: ALERTAS ─────────────────────────────────────────────────
+async function carregarAlertas(){
+  const wrap=document.getElementById('rel-conteudo');
+  const pf=currentUser.perfil||'master';
+  const hoje=new Date();
+  const hojeStr=hoje.toISOString().slice(0,10);
+  const amanha=new Date(hoje);amanha.setDate(amanha.getDate()+1);
+  const amanhaStr=amanha.toISOString().slice(0,10);
+  const seteDias=new Date(hoje);seteDias.setDate(seteDias.getDate()+7);
+  const seteDiasStr=seteDias.toISOString().slice(0,10);
+
+  try{
+    const [agAmanha, agHoje, contasVenc, estoqueMin, aniversariantes] = await Promise.all([
+      api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+amanhaStr+'T00:00:00&data_hora=lte.'+amanhaStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'),
+      api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+hojeStr+'T00:00:00&data_hora=lte.'+hojeStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'),
+      api('financeiro_lancamentos?select=*,clientes(nome,id)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=in.(pendente,vencido)&data_vencimento=lte.'+seteDiasStr+'&order=data_vencimento.asc'),
+      api('estoque_saldo?select=quantidade,produto_id,produtos(nome,estoque_minimo,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)),
+      api('clientes?select=id,nome,data_nascimento,telefone&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+    ]);
+
+    // Estoque crítico
+    const estoqueCritico=(estoqueMin||[]).filter(e=>
+      e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo)
+    );
+
+    // Aniversariantes próximos 7 dias
+    const anivs=(aniversariantes||[]).filter(c=>{
+      if(!c.data_nascimento)return false;
+      const nasc=new Date(c.data_nascimento+'T12:00');
+      const nascEsteAno=new Date(hoje.getFullYear(),nasc.getMonth(),nasc.getDate());
+      const diff=(nascEsteAno-hoje)/(1000*60*60*24);
+      return diff>=0&&diff<=7;
+    }).map(c=>{
+      const nasc=new Date(c.data_nascimento+'T12:00');
+      const nascEsteAno=new Date(hoje.getFullYear(),nasc.getMonth(),nasc.getDate());
+      const diff=Math.round((nascEsteAno-hoje)/(1000*60*60*24));
+      return {...c,diasParaAniv:diff};
+    });
+
+    let html='';
+
+    // Card agendamentos hoje
+    html+=`<div style="margin-bottom:24px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">📅</span> Agendamentos de Hoje (${(agHoje||[]).length})
+      </div>`;
+    if(!agHoje||!agHoje.length){
+      html+='<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text3)">Nenhum agendamento para hoje.</div>';
+    } else {
+      html+=(agHoje||[]).map(a=>{
+        const hr=new Date(a.data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        return `<div style="padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:600;color:var(--text)">${a.clientes?.nome||'—'}</div>
+            <div style="font-size:12px;color:var(--text3)">${hr} · ${a.servicos?.nome||'Sem serviço'}</div>
+          </div>
+          <button class="btn-sm" style="border-color:#25D366;color:#25D366;background:transparent" onclick="enviarWhatsAppAgendamento(${JSON.stringify(a).replace(/"/g,'&quot;')},'hoje')">📱 WhatsApp</button>
+        </div>`;
+      }).join('');
+    }
+    html+='</div>';
+
+    // Card agendamentos amanhã
+    html+=`<div style="margin-bottom:24px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">📆</span> Agendamentos de Amanhã (${(agAmanha||[]).length})
+      </div>`;
+    if(!agAmanha||!agAmanha.length){
+      html+='<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text3)">Nenhum agendamento para amanhã.</div>';
+    } else {
+      html+=(agAmanha||[]).map(a=>{
+        const hr=new Date(a.data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        return `<div style="padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:600;color:var(--text)">${a.clientes?.nome||'—'}</div>
+            <div style="font-size:12px;color:var(--text3)">${hr} · ${a.servicos?.nome||'Sem serviço'}</div>
+          </div>
+          <button class="btn-sm" style="border-color:#25D366;color:#25D366;background:transparent" onclick="enviarWhatsAppAgendamento(${JSON.stringify(a).replace(/"/g,'&quot;')},'amanha')">📱 WhatsApp</button>
+        </div>`;
+      }).join('');
+    }
+    html+='</div>';
+
+    // Contas vencidas/vencendo
+    html+=`<div style="margin-bottom:24px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">💰</span> Contas Vencidas ou Vencendo em 7 dias (${(contasVenc||[]).length})
+      </div>`;
+    if(!contasVenc||!contasVenc.length){
+      html+='<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text3)">Nenhuma conta vencida ou vencendo em breve.</div>';
+    } else {
+      html+=(contasVenc||[]).map(l=>{
+        const venc=new Date(l.data_vencimento+'T12:00');
+        const diffDias=Math.round((venc-hoje)/(1000*60*60*24));
+        const vencido=diffDias<0;
+        const cor=vencido?'var(--danger)':'var(--warn)';
+        const label=vencido?`Venceu há ${Math.abs(diffDias)} dia(s)`:`Vence em ${diffDias} dia(s)`;
+        return `<div style="padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-left:3px solid ${cor};border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:600;color:var(--text)">${l.descricao} ${l.clientes?.nome?'· '+l.clientes.nome:''}</div>
+            <div style="font-size:12px;color:${cor}">${label} · R$ ${parseFloat(l.valor).toFixed(2).replace('.',',')}</div>
+          </div>
+          ${l.clientes?.id?`<button class="btn-sm" style="border-color:#25D366;color:#25D366;background:transparent" onclick="enviarWhatsAppCobranca(${JSON.stringify(l).replace(/"/g,'&quot;')})">📱 Cobrar</button>`:''}
+        </div>`;
+      }).join('');
+    }
+    html+='</div>';
+
+    // Estoque crítico
+    html+=`<div style="margin-bottom:24px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">📦</span> Estoque Crítico (${estoqueCritico.length})
+      </div>`;
+    if(!estoqueCritico.length){
+      html+='<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text3)">Todos os produtos estão com estoque adequado. ✅</div>';
+    } else {
+      html+=estoqueCritico.map(e=>`
+        <div style="padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--danger);border-radius:8px;margin-bottom:8px">
+          <div style="font-weight:600;color:var(--text)">${e.produtos?.nome||'—'}</div>
+          <div style="font-size:12px;color:var(--danger)">Saldo: ${e.quantidade} ${e.produtos?.unidade||'un'} · Mínimo: ${e.produtos?.estoque_minimo} ${e.produtos?.unidade||'un'}</div>
+        </div>`).join('');
+    }
+    html+='</div>';
+
+    // Aniversariantes
+    html+=`<div style="margin-bottom:24px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">🎂</span> Aniversariantes nos Próximos 7 Dias (${anivs.length})
+      </div>`;
+    if(!anivs.length){
+      html+='<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text3)">Nenhum aniversariante nos próximos 7 dias.</div>';
+    } else {
+      html+=anivs.map(c=>{
+        const label=c.diasParaAniv===0?'🎉 Hoje!':c.diasParaAniv===1?'Amanhã':'Em '+c.diasParaAniv+' dias';
+        return `<div style="padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:600;color:var(--text)">${c.nome}</div>
+            <div style="font-size:12px;color:var(--accent)">${label}</div>
+          </div>
+          ${c.telefone?`<button class="btn-sm" style="border-color:#25D366;color:#25D366;background:transparent" onclick="enviarWhatsAppAniversario('${c.telefone}','${c.nome.replace(/'/g,"\\'")}')">📱 Parabéns</button>`:''}
+        </div>`;
+      }).join('');
+    }
+    html+='</div>';
+
+    wrap.innerHTML=html;
+  }catch(e){wrap.innerHTML=`<div class="empty">Erro ao carregar alertas: ${e.message}</div>`;}
+}
+
+// ── ABA: RELATÓRIOS ──────────────────────────────────────────────
+async function carregarRelatoriosDados(){
+  const wrap=document.getElementById('rel-conteudo');
+  const pf=currentUser.perfil||'master';
+  const mes=new Date().toISOString().slice(0,7);
+  const [ano,m]=mes.split('-').map(Number);
+  const ultDia=new Date(ano,m,0).getDate();
+  const ini=mes+'-01', fim=mes+'-'+String(ultDia).padStart(2,'0');
+
+  wrap.innerHTML='<div class="loading">Carregando relatórios...</div>';
+  try{
+    const [lancamentos,agendamentos,produtos,clientes]=await Promise.all([
+      api('financeiro_lancamentos?select=tipo,status,valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+ini+'&data_vencimento=lte.'+fim),
+      api('agendamentos?select=status,servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+ini+'T00:00&data_hora=lte.'+fim+'T23:59'),
+      api('estoque_saldo?select=quantidade,produtos(nome,estoque_minimo,preco_venda,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)),
+      api('clientes?select=id,criado_em&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+    ]);
+
+    const soma=(arr,fn)=>(arr||[]).reduce((s,x)=>s+(fn(x)||0),0);
+    const recMes=soma(lancamentos,l=>l.tipo==='receita'&&l.status==='pago'?parseFloat(l.valor):0);
+    const despMes=soma(lancamentos,l=>l.tipo==='despesa'&&l.status==='pago'?parseFloat(l.valor):0);
+    const fmt=v=>'R$ '+v.toFixed(2).replace('.',',');
+
+    const agPorStatus={};
+    (agendamentos||[]).forEach(a=>{agPorStatus[a.status]=(agPorStatus[a.status]||0)+1;});
+
+    const estCrit=(produtos||[]).filter(e=>e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo));
+    const valorEstoque=soma(produtos,e=>parseFloat(e.quantidade||0)*parseFloat(e.produtos?.preco_venda||0));
+
+    const novosCliMes=(clientes||[]).filter(c=>{
+      const dt=new Date(c.criado_em);
+      return dt.getMonth()===m-1&&dt.getFullYear()===ano;
+    }).length;
+
+    const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const nomeMes=meses[m-1]+'/'+ano;
+
+    wrap.innerHTML=`
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Período: ${nomeMes}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">💰 Financeiro do Mês</div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Receitas pagas</span><span style="color:var(--success);font-weight:700">${fmt(recMes)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Despesas pagas</span><span style="color:var(--danger);font-weight:700">${fmt(despMes)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;font-weight:700;color:var(--text)">Resultado</span><span style="font-weight:700;color:${recMes-despMes>=0?'var(--success)':'var(--danger)'}">${fmt(recMes-despMes)}</span></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📅 Agendamentos do Mês</div>
+        ${Object.entries({agendado:'🕐',confirmado:'✅',realizado:'🏁',cancelado:'❌'}).map(([s,ic])=>`
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">${ic} ${s.charAt(0).toUpperCase()+s.slice(1)}</span><span style="font-weight:700;color:var(--text)">${agPorStatus[s]||0}</span></div>`).join('')}
+        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;font-weight:700;color:var(--text)">Total</span><span style="font-weight:700;color:var(--accent)">${(agendamentos||[]).length}</span></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📦 Estoque</div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Produtos monitorados</span><span style="font-weight:700;color:var(--text)">${(produtos||[]).length}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Abaixo do mínimo</span><span style="font-weight:700;color:var(--danger)">${estCrit.length}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;color:var(--text2)">Valor em estoque</span><span style="font-weight:700;color:var(--accent)">${fmt(valorEstoque)}</span></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">👥 Clientes</div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Total ativos</span><span style="font-weight:700;color:var(--text)">${(clientes||[]).length}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;color:var(--text2)">Novos este mês</span><span style="font-weight:700;color:var(--success)">${novosCliMes}</span></div>
+      </div>
+    </div>`;
+  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
+}
+
+// ── ABA: WHATSAPP ────────────────────────────────────────────────
+function carregarWhatsApp(){
+  const wrap=document.getElementById('rel-conteudo');
+  const empresa=empresaConfig?.nome_empresa||perfilNome(currentUser.perfil)||'nossa empresa';
+  wrap.innerHTML=`
+  <div style="margin-bottom:20px;padding:14px 18px;background:rgba(37,211,102,.07);border:1px solid #25D366;border-radius:10px;font-size:13px;color:var(--text2)">
+    <strong style="color:#25D366">📱 Como funciona:</strong> Ao clicar em enviar, o WhatsApp abre no seu dispositivo com a mensagem pré-preenchida. Você revisa e clica em Enviar. Gratuito e sem integrações pagas.
+  </div>
+  <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px">✏️ Modelos de Mensagem — edite conforme sua necessidade:</div>
+  ${[
+    {id:'msg_agendamento_amanha', titulo:'📅 Confirmação de Agendamento (amanhã)', msg:`Olá {nome}! 😊 Passando para confirmar seu agendamento amanhã na ${empresa}.\n\n🕐 Horário: {hora}\n💼 Serviço: {servico}\n\nPor favor, confirme sua presença respondendo esta mensagem. Até amanhã!`},
+    {id:'msg_agendamento_hoje', titulo:'📅 Lembrete de Agendamento (hoje)', msg:`Olá {nome}! 👋 Lembrando que você tem um agendamento hoje na ${empresa}.\n\n🕐 Horário: {hora}\n💼 Serviço: {servico}\n\nTe aguardamos! Qualquer dúvida, estamos à disposição.`},
+    {id:'msg_cobranca_vencendo', titulo:'💰 Cobrança — Vencimento Próximo', msg:`Olá {nome}! Passando para informar que seu pagamento de {descricao} no valor de {valor} vence em {vencimento}.\n\nQualquer dúvida, entre em contato. Obrigado! 🙏`},
+    {id:'msg_cobranca_vencida', titulo:'💰 Cobrança — Pagamento Vencido', msg:`Olá {nome}! Identificamos que o pagamento de {descricao} no valor de {valor} venceu em {vencimento}.\n\nPor gentileza, entre em contato para regularizarmos. Estamos à disposição! 😊`},
+    {id:'msg_aniversario', titulo:'🎂 Feliz Aniversário', msg:`Olá {nome}! 🎉🎂 Toda a equipe da ${empresa} deseja a você um feliz aniversário! Que seu dia seja repleto de alegrias e realizações. Parabéns! 🥳`},
+  ].map(m=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">${m.titulo}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Variáveis: {nome}, {hora}, {servico}, {valor}, {vencimento}, {descricao}</div>
+      <textarea id="${m.id}" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;line-height:1.6;resize:vertical;min-height:90px;font-family:inherit;outline:none">${m.msg}</textarea>
+    </div>`).join('')}
+  <button class="btn-primary" onclick="salvarMensagensWpp()" style="margin-top:8px">💾 Salvar Modelos</button>
+  <div id="wpp-save-msg" style="margin-top:10px;font-size:12px;display:none"></div>`;
+  // Carregar mensagens salvas no localStorage
+  ['msg_agendamento_amanha','msg_agendamento_hoje','msg_cobranca_vencendo','msg_cobranca_vencida','msg_aniversario'].forEach(id=>{
+    const saved=localStorage.getItem('wpp_'+id);
+    if(saved){const el=document.getElementById(id);if(el)el.value=saved;}
+  });
+}
+
+function salvarMensagensWpp(){
+  ['msg_agendamento_amanha','msg_agendamento_hoje','msg_cobranca_vencendo','msg_cobranca_vencida','msg_aniversario'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) localStorage.setItem('wpp_'+id,el.value);
+  });
+  const msg=document.getElementById('wpp-save-msg');
+  if(msg){msg.textContent='✅ Modelos salvos com sucesso!';msg.style.display='block';msg.style.color='var(--success)';setTimeout(()=>msg.style.display='none',2000);}
+}
+
+function getMsgWpp(id){
+  return localStorage.getItem('wpp_'+id)||document.getElementById(id)?.value||'';
+}
+
+function abrirWhatsApp(telefone,mensagem){
+  const num=telefone.replace(/\D/g,'');
+  const numFull=num.startsWith('55')?num:'55'+num;
+  const url='https://wa.me/'+numFull+'?text='+encodeURIComponent(mensagem);
+  window.open(url,'_blank');
+}
+
+function enviarWhatsAppAgendamento(ag,tipo){
+  if(!ag.clientes)return alert('Agendamento sem cliente vinculado.');
+  // Buscar telefone do cliente
+  api('clientes?id=eq.'+ag.clientes.id+'&select=telefone,nome').then(rows=>{
+    const cli=rows&&rows[0];
+    if(!cli?.telefone)return alert('Cliente sem telefone cadastrado.');
+    const msgId=tipo==='amanha'?'msg_agendamento_amanha':'msg_agendamento_hoje';
+    const modeloEl=document.getElementById(msgId);
+    const modelo=modeloEl?.value||localStorage.getItem('wpp_'+msgId)||'';
+    const hr=new Date(ag.data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const msg=modelo
+      .replace(/{nome}/g,cli.nome)
+      .replace(/{hora}/g,hr)
+      .replace(/{servico}/g,ag.servicos?.nome||'—');
+    abrirWhatsApp(cli.telefone,msg);
+  }).catch(()=>alert('Erro ao buscar telefone do cliente.'));
+}
+
+function enviarWhatsAppCobranca(lan){
+  if(!lan.clientes)return alert('Lançamento sem cliente vinculado.');
+  api('clientes?id=eq.'+lan.clientes.id+'&select=telefone,nome').then(rows=>{
+    const cli=rows&&rows[0];
+    if(!cli?.telefone)return alert('Cliente sem telefone cadastrado.');
+    const venc=new Date(lan.data_vencimento+'T12:00');
+    const hoje=new Date();
+    const vencido=venc<hoje;
+    const msgId=vencido?'msg_cobranca_vencida':'msg_cobranca_vencendo';
+    const modeloEl=document.getElementById(msgId);
+    const modelo=modeloEl?.value||localStorage.getItem('wpp_'+msgId)||'';
+    const msg=modelo
+      .replace(/{nome}/g,cli.nome)
+      .replace(/{descricao}/g,lan.descricao)
+      .replace(/{valor}/g,'R$ '+parseFloat(lan.valor).toFixed(2).replace('.',','))
+      .replace(/{vencimento}/g,venc.toLocaleDateString('pt-BR'));
+    abrirWhatsApp(cli.telefone,msg);
+  }).catch(()=>alert('Erro ao buscar dados do cliente.'));
+}
+
+function enviarWhatsAppAniversario(telefone,nome){
+  const modeloEl=document.getElementById('msg_aniversario');
+  const modelo=modeloEl?.value||localStorage.getItem('wpp_msg_aniversario')||'';
+  const msg=modelo.replace(/{nome}/g,nome);
+  abrirWhatsApp(telefone,msg);
+}
+
+// ── ABA: ANÁLISE IA ──────────────────────────────────────────────
+async function carregarAnaliseIA(){
+  const wrap=document.getElementById('rel-conteudo');
+  wrap.innerHTML=`
+  <div style="margin-bottom:16px;padding:14px 18px;background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;font-size:13px;color:var(--text2)">
+    <strong style="color:var(--accent)">🤖 Análise Estratégica por IA</strong><br>
+    A IA vai analisar os dados da sua empresa e gerar insights, identificar padrões e sugerir ações.
+  </div>
+  <button class="btn-primary" onclick="executarAnaliseIA()" id="btn-exec-ia">🚀 Gerar Análise Agora</button>
+  <div id="ia-resultado" style="margin-top:20px"></div>`;
+}
+
+async function executarAnaliseIA(){
+  const btn=document.getElementById('btn-exec-ia');
+  const resultado=document.getElementById('ia-resultado');
+  const pf=currentUser.perfil||'master';
+  const empresa=empresaConfig?.nome_empresa||perfilNome(pf)||'empresa';
+  if(btn){btn.disabled=true;btn.textContent='⏳ Analisando...';}
+  resultado.innerHTML='<div class="loading">Coletando dados e gerando análise...</div>';
+  try{
+    const hoje=new Date().toISOString().slice(0,10);
+    const mes=new Date().toISOString().slice(0,7);
+    const [ano,m]=mes.split('-').map(Number);
+    const ultDia=new Date(ano,m,0).getDate();
+    const ini=mes+'-01',fim=mes+'-'+String(ultDia).padStart(2,'0');
+    const [lancamentos,agendamentos,estoque,clientes,fornecedores]=await Promise.all([
+      api('financeiro_lancamentos?select=tipo,status,valor,data_vencimento&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+ini+'&data_vencimento=lte.'+fim),
+      api('agendamentos?select=status,data_hora,servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+ini+'T00:00&data_hora=lte.'+fim+'T23:59'),
+      api('estoque_saldo?select=quantidade,produtos(nome,estoque_minimo,estoque_maximo,preco_venda,preco_custo)&perfil_codigo=eq.'+encodeURIComponent(pf)),
+      api('clientes?select=id,criado_em&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+      api('fornecedores?select=id&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+    ]);
+    const soma=(arr,fn)=>(arr||[]).reduce((s,x)=>s+(fn(x)||0),0);
+    const recPago=soma(lancamentos,l=>l.tipo==='receita'&&l.status==='pago'?parseFloat(l.valor):0);
+    const despPago=soma(lancamentos,l=>l.tipo==='despesa'&&l.status==='pago'?parseFloat(l.valor):0);
+    const recPend=soma(lancamentos,l=>l.tipo==='receita'&&l.status==='pendente'?parseFloat(l.valor):0);
+    const despPend=soma(lancamentos,l=>l.tipo==='despesa'&&l.status==='pendente'?parseFloat(l.valor):0);
+    const vencido=soma(lancamentos,l=>l.status==='vencido'?parseFloat(l.valor):0);
+    const agPorStatus={};(agendamentos||[]).forEach(a=>{agPorStatus[a.status]=(agPorStatus[a.status]||0)+1;});
+    const estCrit=(estoque||[]).filter(e=>e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo));
+    const valorEstoque=soma(estoque,e=>parseFloat(e.quantidade||0)*parseFloat(e.produtos?.preco_venda||0));
+    const prompt=`Você é um consultor financeiro e de gestão empresarial analisando os dados do mês de uma empresa.
+
+Empresa: ${empresa}
+Perfil: ${perfilNome(pf)}
+Data de análise: ${new Date().toLocaleDateString('pt-BR')}
+
+DADOS FINANCEIROS DO MÊS:
+- Receitas pagas: R$ ${recPago.toFixed(2)}
+- Despesas pagas: R$ ${despPago.toFixed(2)}
+- Resultado líquido: R$ ${(recPago-despPago).toFixed(2)}
+- A receber (pendente): R$ ${recPend.toFixed(2)}
+- A pagar (pendente): R$ ${despPend.toFixed(2)}
+- Valores vencidos: R$ ${vencido.toFixed(2)}
+
+AGENDAMENTOS DO MÊS:
+- Agendados: ${agPorStatus.agendado||0}
+- Confirmados: ${agPorStatus.confirmado||0}
+- Realizados: ${agPorStatus.realizado||0}
+- Cancelados: ${agPorStatus.cancelado||0}
+- Total: ${(agendamentos||[]).length}
+
+ESTOQUE:
+- Produtos monitorados: ${(estoque||[]).length}
+- Produtos abaixo do mínimo: ${estCrit.length} (${estCrit.map(e=>e.produtos?.nome).join(', ')||'nenhum'})
+- Valor estimado em estoque: R$ ${valorEstoque.toFixed(2)}
+
+CADASTROS:
+- Clientes ativos: ${(clientes||[]).length}
+- Fornecedores ativos: ${(fornecedores||[]).length}
+
+Com base nesses dados, gere uma análise estratégica em português com:
+1. Um diagnóstico geral da saúde do negócio (máx. 3 parágrafos)
+2. Pontos de atenção prioritários (liste até 4)
+3. Sugestões de ação concretas (liste até 4)
+4. Uma previsão ou observação positiva sobre o negócio
+
+Seja direto, use linguagem profissional mas acessível. Formate a resposta com seções claras usando emojis para facilitar a leitura.`;
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1500,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await response.json();
+    const texto=data.content?.map(b=>b.text||'').join('')||'Não foi possível gerar análise.';
+    resultado.innerHTML=`
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Análise gerada em ${new Date().toLocaleString('pt-BR')}</div>
+        <div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap">${texto}</div>
+      </div>
+      <button class="btn-secondary" onclick="executarAnaliseIA()" style="margin-top:12px">🔄 Gerar nova análise</button>`;
+  }catch(e){
+    resultado.innerHTML=`<div class="empty">Erro ao gerar análise: ${e.message}</div>`;
+  }
+  if(btn){btn.disabled=false;btn.textContent='🚀 Gerar Análise Agora';}
 }
 
 // ─── PAINEL: FINANCEIRO ──────────────────────────────────────────
