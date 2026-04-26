@@ -964,11 +964,25 @@ function renderLabelsPanel(){
         <div class="info-card-desc">Descreva em texto livre o que deseja alterar. A IA identifica o campo correto e salva automaticamente.<br><strong>O banco de dados nunca é alterado</strong> — apenas o texto na tela muda.</div>
       </div>
     </div>
-    <div id="labels-painel-wrap"><div class="loading">Carregando...</div></div>`;
+`;
 }
 
 async function carregarLabelsTabela(){
-  // Painel limpo — sem tabela, só o info-card já está no renderLabelsPanel
+  const wrap=document.getElementById('labels-painel-wrap');if(!wrap)return;
+  if(!perfisCache.length) await carregarPerfisCache();
+  try{
+    const rows=await api('perfil_labels?select=id,perfil_codigo,chave,label&order=perfil_codigo.asc,chave.asc');
+    if(!rows||!rows.length){wrap.innerHTML='<div class="empty">Nenhum label configurado ainda. Clique em "+ Novo Label" para começar.</div>';return;}
+    const campoNome=chave=>chave;
+    wrap.innerHTML=`<div class="labels-table-wrap"><table>
+      <thead><tr><th>Perfil</th><th>Campo</th><th>Label na Interface</th><th>Ação</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td>${perfilNome(r.perfil_codigo)}</td>
+        <td style="color:var(--text2);font-size:12px">${campoNome(r.chave)}</td>
+        <td style="color:var(--accent);font-weight:600">${r.label}</td>
+        <td><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id},'${r.perfil_codigo}')">Remover</button></td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
 }
 
 async function openModalLabel(){
@@ -1061,92 +1075,78 @@ async function interpretarESalvarLabel(){
   const resDiv=document.getElementById('lbl-ia-resultado');
   const resWrap=document.getElementById('lbl-ia-resultado-wrap');
   const btn=document.getElementById('btn-interpretar');
-
   if(!perfil){showMM('modal-label-msg','Selecione o perfil','error');return;}
-  if(!descricao){showMM('modal-label-msg','Descreva a alteração desejada','error');return;}
-
-  btn.textContent='\u2728 Interpretando...';
+  if(!descricao){showMM('modal-label-msg','Descreva a alteracao desejada','error');return;}
+  btn.textContent='✨ Interpretando...';
   btn.disabled=true;
   resWrap.style.display='block';
-  resDiv.innerHTML='<span style="color:var(--warn)">\u2728 A IA est\u00e1 analisando sua descri\u00e7\u00e3o...</span>';
+  resDiv.innerHTML='<span style="color:var(--warn)">✨ A IA esta analisando...</span>';
 
-  // Tentar via API Anthropic (funciona no contexto Claude artifacts)
-  let chave='', novoNome='', explicacao='';
-  try{
-    const sys='Voce e um assistente que interpreta pedidos de renomeacao de campos em um sistema de gestao. '
-      +'Campos disponiveis: clientes_menu=nome no menu lateral, clientes_titulo=titulo da pagina, '
-      +'clientes_novo=texto do botao Novo, clientes_single=nome singular do registro, '
-      +'clientes_th_nome=cabecalho coluna Nome na listagem, clientes_campo_nome=label campo Nome formulario, '
-      +'clientes_campo_cpf=label campo CPF formulario. '
-      +'Responda APENAS JSON: {"chave":"CHAVE","novoNome":"NOVO NOME","explicacao":"motivo breve"}. Sem texto fora do JSON.';
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:200,
-        system:sys,
-        messages:[{role:'user',content:'Perfil: '+perfilNome(perfil)+'. Pedido: '+descricao}]
-      })
-    });
-    const data=await resp.json();
-    const txt=(data.content&&data.content[0]&&data.content[0].text)||'';
-    const m=txt.match(/\{[\s\S]*\}/);
-    const parsed=JSON.parse(m?m[0]:txt);
-    chave=parsed.chave||'';
-    novoNome=parsed.novoNome||'';
-    explicacao=parsed.explicacao||'';
-  }catch(errIA){
-    // Fallback: interpretar localmente
-    const local=interpretarLocalLabel(descricao);
-    chave=local.chave;
-    novoNome=local.novoNome;
-    explicacao='Interpretado localmente (IA indispon\u00edvel)';
-  }
+  // Prompt com instrucoes claras de grafia exata e suporte a multiplos campos
+  const sysLines=[
+    'Voce e um assistente que interpreta pedidos de renomeacao de campos de um sistema de gestao.',
+    'Campos disponiveis:',
+    'clientes_menu = nome do modulo no menu lateral (ex: Clientes, Pacientes, Alunos)',
+    'clientes_titulo = titulo da pagina principal do modulo',
+    'clientes_novo = texto do botao de criar novo registro',
+    'clientes_single = nome singular do registro',
+    'clientes_th_nome = cabecalho da coluna Nome na listagem',
+    'clientes_campo_nome = label do campo Nome no formulario',
+    'clientes_campo_cpf = label do campo CPF no cabecalho e formulario',
+    'REGRAS OBRIGATORIAS:',
+    '1. Preserve EXATAMENTE a grafia, acentos e maiusculas/minusculas que o usuario pediu para o novo nome.',
+    '2. Se o pedido mencionar mais de um campo, retorne um array JSON com todos.',
+    '3. Formato para UM campo: {"chave":"CHAVE","novoNome":"NOME EXATO","explicacao":"motivo"}',
+    '4. Formato para MULTIPLOS: [{"chave":"CHAVE1","novoNome":"NOME1","explicacao":"motivo"},{"chave":"CHAVE2","novoNome":"NOME2","explicacao":"motivo"}]',
+    '5. Retorne APENAS o JSON. Nenhum texto antes ou depois.'
+  ];
+  const sys=sysLines.join(' ');
+  const userMsg='Perfil: '+perfilNome(perfil)+'. Pedido: '+descricao;
 
-  if(!chave||!novoNome){
-    resDiv.innerHTML='<span style="color:var(--danger)">\u274c N\u00e3o foi poss\u00edvel identificar o campo e o novo nome. Tente ser mais espec\u00edfico. Ex: "Quero chamar o menu Clientes de Pacientes".</span>';
-    btn.textContent='\u2728 Interpretar e Salvar';
-    btn.disabled=false;
-    return;
-  }
-
-  // Mostrar resultado e salvar
-  resDiv.innerHTML='<strong style="color:var(--success)">\u2705 Identificado:</strong> '
-    +'Campo <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">'+chave+'</code> '
-    +'&rarr; <strong style="color:var(--accent)">'+novoNome+'</strong>'
-    +(explicacao?'<br><span style="color:var(--text3);font-size:12px">'+explicacao+'</span>':'')
-    +'<br><span style="color:var(--text3);font-size:12px;margin-top:4px;display:block">Salvando...</span>';
-
-  try{
-    // Tenta atualizar se já existe, senão insere
-    const existente=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+chave+'&select=id').catch(()=>[]);
-    if(existente&&existente.length>0){
-      await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+chave,{
-        method:'PATCH',
-        body:JSON.stringify({label:novoNome})
-      });
-    } else {
-      await api('perfil_labels',{
-        method:'POST',
-        body:JSON.stringify({perfil_codigo:perfil,chave:chave,label:novoNome})
-      });
+  async function salvarItems(items){
+    for(const item of items){
+      if(!item.chave||!item.novoNome)continue;
+      const ex=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+item.chave+'&select=id').catch(()=>[]);
+      if(ex&&ex.length>0){
+        await api('perfil_labels?perfil_codigo=eq.'+perfil+'&chave=eq.'+item.chave,{method:'PATCH',body:JSON.stringify({label:item.novoNome})});
+      } else {
+        await api('perfil_labels',{method:'POST',body:JSON.stringify({perfil_codigo:perfil,chave:item.chave,label:item.novoNome})});
+      }
     }
     await carregarLabels();
     await carregarLabelsExistentes(perfil);
-    carregarLabelsTabela();
-    resDiv.innerHTML='<strong style="color:var(--success)">\u2705 Salvo com sucesso!</strong> '
-      +'Campo <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">'+chave+'</code> '
-      +'&rarr; <strong style="color:var(--accent)">'+novoNome+'</strong>';
-    btn.textContent='\u2728 Interpretar e Salvar';
+    resDiv.innerHTML='<strong style="color:var(--success)">✅ Salvo!</strong>'
+      +items.map(p=>'<br><code style="background:var(--surface2);padding:2px 4px;border-radius:3px">'+p.chave+'</code> &rarr; <strong style="color:var(--accent)">'+p.novoNome+'</strong>').join('');
+    btn.textContent='✨ Interpretar e Salvar';
     btn.disabled=false;
-    showMM('modal-label-msg','Label salvo com sucesso!','success');
-  }catch(e){
-    resDiv.innerHTML='<span style="color:var(--danger)">\u274c Erro ao salvar: '+e.message+'</span>';
-    btn.textContent='\u2728 Interpretar e Salvar';
-    btn.disabled=false;
+    showMM('modal-label-msg','Label(s) salvos!','success');
+  }
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,system:sys,messages:[{role:'user',content:userMsg}]})
+    });
+    const data=await resp.json();
+    const txt=(data.content&&data.content[0]&&data.content[0].text)||'';
+    const m=txt.match(/[\[\{][\s\S]*[\]\}]/);
+    const parsed=JSON.parse(m?m[0]:txt);
+    const items=Array.isArray(parsed)?parsed:[parsed];
+    await salvarItems(items);
+  }catch(errIA){
+    // Fallback local
+    const local=interpretarLocalLabel(descricao);
+    if(local.chave&&local.novoNome){
+      await salvarItems([local]);
+    } else {
+      resDiv.innerHTML='<span style="color:var(--danger)">❌ Nao foi possivel identificar. Tente: "Quero chamar o menu Clientes de Pacientes".</span>';
+      btn.textContent='✨ Interpretar e Salvar';
+      btn.disabled=false;
+    }
   }
 }
+
 
 // ─── PAINEL: CLIENTES ─────────────────────────────────────────────
 function renderClientes(){
@@ -1238,9 +1238,16 @@ function openModalCliente(mode,id){
 async function salvarCliente(){
   const nome=document.getElementById('cli-nome').value.trim();
   if(!nome){showMM('modal-cli-msg','Informe o nome','error');return;}
+  const cpfVal=document.getElementById('cli-cpf').value.trim()||null;
+  if(cpfVal){
+    const dup=await api('clientes?cpf=eq.'+encodeURIComponent(cpfVal)+'&perfil_codigo=eq.'+(currentUser.perfil||'master')+'&select=id').catch(()=>[]);
+    if(dup&&dup.length>0&&(!editingClienteId||dup[0].id!==editingClienteId)){
+      showMM('modal-cli-msg','Este CPF já está cadastrado para outro registro.','error');return;
+    }
+  }
   const body={
     nome,perfil_codigo:currentUser.perfil||'master',
-    cpf:document.getElementById('cli-cpf').value.trim()||null,
+    cpf:cpfVal,
     data_nasc:document.getElementById('cli-nasc').value||null,
     sexo:document.getElementById('cli-sexo').value||null,
     telefone:document.getElementById('cli-tel').value.trim()||null,
