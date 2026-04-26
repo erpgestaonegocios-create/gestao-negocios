@@ -441,6 +441,55 @@
   </div>
 </div>
 
+<!-- MODAL FORNECEDOR -->
+<div class="modal-overlay" id="modal-fornecedor">
+  <div class="modal">
+    <div class="modal-title" id="modal-forn-titulo">Novo Fornecedor</div>
+    <div class="modal-sub" id="modal-forn-sub">Preencha os dados do fornecedor</div>
+    <div class="form-grid">
+      <div class="form-section">Tipo de Pessoa</div>
+      <div class="mfield col-2">
+        <label>Tipo <span class="req">*</span></label>
+        <div style="display:flex;gap:12px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text2);text-transform:none;letter-spacing:0">
+            <input type="radio" name="forn-tipo" id="forn-tipo-pj" value="pj" checked onchange="onFornTipoChange()" style="accent-color:var(--accent)"> Pessoa Jurídica (CNPJ)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text2);text-transform:none;letter-spacing:0">
+            <input type="radio" name="forn-tipo" id="forn-tipo-pf" value="pf" onchange="onFornTipoChange()" style="accent-color:var(--accent)"> Pessoa Física (CPF)
+          </label>
+        </div>
+      </div>
+      <div class="form-section">Dados Principais</div>
+      <div class="mfield col-2"><label>Nome / Razão Social <span class="req">*</span></label><input type="text" id="forn-nome" placeholder="Nome ou Razão Social"></div>
+      <div class="mfield col-1" id="wrap-forn-cnpj"><label>CNPJ</label><input type="text" id="forn-cnpj" placeholder="00.000.000/0000-00" maxlength="18" oninput="mascaraCNPJ(this)"></div>
+      <div class="mfield col-1" id="wrap-forn-cpf" style="display:none"><label>CPF</label><input type="text" id="forn-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)"></div>
+      <div class="mfield col-1"><label>Telefone</label><input type="text" id="forn-tel" placeholder="(00) 00000-0000" maxlength="15" oninput="mascaraTel(this)"></div>
+      <div class="mfield col-2"><label>E-mail</label><input type="email" id="forn-email" placeholder="email@exemplo.com"></div>
+      <div class="form-section">Endereço</div>
+      <div class="mfield col-1"><label>CEP</label><input type="text" id="forn-cep" placeholder="00000-000" maxlength="9" oninput="mascaraCEP(this)" onblur="buscarCEPForn()"><div class="field-hint" id="forn-cep-hint"></div></div>
+      <div class="mfield col-1"></div>
+      <div class="mfield col-2"><label>Endereço</label><input type="text" id="forn-end" placeholder="Rua, Avenida..."></div>
+      <div class="mfield col-1"><label>Número</label><input type="text" id="forn-num" placeholder="Nº"></div>
+      <div class="mfield col-1"><label>Complemento</label><input type="text" id="forn-comp" placeholder="Apto, Bloco..."></div>
+      <div class="mfield col-2"><label>Bairro</label><input type="text" id="forn-bairro" placeholder="Bairro"></div>
+      <div class="mfield col-1"><label>Cidade</label><input type="text" id="forn-cidade" placeholder="Cidade"></div>
+      <div class="mfield col-1"><label>Estado</label><input type="text" id="forn-estado" placeholder="UF" maxlength="2" style="text-transform:uppercase"></div>
+      <div class="mfield col-2"><label>País</label><input type="text" id="forn-pais" placeholder="País"></div>
+      <div class="form-section">Contato do Representante</div>
+      <div class="mfield col-2"><label>Nome do Representante</label><input type="text" id="forn-rep-nome" placeholder="Nome do contato"></div>
+      <div class="mfield col-1"><label>Telefone do Representante</label><input type="text" id="forn-rep-tel" placeholder="(00) 00000-0000" maxlength="15" oninput="mascaraTel(this)"></div>
+      <div class="mfield col-2"><label>E-mail do Representante</label><input type="email" id="forn-rep-email" placeholder="representante@exemplo.com"></div>
+      <div class="form-section">Informações Adicionais</div>
+      <div class="mfield col-2"><label>Observações</label><textarea id="forn-obs" placeholder="Observações..."></textarea></div>
+    </div>
+    <div class="modal-msg" id="modal-forn-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-fornecedor')">Cancelar</button>
+      <button class="btn-save" onclick="salvarFornecedor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPA_URL='https://uqigoyedyaltwjmfysnu.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaWdveWVkeWFsdHdqbWZ5c251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjY2MjcsImV4cCI6MjA5MjY0MjYyN30.EtTJIzn-OITNfp2uraLgSM0HH7ZLLjewa4l0zOggutI';
@@ -818,6 +867,7 @@ function renderPanel(id){
     case 'acessos':  return renderAcessos();
     case 'labels':   return renderLabelsPanel();
     case 'config-empresa': return renderConfigEmpresaPanel();
+    case 'fornecedores': return renderFornecedores();
     case 'clientes': return renderClientes();
     default:{
       const tit=getLabel(id+'_titulo',defLabels[id]||id);
@@ -840,6 +890,7 @@ function showPanel(name){
   // O DOM do painel já existe (criado em addMenuPanel), então não há race condition
   if(name==='usuarios') onShowUsuarios();
   if(name==='acessos')  onShowAcessos();
+  if(name==='fornecedores') carregarFornecedores();
   if(name==='clientes') carregarClientes();
   if(name==='labels')   carregarLabelsTabela();
   if(name==='config-empresa') carregarListaEmpresas();
@@ -1478,6 +1529,198 @@ async function salvarLabelGuiado(){
       closeModal('modal-label');
     },800);
   }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
+}
+
+// ─── PAINEL: FORNECEDORES ────────────────────────────────────────
+let editingFornecedorId = null;
+
+function renderFornecedores(){
+  const tit=getLabel('fornecedores_titulo','Fornecedores');
+  const novo=getLabel('fornecedores_novo','Novo Fornecedor');
+  return `<div class="panel-header">
+    <span class="panel-title">${tit} <span class="total-badge" id="forn-total"></span></span>
+    <button class="btn-new" onclick="openModalFornecedor('new')">+ ${novo}</button></div>
+    <div class="search-bar">
+      <input type="text" id="forn-busca" placeholder="Buscar por nome, CNPJ ou CPF..." onkeydown="if(event.key==='Enter')buscarFornecedores()">
+      <button class="btn-search" onclick="buscarFornecedores()">Buscar</button>
+      <button class="btn-clear" onclick="limparBuscaForn()">✕ Limpar</button>
+    </div>
+    <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>#</th><th>Nome / Razão Social</th><th>Tipo</th>
+      <th>CNPJ / CPF</th><th>Telefone</th><th>Cidade</th>
+      <th>Status</th><th>Ações</th>
+    </tr></thead>
+    <tbody id="tbl-fornecedores"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
+    </table></div>`;
+}
+
+async function carregarFornecedores(filtro=''){
+  const tbody=document.getElementById('tbl-fornecedores');if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
+  try{
+    const perfilFiltro=currentUser.perfil||'master';
+    let q='fornecedores?select=*&order=nome.asc&perfil_codigo=eq.'+encodeURIComponent(perfilFiltro);
+    if(filtro){
+      const f=encodeURIComponent('%'+filtro+'%');
+      q+='&or=(nome.ilike.'+f+',cnpj.ilike.'+f+',cpf.ilike.'+f+')';
+    }
+    const data=await api(q);
+    const total=document.getElementById('forn-total');
+    if(total)total.textContent=data&&data.length?'('+data.length+')':'';
+    if(!data||!data.length){
+      tbody.innerHTML='<tr><td colspan="8" class="empty">'+(filtro?'Nenhum resultado.':'Nenhum fornecedor cadastrado.')+'</td></tr>';
+      return;
+    }
+    tbody.innerHTML=data.map(f=>`<tr>
+      <td style="color:var(--text3)">${f.id}</td>
+      <td style="font-weight:500;color:var(--text)">${f.nome}</td>
+      <td><span class="badge" style="background:rgba(107,127,215,.15);color:var(--accent)">${f.tipo==='pj'?'PJ':'PF'}</span></td>
+      <td>${f.tipo==='pj'?(f.cnpj||'-'):(f.cpf||'-')}</td>
+      <td>${f.telefone||'-'}</td>
+      <td>${f.cidade||'-'}</td>
+      <td><span class="badge ${f.ativo?'badge-ativo':'badge-inativo'}">${f.ativo?'Ativo':'Inativo'}</span></td>
+      <td><div class="action-btns">
+        <button class="btn-sm btn-edit" onclick="openModalFornecedor('edit',${f.id})">Editar</button>
+        ${f.ativo
+          ?`<button class="btn-sm btn-deact" onclick="toggleFornecedor(${f.id},false)">Desativar</button>`
+          :`<button class="btn-sm btn-react" onclick="toggleFornecedor(${f.id},true)">Reativar</button>`}
+      </div></td></tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`;}
+}
+
+function buscarFornecedores(){carregarFornecedores(document.getElementById('forn-busca').value.trim());}
+function limparBuscaForn(){document.getElementById('forn-busca').value='';carregarFornecedores();}
+
+async function toggleFornecedor(id,ativo){
+  try{
+    await api('fornecedores?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});
+    carregarFornecedores(document.getElementById('forn-busca')?.value||'');
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+function onFornTipoChange(){
+  const tipo=document.querySelector('input[name="forn-tipo"]:checked')?.value||'pj';
+  document.getElementById('wrap-forn-cnpj').style.display=tipo==='pj'?'block':'none';
+  document.getElementById('wrap-forn-cpf').style.display=tipo==='pf'?'block':'none';
+}
+
+function mascaraCNPJ(el){
+  let v=el.value.replace(/\D/g,'');
+  v=v.replace(/(\d{2})(\d)/,'$1.$2');
+  v=v.replace(/(\d{3})(\d)/,'$1.$2');
+  v=v.replace(/(\d{3})(\d)/,'$1/$2');
+  v=v.replace(/(\d{4})(\d{1,2})$/,'$1-$2');
+  el.value=v;
+}
+
+async function buscarCEPForn(){
+  const cep=document.getElementById('forn-cep').value.replace(/\D/g,'');
+  const hint=document.getElementById('forn-cep-hint');
+  if(cep.length!==8){hint.textContent='';return;}
+  hint.className='field-hint loading';hint.textContent='Buscando CEP...';
+  try{
+    const r=await fetch('https://viacep.com.br/ws/'+cep+'/json/');
+    const d=await r.json();
+    if(d.erro){hint.className='field-hint err';hint.textContent='CEP inválido';return;}
+    document.getElementById('forn-end').value=d.logradouro||'';
+    document.getElementById('forn-bairro').value=d.bairro||'';
+    document.getElementById('forn-cidade').value=d.localidade||'';
+    document.getElementById('forn-estado').value=d.uf||'';
+    document.getElementById('forn-pais').value='Brasil';
+    document.getElementById('forn-num').value='';
+    document.getElementById('forn-comp').value='';
+    document.getElementById('forn-num').focus();
+    hint.className='field-hint ok';hint.textContent='✓ CEP encontrado';
+  }catch(e){hint.className='field-hint err';hint.textContent='Erro ao buscar CEP';}
+}
+
+function openModalFornecedor(mode,id){
+  editingFornecedorId=null;
+  document.getElementById('modal-forn-msg').style.display='none';
+  document.getElementById('forn-cep-hint').textContent='';
+  // Reset tipo PJ
+  document.getElementById('forn-tipo-pj').checked=true;
+  onFornTipoChange();
+  const camposLimpar=['forn-nome','forn-cnpj','forn-cpf','forn-tel','forn-email',
+    'forn-cep','forn-end','forn-num','forn-comp','forn-bairro','forn-cidade','forn-estado',
+    'forn-rep-nome','forn-rep-tel','forn-rep-email','forn-obs'];
+  if(mode==='new'){
+    document.getElementById('modal-forn-titulo').textContent=getLabel('fornecedores_novo','Novo Fornecedor');
+    document.getElementById('modal-forn-sub').textContent='Preencha os dados do fornecedor';
+    camposLimpar.forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    document.getElementById('forn-pais').value='Brasil';
+  } else {
+    document.getElementById('modal-forn-titulo').textContent='Editar Fornecedor';
+    document.getElementById('modal-forn-sub').textContent='Altere os dados necessários';
+    editingFornecedorId=id;
+    api('fornecedores?id=eq.'+id+'&select=*').then(data=>{
+      if(!data||!data.length)return;
+      const f=data[0];
+      if(f.tipo==='pf'){
+        document.getElementById('forn-tipo-pf').checked=true;
+        onFornTipoChange();
+      }
+      document.getElementById('forn-nome').value=f.nome||'';
+      document.getElementById('forn-cnpj').value=f.cnpj||'';
+      document.getElementById('forn-cpf').value=f.cpf||'';
+      document.getElementById('forn-tel').value=f.telefone||'';
+      document.getElementById('forn-email').value=f.email||'';
+      document.getElementById('forn-cep').value=f.cep||'';
+      document.getElementById('forn-end').value=f.endereco||'';
+      document.getElementById('forn-num').value=f.numero||'';
+      document.getElementById('forn-comp').value=f.complemento||'';
+      document.getElementById('forn-bairro').value=f.bairro||'';
+      document.getElementById('forn-cidade').value=f.cidade||'';
+      document.getElementById('forn-estado').value=f.estado||'';
+      document.getElementById('forn-pais').value=f.pais||'Brasil';
+      document.getElementById('forn-rep-nome').value=f.representante_nome||'';
+      document.getElementById('forn-rep-tel').value=f.representante_telefone||'';
+      document.getElementById('forn-rep-email').value=f.representante_email||'';
+      document.getElementById('forn-obs').value=f.observacoes||'';
+    });
+  }
+  openModal('modal-fornecedor');
+}
+
+async function salvarFornecedor(){
+  const nome=document.getElementById('forn-nome').value.trim();
+  if(!nome){showMM('modal-forn-msg','Informe o nome','error');return;}
+  const tipo=document.querySelector('input[name="forn-tipo"]:checked')?.value||'pj';
+  const body={
+    nome, tipo,
+    perfil_codigo:currentUser.perfil||'master',
+    cnpj:document.getElementById('forn-cnpj').value.trim()||null,
+    cpf:document.getElementById('forn-cpf').value.trim()||null,
+    telefone:document.getElementById('forn-tel').value.trim()||null,
+    email:document.getElementById('forn-email').value.trim()||null,
+    cep:document.getElementById('forn-cep').value.trim()||null,
+    endereco:document.getElementById('forn-end').value.trim()||null,
+    numero:document.getElementById('forn-num').value.trim()||null,
+    complemento:document.getElementById('forn-comp').value.trim()||null,
+    bairro:document.getElementById('forn-bairro').value.trim()||null,
+    cidade:document.getElementById('forn-cidade').value.trim()||null,
+    estado:document.getElementById('forn-estado').value.trim()||null,
+    pais:document.getElementById('forn-pais').value.trim()||'Brasil',
+    representante_nome:document.getElementById('forn-rep-nome').value.trim()||null,
+    representante_telefone:document.getElementById('forn-rep-tel').value.trim()||null,
+    representante_email:document.getElementById('forn-rep-email').value.trim()||null,
+    observacoes:document.getElementById('forn-obs').value.trim()||null,
+    alterado_em:new Date().toISOString()
+  };
+  try{
+    if(!editingFornecedorId){
+      await api('fornecedores',{method:'POST',body:JSON.stringify({...body,ativo:true})});
+      showMM('modal-forn-msg','Fornecedor cadastrado com sucesso!','success');
+    } else {
+      await api('fornecedores?id=eq.'+editingFornecedorId,{method:'PATCH',body:JSON.stringify(body)});
+      showMM('modal-forn-msg','Fornecedor atualizado com sucesso!','success');
+    }
+    setTimeout(()=>{
+      closeModal('modal-fornecedor');
+      carregarFornecedores(document.getElementById('forn-busca')?.value||'');
+    },900);
+  }catch(e){showMM('modal-forn-msg','Erro: '+e.message,'error');}
 }
 
 // ─── PAINEL: CLIENTES ─────────────────────────────────────────────
