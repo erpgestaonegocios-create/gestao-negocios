@@ -1900,13 +1900,17 @@ async function carregarAlertas(){
   const seteDiasStr=seteDias.toISOString().slice(0,10);
 
   try{
-    const [agAmanha, agHoje, contasVenc, estoqueMin, aniversariantes] = await Promise.all([
+    const [agAmanha, agHoje, contasVenc, estoqueMin] = await Promise.all([
       api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+amanhaStr+'T00:00:00&data_hora=lte.'+amanhaStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'),
       api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+hojeStr+'T00:00:00&data_hora=lte.'+hojeStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'),
       api('financeiro_lancamentos?select=*,clientes(nome,id)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=in.(pendente,vencido)&data_vencimento=lte.'+seteDiasStr+'&order=data_vencimento.asc'),
       api('estoque_saldo?select=quantidade,produto_id,produtos(nome,estoque_minimo,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)),
-      api('clientes?select=id,nome,data_nascimento,telefone&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
     ]);
+    // Aniversariantes — campo opcional, não quebra se coluna não existir
+    let aniversariantes=[];
+    try{
+      aniversariantes=await api('clientes?select=id,nome,data_nascimento,telefone&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true')||[];
+    }catch(e){aniversariantes=[];}
 
     // Estoque crítico
     const estoqueCritico=(estoqueMin||[]).filter(e=>
