@@ -1815,11 +1815,7 @@ function renderTabelaEstoque(lista){
     }
     const saldoColor=min!=null&&p.saldo<min?'color:var(--danger);font-weight:700':'color:var(--text);font-weight:600';
     return `<tr>
-      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s"
-        onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'"
-        onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'"
-        onclick="selecionarProdutoHistorico(${p.id},'${p.nome.replace(/'/g,"\'")}')"
-        title="Ver histórico de ${p.nome}">${p.nome}</span></td>
+      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s" onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'" onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'" onclick="openModalProduto('edit',${p.id})" title="Editar ${p.nome}">${p.nome}</span></td>
       <td><span class="badge" style="background:var(--surface2);color:var(--text2)">${p.unidade||'un'}</span></td>
       <td style="${saldoColor};font-size:16px">${p.saldo}</td>
       <td style="color:var(--text3)">${min??'-'}</td>
@@ -2145,12 +2141,11 @@ async function carregarServicos(filtro=''){
     tbody.innerHTML=data.map(s=>`<tr>
       <td style="color:var(--text3)">${s.id}</td>
       <td style="color:var(--text3);font-size:12px">${s.codigo||'-'}</td>
-      <td style="font-weight:500;color:var(--text)">${s.nome}</td>
+      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s" onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'" onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'" onclick="openModalServico('edit',${s.id})" title="Editar ${s.nome}">${s.nome}</span></td>
       <td style="color:var(--success);font-weight:600">${fmt(s.preco)}</td>
       <td>${formatarDuracao(s.duracao_minutos)}</td>
       <td><span class="badge ${s.ativo?'badge-ativo':'badge-inativo'}">${s.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
-        <button class="btn-sm btn-edit" onclick="openModalServico('edit',${s.id})">Editar</button>
         ${s.ativo
           ?'<button class="btn-sm btn-deact" onclick="toggleServico('+s.id+',false)">Desativar</button>'
           :'<button class="btn-sm btn-react" onclick="toggleServico('+s.id+',true)">Reativar</button>'}
@@ -2284,18 +2279,13 @@ async function carregarProdutos(filtro=''){
         ?'<img src="'+p.imagem_base64+'" style="width:36px;height:36px;border-radius:6px;object-fit:cover">'
         :'<span style="font-size:22px">📦</span>'}</td>
       <td style="color:var(--text3);font-size:12px">${p.codigo||'-'}</td>
-      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s"
-        onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'"
-        onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'"
-        onclick="selecionarProdutoHistorico(${p.id},'${p.nome.replace(/'/g,"\'")}')"
-        title="Ver histórico de ${p.nome}">${p.nome}</span></td>
+      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s" onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'" onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'" onclick="openModalProduto('edit',${p.id})" title="Editar ${p.nome}">${p.nome}</span></td>
       <td>${p.categoria||'-'}</td>
       <td><span class="badge" style="background:var(--surface2);color:var(--text2)">${p.unidade||'un'}</span></td>
       <td style="color:var(--success);font-weight:600">${fmt(p.preco_venda)}</td>
       <td>${p.estoque_minimo!=null?p.estoque_minimo:'-'}</td>
       <td><span class="badge ${p.ativo?'badge-ativo':'badge-inativo'}">${p.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
-        <button class="btn-sm btn-edit" onclick="openModalProduto('edit',${p.id})">Editar</button>
         ${p.ativo
           ?'<button class="btn-sm btn-deact" onclick="toggleProduto('+p.id+',false)">Desativar</button>'
           :'<button class="btn-sm btn-react" onclick="toggleProduto('+p.id+',true)">Reativar</button>'}
@@ -2459,14 +2449,13 @@ async function carregarFornecedores(filtro=''){
     }
     tbody.innerHTML=data.map(f=>`<tr>
       <td style="color:var(--text3)">${f.id}</td>
-      <td style="font-weight:500;color:var(--text)">${f.nome}</td>
+      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s" onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'" onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'" onclick="openModalFornecedor('edit',${f.id})" title="Editar ${f.nome}">${f.nome}</span></td>
       <td><span class="badge" style="background:rgba(107,127,215,.15);color:var(--accent)">${f.tipo==='pj'?'PJ':'PF'}</span></td>
       <td>${f.tipo==='pj'?(f.cnpj||'-'):(f.cpf||'-')}</td>
       <td>${f.telefone||'-'}</td>
       <td>${f.cidade||'-'}</td>
       <td><span class="badge ${f.ativo?'badge-ativo':'badge-inativo'}">${f.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
-        <button class="btn-sm btn-edit" onclick="openModalFornecedor('edit',${f.id})">Editar</button>
         ${f.ativo
           ?`<button class="btn-sm btn-deact" onclick="toggleFornecedor(${f.id},false)">Desativar</button>`
           :`<button class="btn-sm btn-react" onclick="toggleFornecedor(${f.id},true)">Reativar</button>`}
@@ -2640,12 +2629,11 @@ async function carregarClientes(filtro=''){
     if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">'+(filtro?'Nenhum resultado.':'Nenhum cadastro.')+'</td></tr>';return;}
     tbody.innerHTML=data.map(c=>`<tr>
       <td style="color:var(--text3)">${c.id}</td>
-      <td style="font-weight:500;color:var(--text)">${c.nome}</td>
+      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s" onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'" onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'" onclick="openModalCliente('edit',${c.id})" title="Editar ${c.nome}">${c.nome}</span></td>
       <td>${c.cpf||'-'}</td><td>${c.telefone||'-'}</td>
       <td>${c.email||'-'}</td><td>${c.cidade||'-'}</td>
       <td><span class="badge ${c.ativo?'badge-ativo':'badge-inativo'}">${c.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
-        <button class="btn-sm btn-edit" onclick="openModalCliente('edit',${c.id})">Editar</button>
         ${c.ativo?`<button class="btn-sm btn-deact" onclick="toggleCliente(${c.id},false)">Desativar</button>`:`<button class="btn-sm btn-react" onclick="toggleCliente(${c.id},true)">Reativar</button>`}
       </div></td></tr>`).join('');
   }catch(e){tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`;}
