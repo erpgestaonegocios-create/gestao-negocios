@@ -1137,13 +1137,12 @@ async function carregarUsuarios(){
     }
     tbody.innerHTML=data.map(u=>`<tr>
       <td style="color:var(--text3)">${u.id}</td>
-      <td style="font-weight:500;color:var(--text)">${u.usuario}</td>
+      <td><span style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s" onmouseover="this.style.color='var(--accent)';this.style.textDecorationColor='var(--accent)'" onmouseout="this.style.color='var(--text)';this.style.textDecorationColor='transparent'" onclick="openModalUsuario('edit',${u.id})" title="Editar ${u.usuario}">${u.usuario}</span></td>
       <td>${u.nome||'-'}</td>
       <td>${u.empresa||'-'}</td>
       <td><span class="badge ${nivelBadge(u.nivel)}">${nivelLabel(u.nivel)}</span></td>
       <td><span class="badge ${u.ativo?'badge-ativo':'badge-inativo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
-        <button class="btn-sm btn-edit" onclick="openModalUsuario('edit',${u.id})">Editar</button>
         ${podeGerenciarAcesso(u)?`<button class="btn-sm btn-access" onclick="openModalAcessos(${u.id},'${u.perfil}','${(u.nome||u.usuario).replace(/'/g,"\\'")}')">Acessos</button>`:''}
         ${u.ativo
           ?`<button class="btn-sm btn-deact" onclick="toggleAtivo(${u.id},false)">Desativar</button>`
