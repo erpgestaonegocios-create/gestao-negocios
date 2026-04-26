@@ -115,8 +115,9 @@
   .access-item input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0;}
   .access-item label{font-size:13px;color:var(--text2);cursor:pointer;}
   .access-item.selected label{color:var(--text);}
-  .menus-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:auto;margin-top:16px;}
+  .menus-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:auto;margin-top:16px;max-height:60vh;}
   .menus-table-wrap table{width:100%;border-collapse:collapse;min-width:600px;}
+  .menus-table-wrap thead th{position:sticky;top:0;background:var(--surface2);z-index:2;}
   .menus-table-wrap thead{background:var(--surface2);}
   .menus-table-wrap th{padding:11px 16px;text-align:center;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-weight:600;}
   .menus-table-wrap th:first-child{text-align:left;}
@@ -284,8 +285,16 @@
         <select id="lbl-perfil" onchange="onLabelPerfilChange()"><option value="">Selecione o perfil...</option></select>
       </div>
       <div class="mfield col-2">
-        <label>Campo que deseja renomear <span class="req">*</span></label>
-        <select id="lbl-campo" onchange="onLabelCampoChange()"><option value="">Selecione o campo...</option></select>
+        <label>Descreva o que deseja alterar <span class="req">*</span></label>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <textarea id="lbl-descricao-ia" rows="2" placeholder="Ex: No perfil Hospital, quero chamar o menu Clientes de Pacientes" style="flex:1;resize:vertical;min-height:60px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;font-family:var(--font)"></textarea>
+          <button onclick="interpretarLabelIA()" style="padding:9px 14px;background:linear-gradient(135deg,#6b7fd7,#a78bfa);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0">✨ Interpretar com IA</button>
+        </div>
+        <div id="lbl-ia-resultado" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(107,127,215,.1);border:1px solid var(--accent);border-radius:6px;font-size:12px;color:var(--text2)"></div>
+      </div>
+      <div class="mfield col-2" id="lbl-campo-wrap" style="display:none">
+        <label>Chave do campo (confirmada pela IA) <span class="req">*</span></label>
+        <input type="text" id="lbl-campo" placeholder="ex: clientes_menu" readonly style="opacity:.7;cursor:default">
       </div>
       <div class="mfield col-2" id="lbl-atual-wrap" style="display:none">
         <label>Nome atual na interface</label>
@@ -357,28 +366,9 @@ let perfisCache=[];   // [{id, codigo, descricao, ativo}]
 let funcCache=[];     // [{id, perfil_codigo, funcionalidade, label, ativo}]
 let labelsCache={};   // {perfil_codigo: {chave: label}}
 
-const CAMPOS_LABELS=[
-  {chave:'clientes_menu',      nome:'Menu lateral — nome do módulo',    padrao:'Clientes'},
-  {chave:'clientes_titulo',    nome:'Título da página do módulo',        padrao:'Clientes'},
-  {chave:'clientes_novo',      nome:'Botão "Novo" — texto do botão',     padrao:'Novo Cliente'},
-  {chave:'clientes_single',    nome:'Nome singular do registro',         padrao:'Cliente'},
-  {chave:'clientes_th_nome',   nome:'Coluna "Nome" na listagem',         padrao:'Nome'},
-  {chave:'clientes_campo_nome',nome:'Campo "Nome" no formulário',        padrao:'Nome Completo'},
-  {chave:'clientes_campo_cpf', nome:'Campo "CPF" no formulário',         padrao:'CPF'},
-];
+// CAMPOS_LABELS removido — label agora é livre com apoio de IA
 
 // ─── API ─────────────────────────────────────────────────────────
-function logDiag(msg,ok){
-  let bar=document.getElementById('diag-log');
-  if(!bar){bar=document.createElement('div');bar.id='diag-log';
-    bar.style.cssText='position:fixed;bottom:0;left:0;right:0;max-height:180px;overflow-y:auto;background:#0a0a0a;border-top:2px solid #d4a843;padding:6px 12px;font-size:11px;font-family:monospace;z-index:9999';
-    document.body.appendChild(bar);}
-  const line=document.createElement('div');
-  line.style.color=ok?'#4caf7d':'#e05555';
-  line.textContent=new Date().toLocaleTimeString()+' '+msg;
-  bar.appendChild(line);bar.scrollTop=bar.scrollHeight;
-}
-
 async function api(path,opts={}){
   const isWrite=opts.method&&opts.method!=='GET';
   const baseHdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
@@ -388,18 +378,11 @@ async function api(path,opts={}){
     if(!res.ok){
       const e=await res.json().catch(()=>({}));
       const msg=e.message||e.hint||'Erro '+res.status;
-      logDiag('ERRO '+path.split('?')[0]+': '+msg, false);
-      throw new Error(msg);
+throw new Error(msg);
     }
-    if(res.status===204){logDiag('OK 204 '+path.split('?')[0],true);return null;}
-    const data=await res.json();
-    logDiag('OK '+path.split('?')[0]+' => '+(Array.isArray(data)?data.length+' registros':typeof data),true);
-    return data;
-  }catch(e){
-    if(e.message&&!e.message.startsWith('Erro')&&!e.message.startsWith('ERRO'))
-      logDiag('FALHA '+path.split('?')[0]+': '+e.message,false);
-    throw e;
-  }
+    if(res.status===204)return null;
+    return res.json();
+  }catch(e){throw e;}
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────
@@ -917,11 +900,12 @@ async function toggleFuncPerfil(perfil,func,adicionar,labelFunc){
     if(adicionar){
       await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify({perfil_codigo:perfil,funcionalidade:func,label:labelFunc,ativo:true})});
     } else {
-      const row=funcCache.find(f=>f.perfil_codigo===perfil&&f.funcionalidade===func);
-      if(row)await api('perfil_funcionalidades?id=eq.'+row.id,{method:'PATCH',body:JSON.stringify({ativo:false})});
+      // Deleta o registro — assim o funcCache fica limpo e o menu some para o usuário
+      await api('perfil_funcionalidades?perfil_codigo=eq.'+perfil+'&funcionalidade=eq.'+func,
+        {method:'DELETE',headers:{...hdrs,'Prefer':''}});
     }
     await carregarFuncCache();
-    renderTabelaAcessos(); // Rerenderiza usando o cache atualizado
+    renderTabelaAcessos();
   }catch(e){alert('Erro: '+e.message);}
 }
 
@@ -1011,13 +995,11 @@ async function openModalLabel(){
   document.getElementById('lbl-valor').value='';
   document.getElementById('lbl-atual-wrap').style.display='none';
   document.getElementById('labels-existentes-wrap').style.display='none';
-  // Usa o perfisCache já carregado — sem nenhuma chamada à API
+  document.getElementById('lbl-ia-resultado').style.display='none';
+  document.getElementById('lbl-campo-wrap').style.display='none';
+  document.getElementById('lbl-campo').value='';
+  document.getElementById('lbl-descricao-ia').value='';
   await popularSelectPerfis('lbl-perfil','Selecione o perfil...');
-  // Popula campos
-  const selCampo=document.getElementById('lbl-campo');
-  selCampo.innerHTML='<option value="">Selecione o campo...</option>'+
-    CAMPOS_LABELS.map(c=>`<option value="${c.chave}" data-padrao="${c.padrao}">${c.nome}</option>`).join('');
-  selCampo.value='';
   openModal('modal-label');
 }
 
@@ -1027,14 +1009,7 @@ function onLabelPerfilChange(){
   carregarLabelsExistentes(perfil);
 }
 
-function onLabelCampoChange(){
-  const sel=document.getElementById('lbl-campo');
-  const opt=sel.options[sel.selectedIndex];
-  const padrao=opt?.getAttribute('data-padrao')||'';
-  const wrap=document.getElementById('lbl-atual-wrap');
-  if(padrao){document.getElementById('lbl-atual-val').textContent=padrao;wrap.style.display='block';}
-  else wrap.style.display='none';
-}
+// onLabelCampoChange removida — campo agora é livre com IA
 
 async function carregarLabelsExistentes(perfil){
   const wrap=document.getElementById('labels-existentes-wrap');
@@ -1068,12 +1043,70 @@ async function deletarLabel(id,perfil){
   }catch(e){alert('Erro: '+e.message);}
 }
 
+// Mapeamento de termos para chaves do banco
+const MAPA_CAMPOS={
+  'menu clientes':'clientes_menu','menu lateral clientes':'clientes_menu',
+  'título clientes':'clientes_titulo','titulo clientes':'clientes_titulo','titulo da página':'clientes_titulo',
+  'botão novo':'clientes_novo','botao novo':'clientes_novo','botão adicionar':'clientes_novo',
+  'nome singular':'clientes_single','singular':'clientes_single',
+  'coluna nome':'clientes_th_nome','cabeçalho nome':'clientes_th_nome',
+  'campo nome':'clientes_campo_nome','nome completo':'clientes_campo_nome',
+  'campo cpf':'clientes_campo_cpf','cpf':'clientes_campo_cpf',
+  'clientes':'clientes_menu','pacientes':'clientes_menu','alunos':'clientes_menu',
+};
+
+async function interpretarLabelIA(){
+  const perfil=document.getElementById('lbl-perfil').value;
+  const descricao=document.getElementById('lbl-descricao-ia').value.trim();
+  const resDiv=document.getElementById('lbl-ia-resultado');
+  const campoWrap=document.getElementById('lbl-campo-wrap');
+  const campoInput=document.getElementById('lbl-campo');
+  const atualWrap=document.getElementById('lbl-atual-wrap');
+  if(!perfil){showMM('modal-label-msg','Selecione o perfil primeiro','error');return;}
+  if(!descricao){showMM('modal-label-msg','Descreva o que deseja alterar','error');return;}
+  resDiv.style.display='block';
+  resDiv.innerHTML='<span style="color:var(--warn)">✨ Consultando IA...</span>';
+  const sys='Voce e um assistente que identifica qual campo do sistema deve ser renomeado. '
+    +'Os campos disponiveis: '
+    +'clientes_menu=nome no menu lateral, '
+    +'clientes_titulo=titulo da pagina, '
+    +'clientes_novo=texto do botao Novo, '
+    +'clientes_single=nome singular do registro, '
+    +'clientes_th_nome=cabecalho coluna Nome na listagem, '
+    +'clientes_campo_nome=label campo Nome no formulario, '
+    +'clientes_campo_cpf=label campo CPF no formulario. '
+    +'Responda APENAS com JSON: {"chave":"CHAVE","explicacao":"motivo","nome_atual":"valor padrao"}. Nenhum texto fora do JSON.';
+  const userMsg='Perfil: '+perfilNome(perfil)+' | Pedido: '+descricao;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,system:sys,messages:[{role:'user',content:userMsg}]})
+    });
+    const data=await resp.json();
+    const txt=(data.content&&data.content[0]&&data.content[0].text)||'';
+    let parsed;
+    try{parsed=JSON.parse(txt.trim());}
+    catch(e){const m=txt.match(/\{[\s\S]*\}/);if(m)parsed=JSON.parse(m[0]);else throw new Error('IA nao retornou JSON valido');}
+    campoInput.value=parsed.chave||'';
+    campoWrap.style.display='block';
+    atualWrap.style.display='block';
+    document.getElementById('lbl-atual-val').textContent=parsed.nome_atual||'-';
+    resDiv.innerHTML='<strong style="color:var(--success)">✅ Campo identificado: </strong>'
+      +'<code style="background:var(--surface2);padding:2px 6px;border-radius:4px">'+parsed.chave+'</code>'
+      +'<br><span style="color:var(--text2);margin-top:4px;display:block">'+parsed.explicacao+'</span>';
+    document.getElementById('modal-label-msg').style.display='none';
+  }catch(e){
+    resDiv.innerHTML='<span style="color:var(--danger)">❌ Erro: '+e.message+'</span>';
+  }
+}
+
 async function salvarLabel(){
   const perfil=document.getElementById('lbl-perfil').value;
-  const chave=document.getElementById('lbl-campo').value;
+  const chave=document.getElementById('lbl-campo').value.trim();
   const valor=document.getElementById('lbl-valor').value.trim();
   if(!perfil){showMM('modal-label-msg','Selecione um perfil','error');return;}
-  if(!chave){showMM('modal-label-msg','Selecione o campo','error');return;}
+  if(!chave){showMM('modal-label-msg','Use o botão "Interpretar com IA" para identificar o campo','error');return;}
   if(!valor){showMM('modal-label-msg','Informe o novo nome','error');return;}
   try{
     await api('perfil_labels',{method:'POST',headers:{...hdrs,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({perfil_codigo:perfil,chave,label:valor})});
