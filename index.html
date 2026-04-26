@@ -14,7 +14,6 @@
     --font:'Segoe UI',system-ui,sans-serif;
   }
   body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
-
   #screen-login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#1a1a1a 60%,#1e2035 100%);}
   .login-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:48px 40px;width:380px;max-width:95vw;}
   .login-title{text-align:center;font-size:22px;font-weight:700;letter-spacing:2px;color:var(--text);margin-bottom:8px;text-transform:uppercase;}
@@ -28,7 +27,6 @@
   .msg{margin-top:14px;padding:10px 14px;border-radius:6px;font-size:13px;text-align:center;display:none;}
   .msg.error{background:rgba(224,85,85,.15);border:1px solid rgba(224,85,85,.3);color:#e07777;}
   .msg.success{background:rgba(76,175,125,.15);border:1px solid rgba(76,175,125,.3);color:#6ecfa0;}
-
   #screen-main{display:none;flex-direction:column;min-height:100vh;}
   .topbar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;height:56px;gap:16px;position:sticky;top:0;z-index:100;}
   .topbar-title{font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;flex:1;}
@@ -44,7 +42,6 @@
   .menu-item.active{background:rgba(107,127,215,.12);color:var(--accent);border-left-color:var(--accent);}
   .menu-icon{font-size:15px;width:20px;text-align:center;}
   .content{flex:1;padding:28px;overflow-y:auto;}
-
   .panel{display:none;}.panel.active{display:block;}
   .panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
   .panel-title{font-size:18px;font-weight:600;}
@@ -53,7 +50,6 @@
   .btn-new:hover{background:var(--accent2);}
   .btn-secondary{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;font-weight:600;padding:8px 16px;cursor:pointer;transition:all .2s;}
   .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
-
   .search-bar{display:flex;gap:10px;margin-bottom:16px;}
   .search-bar input{flex:1;padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;}
   .search-bar input:focus{border-color:var(--accent);}
@@ -61,7 +57,6 @@
   .btn-search:hover{border-color:var(--accent);color:var(--accent);}
   .btn-clear{padding:9px 14px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:13px;cursor:pointer;transition:all .15s;}
   .btn-clear:hover{color:var(--danger);border-color:var(--danger);}
-
   .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
   table{width:100%;border-collapse:collapse;}
   thead{background:var(--surface2);}
@@ -71,6 +66,7 @@
   .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
   .badge-master{background:rgba(107,127,215,.2);color:var(--accent);}
   .badge-empresa{background:rgba(212,168,67,.2);color:var(--warn);}
+  .badge-usuario{background:rgba(76,175,125,.15);color:var(--success);}
   .badge-ativo{background:rgba(76,175,125,.15);color:var(--success);}
   .badge-inativo{background:rgba(224,85,85,.15);color:var(--danger);}
   .action-btns{display:flex;gap:6px;flex-wrap:wrap;}
@@ -83,7 +79,6 @@
   .btn-react:hover{background:rgba(76,175,125,.15);}
   .btn-access{border-color:#a78bfa;color:#a78bfa;background:transparent;}
   .btn-access:hover{background:rgba(167,139,250,.15);}
-
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center;padding:16px;}
   .modal-overlay.open{display:flex;}
   .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;width:640px;max-width:100%;max-height:90vh;overflow-y:auto;}
@@ -111,7 +106,6 @@
   .modal-msg{margin-top:12px;padding:9px 12px;border-radius:6px;font-size:12px;display:none;}
   .modal-msg.error{background:rgba(224,85,85,.15);color:#e07777;}
   .modal-msg.success{background:rgba(76,175,125,.15);color:#6ecfa0;}
-
   .access-section-title{font-size:12px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
   .access-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .access-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);cursor:pointer;transition:all .15s;}
@@ -120,31 +114,29 @@
   .access-item input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0;}
   .access-item label{font-size:13px;color:var(--text2);cursor:pointer;}
   .access-item.selected label{color:var(--text);}
-
+  /* TABELA ACESSOS */
   .menus-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:auto;margin-top:16px;}
   .menus-table-wrap table{width:100%;border-collapse:collapse;min-width:600px;}
   .menus-table-wrap thead{background:var(--surface2);}
-  .menus-table-wrap th{padding:10px 16px;text-align:center;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+  .menus-table-wrap th{padding:11px 16px;text-align:center;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-weight:600;}
   .menus-table-wrap th:first-child{text-align:left;}
-  .menus-table-wrap td{padding:10px 16px;font-size:13px;border-top:1px solid var(--border);color:var(--text2);text-align:center;}
+  .menus-table-wrap td{padding:11px 16px;font-size:13px;border-top:1px solid var(--border);color:var(--text2);text-align:center;}
   .menus-table-wrap td:first-child{text-align:left;color:var(--text);font-weight:500;}
   .menus-table-wrap tr:hover td{background:var(--surface2);}
   .toggle-btn{background:none;border:none;font-size:18px;cursor:pointer;transition:transform .15s;}
   .toggle-btn:hover{transform:scale(1.2);}
-
+  /* LABELS TABLE */
   .labels-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:16px;}
   .labels-table-wrap table{width:100%;border-collapse:collapse;}
   .labels-table-wrap thead{background:var(--surface2);}
   .labels-table-wrap th{padding:10px 16px;text-align:left;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-weight:600;}
   .labels-table-wrap td{padding:10px 16px;font-size:13px;border-top:1px solid var(--border);color:var(--text2);}
   .labels-table-wrap tr:hover td{background:var(--surface2);}
-
   .info-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:flex-start;gap:16px;}
   .info-card-icon{font-size:24px;margin-top:2px;}
   .info-card-body{flex:1;}
   .info-card-title{font-size:14px;font-weight:600;margin-bottom:4px;}
   .info-card-desc{font-size:12px;color:var(--text3);line-height:1.6;}
-
   .placeholder-box{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:60px 40px;text-align:center;}
   .placeholder-icon{font-size:40px;margin-bottom:16px;}
   .placeholder-title{font-size:16px;font-weight:600;margin-bottom:8px;}
@@ -153,6 +145,7 @@
   .loading{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
   .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
   .total-badge{font-size:12px;color:var(--text3);margin-left:8px;font-weight:400;}
+  .label-preview{display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(107,127,215,.15);color:var(--accent);font-size:12px;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -194,16 +187,14 @@
       <div class="mfield col-2"><label>Usuário <span class="req">*</span></label><input type="text" id="m-usuario" placeholder="ex: joao.silva"></div>
       <div class="mfield col-2"><label>Nome Completo</label><input type="text" id="m-nome" placeholder="ex: João da Silva"></div>
       <div class="mfield col-1"><label>Senha <span class="req">*</span></label><input type="password" id="m-senha" placeholder="••••••••"></div>
-      <div class="mfield col-1" id="wrap-nivel">
-        <label>Nível <span class="req">*</span></label>
+      <div class="mfield col-1" id="wrap-nivel"><label>Nível <span class="req">*</span></label>
         <select id="m-nivel">
           <option value="usuario">Usuário</option>
           <option value="master_empresa">Master de Empresa</option>
           <option value="master_sistema">Master do Sistema</option>
         </select>
       </div>
-      <div class="mfield col-1" id="wrap-perfil">
-        <label>Perfil</label>
+      <div class="mfield col-1" id="wrap-perfil"><label>Perfil <span class="req">*</span></label>
         <select id="m-perfil"><option value="">Selecione...</option></select>
       </div>
       <div class="mfield col-1"><label>Empresa</label><input type="text" id="m-empresa" placeholder="Nome da empresa"></div>
@@ -273,20 +264,23 @@
   </div>
 </div>
 
-<!-- MODAL LABEL -->
+<!-- MODAL LABEL — SIMPLIFICADO -->
 <div class="modal-overlay" id="modal-label">
   <div class="modal modal-sm">
     <div class="modal-title">Personalizar Label</div>
-    <div class="modal-sub">Renomeie campos da interface por perfil. O banco de dados não é alterado.</div>
+    <div class="modal-sub">Renomeie como os campos aparecem na tela para cada perfil. O banco de dados nunca é alterado.</div>
     <div class="form-grid">
       <div class="mfield col-2">
         <label>Perfil <span class="req">*</span></label>
-        <select id="lbl-perfil" onchange="carregarLabelsExistentes()"><option value="">Selecione...</option></select>
+        <select id="lbl-perfil" onchange="onLabelPerfilChange()"><option value="">Selecione o perfil...</option></select>
       </div>
       <div class="mfield col-2">
-        <label>Chave do campo <span class="req">*</span></label>
-        <input type="text" id="lbl-chave" placeholder="ex: clientes_menu, clientes_campo_nome">
-        <div class="field-hint">Use chaves como: clientes_menu, clientes_titulo, clientes_novo, clientes_single, clientes_campo_nome, clientes_campo_cpf, clientes_th_nome</div>
+        <label>Campo que deseja renomear <span class="req">*</span></label>
+        <select id="lbl-campo" onchange="onLabelCampoChange()"><option value="">Selecione o campo...</option></select>
+      </div>
+      <div class="mfield col-2" id="lbl-atual-wrap" style="display:none">
+        <label>Nome atual na interface</label>
+        <div class="label-preview" id="lbl-atual-val"></div>
       </div>
       <div class="mfield col-2">
         <label>Novo nome na interface <span class="req">*</span></label>
@@ -294,7 +288,7 @@
       </div>
     </div>
     <div id="labels-existentes-wrap" style="margin-top:16px;display:none;">
-      <div class="section-label">Labels configurados para este perfil</div>
+      <div class="section-label">Labels já configurados para este perfil</div>
       <div id="labels-existentes"></div>
     </div>
     <div class="modal-msg" id="modal-label-msg"></div>
@@ -346,8 +340,19 @@ const SUPA_URL='https://uqigoyedyaltwjmfysnu.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaWdveWVkeWFsdHdqbWZ5c251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjY2MjcsImV4cCI6MjA5MjY0MjYyN30.EtTJIzn-OITNfp2uraLgSM0HH7ZLLjewa4l0zOggutI';
 const hdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 
-let currentUser=null,editingUserId=null,editingClienteId=null,accessUserId=null,accessUserPerfil=null;
-let perfisCache=[],funcCache=[],labelsCache={};
+let currentUser=null, editingUserId=null, editingClienteId=null, accessUserId=null, accessUserPerfil=null;
+let perfisCache=[], funcCache=[], labelsCache={};
+
+// Mapa de campos amigáveis para o modal de labels
+const CAMPOS_LABELS = [
+  {chave:'clientes_menu',      nome:'Menu lateral — nome do módulo',         padrao:'Clientes'},
+  {chave:'clientes_titulo',    nome:'Título da página do módulo',             padrao:'Clientes'},
+  {chave:'clientes_novo',      nome:'Botão "Novo" — texto do botão',          padrao:'Novo Cliente'},
+  {chave:'clientes_single',    nome:'Nome singular do registro',              padrao:'Cliente'},
+  {chave:'clientes_th_nome',   nome:'Coluna "Nome" na listagem',              padrao:'Nome'},
+  {chave:'clientes_campo_nome',nome:'Campo "Nome" no formulário',             padrao:'Nome Completo'},
+  {chave:'clientes_campo_cpf', nome:'Campo "CPF" no formulário',              padrao:'CPF'},
+];
 
 async function api(path,opts={}){
   const res=await fetch(SUPA_URL+'/rest/v1/'+path,{headers:{...hdrs,...(opts.headers||{})},...opts});
@@ -360,17 +365,9 @@ function showMM(id,txt,type){const el=document.getElementById(id);el.textContent
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function toggleCheck(id,item){const c=document.getElementById(id);c.checked=!c.checked;item.classList.toggle('selected',c.checked);}
-
-function nivelLabel(n){
-  return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário';
-}
-function nivelBadgeClass(n){
-  return n==='master_sistema'?'badge-master':n==='master_empresa'?'badge-empresa':'badge-ativo';
-}
-function perfilNome(codigo){
-  const p=perfisCache.find(x=>x.codigo===codigo);
-  return p?p.descricao:codigo||'-';
-}
+function nivelLabel(n){return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário';}
+function nivelBadge(n){return n==='master_sistema'?'badge-master':n==='master_empresa'?'badge-empresa':'badge-usuario';}
+function perfilNome(c){const p=perfisCache.find(x=>x.codigo===c);return p?p.descricao:c||'-';}
 function getLabel(chave,padrao){
   const p=currentUser?.perfil||'';
   return(labelsCache[p]&&labelsCache[p][chave])||padrao;
@@ -449,20 +446,18 @@ async function carregarLabels(){
     const rows=await api('perfil_labels?perfil_codigo=eq.'+currentUser.perfil+'&select=chave,label');
     labelsCache[currentUser.perfil]={};
     (rows||[]).forEach(r=>labelsCache[currentUser.perfil][r.chave]=r.label);
-  }catch(e){console.warn('Labels:',e.message);}
+  }catch(e){}
 }
 
-/* CONSTRUIR INTERFACE */
+/* INTERFACE DINÂMICA */
 async function construirInterface(){
-  const isMasterSistema = currentUser.nivel==='master_sistema';
-  const isMasterEmpresa = currentUser.nivel==='master_empresa';
-  const isUsuario       = currentUser.nivel==='usuario';
+  const isMasterSistema=currentUser.nivel==='master_sistema';
+  const isMasterEmpresa=currentUser.nivel==='master_empresa';
+  const isUsuario=currentUser.nivel==='usuario';
   let funcPermitidas=new Set();
 
-  if(isMasterEmpresa && currentUser.perfil && currentUser.perfil!=='master'){
-    // Herda todos os menus do perfil
+  if(isMasterEmpresa&&currentUser.perfil&&currentUser.perfil!=='master'){
     funcCache.filter(f=>f.perfil_codigo===currentUser.perfil).forEach(f=>funcPermitidas.add(f.funcionalidade));
-    // Se tiver customização no banco, usa ela
     const banco=await api('usuario_acessos?usuario_id=eq.'+currentUser.id+'&ativo=eq.true&select=funcionalidade').catch(()=>[]);
     if(banco&&banco.length>0){funcPermitidas=new Set();banco.forEach(a=>funcPermitidas.add(a.funcionalidade));}
   } else if(isUsuario){
@@ -475,10 +470,7 @@ async function construirInterface(){
   sidebar.innerHTML='';contentArea.innerHTML='';
   let primeiroMenu=null;
 
-  // GRUPO ADMINISTRAÇÃO
-  // master_sistema: vê Gestão de Usuários + Gestão de Acessos + Personalizar Labels
-  // master_empresa: vê APENAS Gestão de Usuários
-  // usuario:        NÃO vê nada de administração
+  // ADMINISTRAÇÃO
   const adminItens=[];
   if(isMasterSistema){
     adminItens.push({id:'usuarios',icon:'👤',label:'Gestão de Usuários'});
@@ -487,12 +479,12 @@ async function construirInterface(){
   } else if(isMasterEmpresa){
     adminItens.push({id:'usuarios',icon:'👤',label:'Gestão de Usuários'});
   }
-
   if(adminItens.length){
-    adicionarGrupo(sidebar,contentArea,'Administração',adminItens,()=>primeiroMenu===null,id=>{ if(!primeiroMenu) primeiroMenu=id; });
+    const lbl=document.createElement('div');lbl.className='sidebar-label';lbl.textContent='Administração';sidebar.appendChild(lbl);
+    adminItens.forEach(item=>{if(!primeiroMenu)primeiroMenu=item.id;addMenuPanel(sidebar,contentArea,item);});
   }
 
-  // GRUPOS FUNCIONAIS
+  // FUNCIONAIS
   const grupos=[
     {nome:'Cadastros',itens:[
       {id:'clientes',    icon:'🧑‍🤝‍🧑',func:'clientes'},
@@ -509,26 +501,20 @@ async function construirInterface(){
       {id:'relatorios',  icon:'📊',func:'relatorios'}
     ]}
   ];
-
   grupos.forEach(grupo=>{
     const visiveis=grupo.itens.filter(item=>isMasterSistema||funcPermitidas.has(item.func));
-    if(!visiveis.length) return;
+    if(!visiveis.length)return;
     const lbl=document.createElement('div');lbl.className='sidebar-label';lbl.textContent=grupo.nome;sidebar.appendChild(lbl);
     visiveis.forEach(item=>{
       const funcObj=funcCache.find(f=>f.funcionalidade===item.func&&f.perfil_codigo===currentUser.perfil);
       const labelMenu=getLabel(item.func+'_menu',funcObj?.label||capitalize(item.id));
-      if(!primeiroMenu) primeiroMenu=item.id;
+      if(!primeiroMenu)primeiroMenu=item.id;
       addMenuPanel(sidebar,contentArea,{...item,label:labelMenu});
     });
   });
 
-  if(primeiroMenu) showPanel(primeiroMenu);
+  if(primeiroMenu)showPanel(primeiroMenu);
   else contentArea.innerHTML=`<div class="placeholder-box"><div class="placeholder-icon">🔒</div><div class="placeholder-title">Sem acessos configurados</div><div class="placeholder-desc">Nenhum menu foi liberado para o seu usuário ainda.</div></div>`;
-}
-
-function adicionarGrupo(sidebar,contentArea,grupoNome,itens,checkPrimeiro,setPrimeiro){
-  const lbl=document.createElement('div');lbl.className='sidebar-label';lbl.textContent=grupoNome;sidebar.appendChild(lbl);
-  itens.forEach(item=>{setPrimeiro(item.id);addMenuPanel(sidebar,contentArea,item);});
 }
 
 function addMenuPanel(sidebar,contentArea,item){
@@ -542,7 +528,6 @@ function addMenuPanel(sidebar,contentArea,item){
   panel.innerHTML=renderPanel(item.id);
   contentArea.appendChild(panel);
 }
-
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 
 function renderPanel(id){
@@ -551,7 +536,7 @@ function renderPanel(id){
   switch(id){
     case 'usuarios': return renderUsuarios();
     case 'acessos':  return renderAcessos();
-    case 'labels':   return renderLabels();
+    case 'labels':   return renderLabelsPanel();
     case 'clientes': return renderClientes();
     default:{
       const tit=getLabel(id+'_titulo',defLabels[id]||id);
@@ -573,18 +558,32 @@ function renderUsuarios(){
 }
 
 function renderAcessos(){
+  // Garante que funcCache está carregado
   const perfisNomes=perfisCache.filter(p=>p.codigo!=='master');
-  const funcsUnicas=[...new Set(funcCache.map(f=>f.funcionalidade))];
-  const allLabels={clientes:'Cadastro de Clientes',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',servicos:'Cadastro de Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
+  // Coleta todas as funcionalidades únicas presentes no cache
+  const funcsMap={};
+  funcCache.forEach(f=>{
+    if(!funcsMap[f.funcionalidade]) funcsMap[f.funcionalidade]=f.label||f.funcionalidade;
+  });
+  const funcsUnicas=Object.keys(funcsMap);
+
+  if(!perfisNomes.length||!funcsUnicas.length){
+    return `<div class="panel-header"><span class="panel-title">Gestão de Acessos</span>
+      <div class="panel-actions">
+        <button class="btn-secondary" onclick="openModal('modal-perfil')">+ Novo Perfil</button>
+        <button class="btn-secondary" onclick="openModalFunc()">+ Nova Funcionalidade</button>
+      </div></div>
+      <div class="loading">Carregando dados...</div>`;
+  }
+
   const thead=`<thead><tr><th>Funcionalidade</th>${perfisNomes.map(p=>`<th>${p.descricao}</th>`).join('')}</tr></thead>`;
   const tbody=funcsUnicas.map(func=>{
-    const lf=funcCache.find(f=>f.funcionalidade===func);
-    const labelFunc=lf?.label||allLabels[func]||func;
-    return `<tr><td>${labelFunc}</td>${perfisNomes.map(p=>{
+    return `<tr><td>${funcsMap[func]}</td>${perfisNomes.map(p=>{
       const tem=funcCache.some(f=>f.perfil_codigo===p.codigo&&f.funcionalidade===func&&f.ativo);
-      return `<td><button class="toggle-btn" onclick="toggleFuncPerfil('${p.codigo}','${func}',${!tem},'${labelFunc}')">${tem?'✅':'❌'}</button></td>`;
+      return `<td><button class="toggle-btn" title="${tem?'Remover':'Adicionar'}" onclick="toggleFuncPerfil('${p.codigo}','${func}',${!tem},'${funcsMap[func]}')">${tem?'✅':'❌'}</button></td>`;
     }).join('')}</tr>`;
   }).join('');
+
   return `<div class="panel-header"><span class="panel-title">Gestão de Acessos</span>
     <div class="panel-actions">
       <button class="btn-secondary" onclick="openModal('modal-perfil')">+ Novo Perfil</button>
@@ -597,13 +596,12 @@ function renderAcessos(){
     <div class="menus-table-wrap"><table>${thead}<tbody>${tbody}</tbody></table></div>`;
 }
 
-function renderLabels(){
+function renderLabelsPanel(){
   return `<div class="panel-header"><span class="panel-title">Personalizar Labels</span>
     <button class="btn-new" onclick="openModalLabel()">+ Novo Label</button></div>
     <div class="info-card"><div class="info-card-icon">🏷️</div><div class="info-card-body">
     <div class="info-card-title">Como funciona</div>
-    <div class="info-card-desc">Personalize os nomes exibidos na interface para cada perfil. Exemplo: mudar "Clientes" para "Pacientes" no perfil Hospital, ou "Clientes" para "Alunos" na Academia. O banco de dados <strong>nunca é alterado</strong> — apenas o texto na tela muda.
-    <br><br><strong>Chaves disponíveis:</strong> clientes_menu, clientes_titulo, clientes_novo, clientes_single, clientes_th_nome, clientes_campo_nome, clientes_campo_cpf</div>
+    <div class="info-card-desc">Personalize os nomes exibidos na interface para cada perfil. Exemplo: mudar "Clientes" para "Pacientes" no Hospital, ou "Clientes" para "Alunos" na Academia.<br><strong>O banco de dados nunca é alterado</strong> — apenas o texto na tela muda.</div>
     </div></div>
     <div id="labels-painel-wrap"><div class="loading">Carregando...</div></div>`;
 }
@@ -620,7 +618,7 @@ function renderClientes(){
       <button class="btn-clear" onclick="limparBusca()">✕ Limpar</button>
     </div>
     <div class="tbl-wrap"><table>
-    <thead><tr><th>#</th><th id="th-cli-nome">${getLabel('clientes_th_nome','Nome')}</th>
+    <thead><tr><th>#</th><th>${getLabel('clientes_th_nome','Nome')}</th>
     <th>CPF</th><th>Telefone</th><th>E-mail</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody id="tbl-clientes"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
     </table></div>`;
@@ -633,9 +631,9 @@ function showPanel(name){
   const menu=document.getElementById('menu-'+name);
   if(panel)panel.classList.add('active');
   if(menu)menu.classList.add('active');
-  if(name==='usuarios') carregarUsuarios();
-  if(name==='clientes') carregarClientes();
-  if(name==='labels')   carregarLabelsTabela();
+  if(name==='usuarios')carregarUsuarios();
+  if(name==='clientes')carregarClientes();
+  if(name==='labels')  carregarLabelsTabela();
 }
 
 /* TOGGLE FUNC/PERFIL */
@@ -645,7 +643,7 @@ async function toggleFuncPerfil(perfil,func,adicionar,labelFunc){
       await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify({perfil_codigo:perfil,funcionalidade:func,label:labelFunc,ativo:true})});
     } else {
       const row=funcCache.find(f=>f.perfil_codigo===perfil&&f.funcionalidade===func);
-      if(row) await api('perfil_funcionalidades?id=eq.'+row.id,{method:'PATCH',body:JSON.stringify({ativo:false})});
+      if(row)await api('perfil_funcionalidades?id=eq.'+row.id,{method:'PATCH',body:JSON.stringify({ativo:false})});
     }
     await carregarFuncCache();
     const p=document.getElementById('panel-acessos');
@@ -661,7 +659,7 @@ async function salvarPerfil(){
   if(!codigo){showMM('modal-perfil-msg','Informe o código','error');return;}
   try{
     await api('perfis',{method:'POST',body:JSON.stringify({codigo,descricao:nome,ativo:true})});
-    showMM('modal-perfil-msg','Perfil criado!','success');
+    showMM('modal-perfil-msg','Perfil criado com sucesso!','success');
     await carregarPerfisCache();
     setTimeout(()=>{closeModal('modal-perfil');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))p.innerHTML=renderAcessos();},900);
   }catch(e){showMM('modal-perfil-msg','Erro: '+e.message,'error');}
@@ -680,7 +678,6 @@ async function openModalFunc(){
     </div>`).join('');
   openModal('modal-func');
 }
-
 async function salvarFuncionalidade(){
   const nome=document.getElementById('f-nome').value.trim();
   const codigo=document.getElementById('f-codigo').value.trim();
@@ -688,67 +685,96 @@ async function salvarFuncionalidade(){
   if(!codigo){showMM('modal-func-msg','Informe o código','error');return;}
   const perfisSel=[...document.querySelectorAll('#func-perfis input:checked')].map(c=>c.value);
   try{
-    if(perfisSel.length){
-      await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify(perfisSel.map(p=>({perfil_codigo:p,funcionalidade:codigo,label:nome,ativo:true})))});
-    }
+    if(perfisSel.length)await api('perfil_funcionalidades',{method:'POST',body:JSON.stringify(perfisSel.map(p=>({perfil_codigo:p,funcionalidade:codigo,label:nome,ativo:true})))});
     showMM('modal-func-msg','Funcionalidade adicionada!','success');
     await carregarFuncCache();
     setTimeout(()=>{closeModal('modal-func');const p=document.getElementById('panel-acessos');if(p&&p.classList.contains('active'))p.innerHTML=renderAcessos();},900);
   }catch(e){showMM('modal-func-msg','Erro: '+e.message,'error');}
 }
 
-/* LABELS */
+/* LABELS — SIMPLIFICADO */
 async function openModalLabel(){
   document.getElementById('modal-label-msg').style.display='none';
-  document.getElementById('lbl-chave').value='';
   document.getElementById('lbl-valor').value='';
+  document.getElementById('lbl-atual-wrap').style.display='none';
   document.getElementById('labels-existentes-wrap').style.display='none';
-  const sel=document.getElementById('lbl-perfil');
-  sel.innerHTML='<option value="">Selecione...</option>'+perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
+
+  // Popular select de perfis
+  const selPerfil=document.getElementById('lbl-perfil');
+  selPerfil.innerHTML='<option value="">Selecione o perfil...</option>'+
+    perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
+
+  // Popular select de campos
+  const selCampo=document.getElementById('lbl-campo');
+  selCampo.innerHTML='<option value="">Selecione o campo...</option>'+
+    CAMPOS_LABELS.map(c=>`<option value="${c.chave}" data-padrao="${c.padrao}">${c.nome}</option>`).join('');
+
   openModal('modal-label');
 }
 
-async function carregarLabelsExistentes(){
+function onLabelPerfilChange(){
   const perfil=document.getElementById('lbl-perfil').value;
+  if(!perfil){document.getElementById('labels-existentes-wrap').style.display='none';return;}
+  carregarLabelsExistentes(perfil);
+}
+
+function onLabelCampoChange(){
+  const sel=document.getElementById('lbl-campo');
+  const opt=sel.options[sel.selectedIndex];
+  const padrao=opt?.getAttribute('data-padrao')||'';
+  const wrap=document.getElementById('lbl-atual-wrap');
+  if(padrao){
+    document.getElementById('lbl-atual-val').textContent=padrao;
+    wrap.style.display='block';
+  } else {
+    wrap.style.display='none';
+  }
+}
+
+async function carregarLabelsExistentes(perfil){
   const wrap=document.getElementById('labels-existentes-wrap');
   const cont=document.getElementById('labels-existentes');
-  if(!perfil){wrap.style.display='none';return;}
   wrap.style.display='block';
-  cont.innerHTML='<div style="color:var(--text3);font-size:12px">Carregando...</div>';
+  cont.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Carregando...</div>';
   try{
     const rows=await api('perfil_labels?perfil_codigo=eq.'+perfil+'&select=*&order=chave.asc');
-    if(!rows||!rows.length){cont.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum label configurado ainda.</div>';return;}
+    if(!rows||!rows.length){cont.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum label configurado ainda para este perfil.</div>';return;}
+    const campoNome=(chave)=>CAMPOS_LABELS.find(c=>c.chave===chave)?.nome||chave;
     cont.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
-      <thead><tr><th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">CHAVE</th><th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">LABEL</th><th></th></tr></thead>
+      <thead><tr>
+        <th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">CAMPO</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--text3);font-size:11px">LABEL ATUAL</th>
+        <th></th>
+      </tr></thead>
       <tbody>${rows.map(r=>`<tr style="border-top:1px solid var(--border)">
-        <td style="padding:6px 8px;color:var(--text2)">${r.chave}</td>
-        <td style="padding:6px 8px;color:var(--accent)">${r.label}</td>
-        <td style="padding:6px 8px"><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id})">Remover</button></td>
+        <td style="padding:6px 8px;color:var(--text2)">${campoNome(r.chave)}</td>
+        <td style="padding:6px 8px;color:var(--accent);font-weight:600">${r.label}</td>
+        <td style="padding:6px 8px"><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id},'${perfil}')">Remover</button></td>
       </tr>`).join('')}</tbody></table>`;
   }catch(e){cont.innerHTML='Erro: '+e.message;}
 }
 
-async function deletarLabel(id){
+async function deletarLabel(id,perfil){
   try{
     await api('perfil_labels?id=eq.'+id,{method:'DELETE',headers:{...hdrs,'Prefer':''}});
-    await carregarLabelsExistentes();
+    await carregarLabelsExistentes(perfil);
     await carregarLabels();
   }catch(e){alert('Erro: '+e.message);}
 }
 
 async function salvarLabel(){
   const perfil=document.getElementById('lbl-perfil').value;
-  const chave=document.getElementById('lbl-chave').value.trim();
+  const chave=document.getElementById('lbl-campo').value;
   const valor=document.getElementById('lbl-valor').value.trim();
   if(!perfil){showMM('modal-label-msg','Selecione um perfil','error');return;}
-  if(!chave){showMM('modal-label-msg','Informe a chave','error');return;}
-  if(!valor){showMM('modal-label-msg','Informe o label','error');return;}
+  if(!chave){showMM('modal-label-msg','Selecione o campo','error');return;}
+  if(!valor){showMM('modal-label-msg','Informe o novo nome','error');return;}
   try{
     await api('perfil_labels',{method:'POST',headers:{...hdrs,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({perfil_codigo:perfil,chave,label:valor})});
     showMM('modal-label-msg','Label salvo com sucesso!','success');
     await carregarLabels();
-    await carregarLabelsExistentes();
-    if(document.getElementById('labels-painel-wrap')) carregarLabelsTabela();
+    await carregarLabelsExistentes(perfil);
+    const lp=document.getElementById('labels-painel-wrap');if(lp)carregarLabelsTabela();
   }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
 }
 
@@ -756,25 +782,31 @@ async function carregarLabelsTabela(){
   const wrap=document.getElementById('labels-painel-wrap');if(!wrap)return;
   try{
     const rows=await api('perfil_labels?select=id,perfil_codigo,chave,label&order=perfil_codigo.asc,chave.asc');
-    if(!rows||!rows.length){wrap.innerHTML='<div class="empty">Nenhum label personalizado configurado ainda.</div>';return;}
+    if(!rows||!rows.length){wrap.innerHTML='<div class="empty">Nenhum label configurado ainda. Clique em "+ Novo Label" para começar.</div>';return;}
+    const campoNome=(chave)=>CAMPOS_LABELS.find(c=>c.chave===chave)?.nome||chave;
     wrap.innerHTML=`<div class="labels-table-wrap"><table>
-      <thead><tr><th>Perfil</th><th>Chave</th><th>Label na Interface</th><th>Ação</th></tr></thead>
+      <thead><tr><th>Perfil</th><th>Campo</th><th>Label na Interface</th><th>Ação</th></tr></thead>
       <tbody>${rows.map(r=>`<tr>
         <td>${perfilNome(r.perfil_codigo)}</td>
-        <td style="color:var(--text3);font-size:12px">${r.chave}</td>
-        <td style="color:var(--accent)">${r.label}</td>
-        <td><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id});carregarLabelsTabela()">Remover</button></td>
+        <td style="color:var(--text2);font-size:12px">${campoNome(r.chave)}</td>
+        <td style="color:var(--accent);font-weight:600">${r.label}</td>
+        <td><button class="btn-sm btn-deact" onclick="deletarLabel(${r.id},'${r.perfil_codigo}');carregarLabelsTabela()">Remover</button></td>
       </tr>`).join('')}</tbody></table></div>`;
   }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
 
-/* CLIENTES */
+/* CLIENTES — isolados por perfil */
 async function carregarClientes(filtro=''){
   const tbody=document.getElementById('tbl-clientes');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
   try{
-    let q='clientes?select=*&order=nome.asc';
-    if(filtro){const f=encodeURIComponent('%'+filtro+'%');q='clientes?select=*&order=nome.asc&or=(nome.ilike.'+f+',cpf.ilike.'+f+')';}
+    // Filtra sempre pelo perfil do usuário logado
+    const perfilFiltro=currentUser.perfil||'master';
+    let q='clientes?select=*&order=nome.asc&perfil_codigo=eq.'+encodeURIComponent(perfilFiltro);
+    if(filtro){
+      const f=encodeURIComponent('%'+filtro+'%');
+      q='clientes?select=*&order=nome.asc&perfil_codigo=eq.'+encodeURIComponent(perfilFiltro)+'&or=(nome.ilike.'+f+',cpf.ilike.'+f+')';
+    }
     const data=await api(q);
     const total=document.getElementById('cli-total');
     if(total)total.textContent=data&&data.length?'('+data.length+')':'';
@@ -809,7 +841,9 @@ function openModalCliente(mode,id){
   document.getElementById('lbl-cli-cpf').textContent=getLabel('clientes_campo_cpf','CPF');
   if(mode==='new'){
     ['cli-nome','cli-cpf','cli-tel','cli-email','cli-cep','cli-end','cli-num','cli-comp','cli-bairro','cli-cidade','cli-estado','cli-obs'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
-    document.getElementById('cli-sexo').value='';document.getElementById('cli-nasc').value='';document.getElementById('cli-pais').value='Brasil';
+    document.getElementById('cli-sexo').value='';
+    document.getElementById('cli-nasc').value='';
+    document.getElementById('cli-pais').value='Brasil';
   } else {
     editingClienteId=id;
     api('clientes?id=eq.'+id+'&select=*').then(data=>{
@@ -836,10 +870,11 @@ function openModalCliente(mode,id){
 
 async function salvarCliente(){
   const nome=document.getElementById('cli-nome').value.trim();
-  const msgEl=document.getElementById('modal-cli-msg');msgEl.style.display='none';
   if(!nome){showMM('modal-cli-msg','Informe o nome','error');return;}
   const body={
-    nome,cpf:document.getElementById('cli-cpf').value.trim()||null,
+    nome,
+    perfil_codigo:currentUser.perfil||'master', // <<< ISOLAMENTO POR PERFIL
+    cpf:document.getElementById('cli-cpf').value.trim()||null,
     data_nasc:document.getElementById('cli-nasc').value||null,
     sexo:document.getElementById('cli-sexo').value||null,
     telefone:document.getElementById('cli-tel').value.trim()||null,
@@ -856,8 +891,13 @@ async function salvarCliente(){
     alterado_em:new Date().toISOString()
   };
   try{
-    if(!editingClienteId){await api('clientes',{method:'POST',body:JSON.stringify({...body,ativo:true})});showMM('modal-cli-msg','Cadastro realizado com sucesso!','success');}
-    else{await api('clientes?id=eq.'+editingClienteId,{method:'PATCH',body:JSON.stringify(body)});showMM('modal-cli-msg','Atualizado com sucesso!','success');}
+    if(!editingClienteId){
+      await api('clientes',{method:'POST',body:JSON.stringify({...body,ativo:true})});
+      showMM('modal-cli-msg','Cadastro realizado com sucesso!','success');
+    } else {
+      await api('clientes?id=eq.'+editingClienteId,{method:'PATCH',body:JSON.stringify(body)});
+      showMM('modal-cli-msg','Atualizado com sucesso!','success');
+    }
     setTimeout(()=>{closeModal('modal-cliente');carregarClientes(document.getElementById('cli-busca')?.value||'');},900);
   }catch(e){showMM('modal-cli-msg','Erro: '+e.message,'error');}
 }
@@ -869,10 +909,10 @@ async function carregarUsuarios(){
   const isMasterSistema=currentUser.nivel==='master_sistema';
   const isMasterEmpresa=currentUser.nivel==='master_empresa';
   try{
-    // master_sistema: vê TODOS os usuários
-    // master_empresa: vê apenas usuários comuns do seu mesmo perfil
+    // master_sistema: TODOS os usuários
+    // master_empresa: apenas usuários comuns do seu perfil
     let q='usuarios?select=*&order=id.asc';
-    if(isMasterEmpresa) q+='&perfil=eq.'+currentUser.perfil+'&nivel=eq.usuario';
+    if(isMasterEmpresa)q+='&perfil=eq.'+currentUser.perfil+'&nivel=eq.usuario';
     const data=await api(q);
     if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">Nenhum usuário encontrado.</td></tr>';return;}
     tbody.innerHTML=data.map(u=>`<tr>
@@ -881,7 +921,7 @@ async function carregarUsuarios(){
       <td>${u.nome||'-'}</td>
       <td>${perfilNome(u.perfil)}</td>
       <td>${u.empresa||'-'}</td>
-      <td><span class="badge ${nivelBadgeClass(u.nivel)}">${nivelLabel(u.nivel)}</span></td>
+      <td><span class="badge ${nivelBadge(u.nivel)}">${nivelLabel(u.nivel)}</span></td>
       <td><span class="badge ${u.ativo?'badge-ativo':'badge-inativo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
         <button class="btn-sm btn-edit" onclick="openModalUsuario('edit',${u.id})">Editar</button>
@@ -892,8 +932,8 @@ async function carregarUsuarios(){
 }
 
 function podeGerenciarAcesso(u){
-  if(currentUser.nivel==='master_sistema') return u.nivel!=='master_sistema';
-  if(currentUser.nivel==='master_empresa') return u.nivel==='usuario';
+  if(currentUser.nivel==='master_sistema')return u.nivel!=='master_sistema';
+  if(currentUser.nivel==='master_empresa')return u.nivel==='usuario';
   return false;
 }
 
@@ -908,11 +948,12 @@ async function openModalUsuario(mode,id){
   const isMasterSistema=currentUser.nivel==='master_sistema';
   const isMasterEmpresa=currentUser.nivel==='master_empresa';
 
-  // Popular select de perfis
+  // Populate perfil select SEMPRE com dados atuais do cache
   const selPerfil=document.getElementById('m-perfil');
-  selPerfil.innerHTML='<option value="">Selecione...</option>'+perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
+  selPerfil.innerHTML='<option value="">Selecione...</option>'+
+    perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
 
-  // Mostrar/ocultar campos conforme quem está logado
+  // Mostrar/ocultar campos
   document.getElementById('wrap-nivel').style.display=isMasterEmpresa?'none':'block';
   document.getElementById('wrap-perfil').style.display=isMasterEmpresa?'none':'block';
   document.getElementById('wrap-acessos-new').style.display='none';
@@ -929,14 +970,15 @@ async function openModalUsuario(mode,id){
     document.getElementById('m-usuario').disabled=false;
 
     if(isMasterEmpresa){
-      // Mostra checkboxes dos menus do perfil para o master de empresa escolher
       document.getElementById('wrap-acessos-new').style.display='block';
       const funcsDisponiveis=funcCache.filter(f=>f.perfil_codigo===currentUser.perfil&&f.ativo);
-      document.getElementById('new-user-acessos').innerHTML=funcsDisponiveis.map(f=>`
-        <div class="access-item" onclick="toggleCheck('na-${f.funcionalidade}',this)">
-          <input type="checkbox" id="na-${f.funcionalidade}" value="${f.funcionalidade}" onclick="event.stopPropagation()">
-          <label for="na-${f.funcionalidade}">${f.label||f.funcionalidade}</label>
-        </div>`).join('');
+      document.getElementById('new-user-acessos').innerHTML=funcsDisponiveis.length
+        ? funcsDisponiveis.map(f=>`
+            <div class="access-item" onclick="toggleCheck('na-${f.funcionalidade}',this)">
+              <input type="checkbox" id="na-${f.funcionalidade}" value="${f.funcionalidade}" onclick="event.stopPropagation()">
+              <label for="na-${f.funcionalidade}">${f.label||f.funcionalidade}</label>
+            </div>`).join('')
+        : '<div class="empty" style="padding:12px">Nenhuma funcionalidade configurada para este perfil.</div>';
     }
   } else {
     document.getElementById('modal-user-titulo').textContent='Editar Usuário';
@@ -949,6 +991,7 @@ async function openModalUsuario(mode,id){
     document.getElementById('m-nome').value=u.nome||'';
     document.getElementById('m-senha').value=u.senha;
     document.getElementById('m-nivel').value=u.nivel;
+    // Seleciona o perfil correto
     document.getElementById('m-perfil').value=u.perfil||'';
     document.getElementById('m-empresa').value=u.empresa||'';
     document.getElementById('m-usuario').disabled=true;
@@ -966,6 +1009,7 @@ async function salvarUsuario(){
   const empresa=isMasterEmpresa?(currentUser.empresa||''):document.getElementById('m-empresa').value.trim();
   if(!usuario){showMM('modal-user-msg','Informe o usuário','error');return;}
   if(!senha){showMM('modal-user-msg','Informe a senha','error');return;}
+  if(!perfil&&!isMasterEmpresa){showMM('modal-user-msg','Selecione o perfil','error');return;}
   const body={nome,senha,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
   try{
     if(!editingUserId){
@@ -973,7 +1017,7 @@ async function salvarUsuario(){
       const novoId=novo&&novo[0]?novo[0].id:null;
       if(novoId&&isMasterEmpresa){
         const sel=[...document.querySelectorAll('#new-user-acessos input:checked')].map(c=>c.value);
-        if(sel.length) await api('usuario_acessos',{method:'POST',body:JSON.stringify(sel.map(f=>({usuario_id:novoId,funcionalidade:f,ativo:true})))});
+        if(sel.length)await api('usuario_acessos',{method:'POST',body:JSON.stringify(sel.map(f=>({usuario_id:novoId,funcionalidade:f,ativo:true})))});
       }
       showMM('modal-user-msg','Usuário criado com sucesso!','success');
     } else {
@@ -1009,7 +1053,7 @@ async function salvarAcessos(){
   const sel=[...document.querySelectorAll('#access-checkboxes input:checked')].map(c=>c.value);
   try{
     await api('usuario_acessos?usuario_id=eq.'+accessUserId,{method:'DELETE',headers:{...hdrs,'Prefer':''}});
-    if(sel.length) await api('usuario_acessos',{method:'POST',body:JSON.stringify(sel.map(f=>({usuario_id:accessUserId,funcionalidade:f,ativo:true})))});
+    if(sel.length)await api('usuario_acessos',{method:'POST',body:JSON.stringify(sel.map(f=>({usuario_id:accessUserId,funcionalidade:f,ativo:true})))});
     showMM('modal-access-msg','Acessos salvos com sucesso!','success');
     setTimeout(()=>closeModal('modal-acessos'),900);
   }catch(e){showMM('modal-access-msg','Erro: '+e.message,'error');}
