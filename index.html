@@ -14,10 +14,21 @@
     --font:'Segoe UI',system-ui,sans-serif;
   }
   body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
-  #screen-login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#1a1a1a 60%,#1e2035 100%);}
-  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:48px 40px;width:380px;max-width:95vw;}
-  .login-title{text-align:center;font-size:22px;font-weight:700;letter-spacing:2px;color:var(--text);margin-bottom:8px;text-transform:uppercase;}
-  .login-sub{text-align:center;font-size:12px;color:var(--text3);letter-spacing:1px;margin-bottom:36px;}
+  #screen-login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#1a1a1a 60%,#1e2035 100%);padding:16px;}
+  .login-wrap{display:flex;flex-direction:column;align-items:center;gap:24px;width:100%;max-width:420px;}
+  .login-empresa-card{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;align-items:center;gap:16px;display:none;}
+  .login-empresa-logo{width:72px;height:72px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);}
+  .login-empresa-logo-placeholder{width:72px;height:72px;border-radius:10px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;}
+  .login-empresa-nome{font-size:18px;font-weight:700;color:var(--text);line-height:1.3;}
+  .login-empresa-sub{font-size:12px;color:var(--text3);margin-top:3px;}
+  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px 40px;width:100%;}
+  .login-title{text-align:center;font-size:18px;font-weight:700;letter-spacing:2px;color:var(--text);margin-bottom:6px;text-transform:uppercase;}
+  .login-sub{text-align:center;font-size:12px;color:var(--text3);letter-spacing:1px;margin-bottom:28px;}
+  .empresa-config-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-top:16px;}
+  .empresa-config-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .logo-preview-wrap{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  .logo-preview{width:80px;height:80px;border-radius:10px;object-fit:cover;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;}
+  .logo-preview img{width:100%;height:100%;object-fit:cover;}
   .field-group{margin-bottom:18px;}
   .field-group label{display:block;font-size:11px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
   .field-group input{width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s;}
@@ -157,20 +168,34 @@
 
 <!-- LOGIN -->
 <div id="screen-login">
-  <div class="login-box">
-    <div class="login-title">Gestão de Negócios</div>
-    <div class="login-sub">Sistema de Gestão Empresarial</div>
-    <div class="field-group"><label>Usuário</label><input type="text" id="inp-user" placeholder="Digite seu usuário" autocomplete="username"></div>
-    <div class="field-group"><label>Senha</label><input type="password" id="inp-pass" placeholder="Digite sua senha" autocomplete="current-password"></div>
-    <button class="btn-primary" onclick="doLogin()">Entrar</button>
-    <div class="msg" id="login-msg"></div>
+  <div class="login-wrap">
+    <!-- Card da empresa (visível quando há config) -->
+    <div class="login-empresa-card" id="login-empresa-card">
+      <div id="login-logo-wrap">
+        <div class="login-empresa-logo-placeholder" id="login-logo-placeholder">🏢</div>
+        <img class="login-empresa-logo" id="login-logo-img" style="display:none" alt="Logo">
+      </div>
+      <div>
+        <div class="login-empresa-nome" id="login-empresa-nome"></div>
+        <div class="login-empresa-sub">Sistema de Gestão Empresarial</div>
+      </div>
+    </div>
+    <!-- Box de login -->
+    <div class="login-box">
+      <div class="login-title" id="login-title">Gestão de Negócios</div>
+      <div class="login-sub" id="login-sub">Sistema de Gestão Empresarial</div>
+      <div class="field-group"><label>Usuário</label><input type="text" id="inp-user" placeholder="Digite seu usuário" autocomplete="username"></div>
+      <div class="field-group"><label>Senha</label><input type="password" id="inp-pass" placeholder="Digite sua senha" autocomplete="current-password"></div>
+      <button class="btn-primary" onclick="doLogin()">Entrar</button>
+      <div class="msg" id="login-msg"></div>
+    </div>
   </div>
 </div>
 
 <!-- MAIN -->
 <div id="screen-main">
   <div class="topbar">
-    <span class="topbar-title">Gestão de Negócios</span>
+    <span class="topbar-title" id="topbar-title">Gestão de Negócios</span>
     <div class="topbar-user">
       <div class="avatar" id="top-avatar">M</div>
       <span id="top-username"></span>
@@ -338,6 +363,43 @@
   </div>
 </div>
 
+<!-- MODAL CONFIG EMPRESA -->
+<div class="modal-overlay" id="modal-config-empresa">
+  <div class="modal modal-sm">
+    <div class="modal-title">Configurar Empresa</div>
+    <div class="modal-sub">Personalize a tela de login para cada empresa cliente.</div>
+    <div class="form-grid">
+      <div class="mfield col-2">
+        <label>Perfil / Empresa <span class="req">*</span></label>
+        <select id="cfg-perfil" onchange="onCfgPerfilChange()">
+          <option value="">Selecione o perfil...</option>
+        </select>
+      </div>
+      <div class="mfield col-2">
+        <label>Nome da Empresa <span class="req">*</span></label>
+        <input type="text" id="cfg-nome" placeholder="ex: Hospital João XXIII">
+      </div>
+      <div class="mfield col-2">
+        <label>Logo da Empresa</label>
+        <div class="logo-preview-wrap">
+          <div class="logo-preview" id="cfg-logo-preview">🏢</div>
+          <div style="flex:1">
+            <input type="file" id="cfg-logo-file" accept="image/*" onchange="onLogoChange(event)" style="display:none">
+            <button class="btn-secondary" style="width:100%;margin-bottom:8px" onclick="document.getElementById('cfg-logo-file').click()">📁 Escolher imagem</button>
+            <button class="btn-secondary" style="width:100%;color:var(--danger);border-color:var(--danger)" onclick="removerLogo()">🗑️ Remover logo</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">Formatos aceitos: JPG, PNG, GIF, WebP. Recomendado: quadrada, mín. 200×200px.</div>
+      </div>
+    </div>
+    <div class="modal-msg" id="modal-cfg-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-config-empresa')">Cancelar</button>
+      <button class="btn-save" onclick="salvarConfigEmpresa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CLIENTE -->
 <div class="modal-overlay" id="modal-cliente">
   <div class="modal">
@@ -456,6 +518,122 @@ async function buscarCEP(){
   }catch(e){hint.className='field-hint err';hint.textContent='Erro ao buscar CEP';}
 }
 
+
+// ─── CONFIGURAÇÃO DE EMPRESA ──────────────────────────────────────
+let empresaConfig = null; // config carregada pela URL
+let cfgLogoBase64 = '';   // base64 da logo no modal
+
+async function carregarConfigEmpresa(){
+  // Lê ?empresa=codigo da URL
+  const params = new URLSearchParams(window.location.search);
+  const codigo = params.get('empresa');
+  if(!codigo) return;
+  try{
+    const rows = await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(codigo)+'&select=*');
+    if(!rows||!rows.length) return;
+    empresaConfig = rows[0];
+    aplicarConfigEmpresaLogin(empresaConfig);
+  }catch(e){}
+}
+
+function aplicarConfigEmpresaLogin(cfg){
+  if(!cfg) return;
+  const card = document.getElementById('login-empresa-card');
+  const nomeEl = document.getElementById('login-empresa-nome');
+  const logoImg = document.getElementById('login-logo-img');
+  const logoPlaceholder = document.getElementById('login-logo-placeholder');
+  const loginTitle = document.getElementById('login-title');
+  const loginSub = document.getElementById('login-sub');
+  if(cfg.nome_empresa){
+    nomeEl.textContent = cfg.nome_empresa;
+    card.style.display = 'flex';
+    loginTitle.style.display = 'none';
+    loginSub.style.display = 'none';
+  }
+  if(cfg.logo_base64){
+    logoImg.src = cfg.logo_base64;
+    logoImg.style.display = 'block';
+    logoPlaceholder.style.display = 'none';
+  }
+}
+
+// Chama ao carregar a página
+carregarConfigEmpresa();
+
+// ─── MODAL CONFIG EMPRESA (só master_sistema) ─────────────────────
+async function openModalConfigEmpresa(){
+  document.getElementById('modal-cfg-msg').style.display='none';
+  document.getElementById('cfg-nome').value='';
+  cfgLogoBase64='';
+  document.getElementById('cfg-logo-preview').innerHTML='🏢';
+  await popularSelectPerfis('cfg-perfil','Selecione o perfil...');
+  openModal('modal-config-empresa');
+}
+
+async function onCfgPerfilChange(){
+  const perfil = document.getElementById('cfg-perfil').value;
+  if(!perfil) return;
+  try{
+    const rows = await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil)+'&select=*');
+    if(rows&&rows.length){
+      const cfg = rows[0];
+      document.getElementById('cfg-nome').value = cfg.nome_empresa||'';
+      cfgLogoBase64 = cfg.logo_base64||'';
+      const prev = document.getElementById('cfg-logo-preview');
+      if(cfgLogoBase64){
+        prev.innerHTML = '<img src="'+cfgLogoBase64+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';
+      } else {
+        prev.innerHTML = '🏢';
+      }
+    } else {
+      document.getElementById('cfg-nome').value='';
+      cfgLogoBase64='';
+      document.getElementById('cfg-logo-preview').innerHTML='🏢';
+    }
+  }catch(e){}
+}
+
+function onLogoChange(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  if(file.size > 2*1024*1024){
+    alert('Imagem muito grande. Use uma imagem menor que 2MB.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    cfgLogoBase64 = e.target.result;
+    const prev = document.getElementById('cfg-logo-preview');
+    prev.innerHTML = '<img src="'+cfgLogoBase64+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removerLogo(){
+  cfgLogoBase64='';
+  document.getElementById('cfg-logo-preview').innerHTML='🏢';
+  document.getElementById('cfg-logo-file').value='';
+}
+
+async function salvarConfigEmpresa(){
+  const perfil = document.getElementById('cfg-perfil').value;
+  const nome = document.getElementById('cfg-nome').value.trim();
+  if(!perfil){showMM('modal-cfg-msg','Selecione o perfil','error');return;}
+  if(!nome){showMM('modal-cfg-msg','Informe o nome da empresa','error');return;}
+  try{
+    const body = {perfil_codigo:perfil, nome_empresa:nome, logo_base64:cfgLogoBase64||null};
+    // Verificar se já existe
+    const ex = await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil)+'&select=id').catch(()=>[]);
+    if(ex&&ex.length>0){
+      await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil),{method:'PATCH',body:JSON.stringify({nome_empresa:nome,logo_base64:cfgLogoBase64||null})});
+    } else {
+      await api('empresa_config',{method:'POST',body:JSON.stringify(body)});
+    }
+    showMM('modal-cfg-msg','Configuração salva com sucesso!','success');
+    setTimeout(()=>closeModal('modal-config-empresa'),900);
+  }catch(e){showMM('modal-cfg-msg','Erro: '+e.message,'error');}
+}
+
 // ─── LOGIN / LOGOUT ───────────────────────────────────────────────
 async function doLogin(){
   const user=document.getElementById('inp-user').value.trim();
@@ -476,6 +654,12 @@ async function doLogin(){
       document.getElementById('screen-main').style.display='flex';
       document.getElementById('top-username').textContent=u.nome||u.usuario;
       if(u.nivel==='master_sistema') document.getElementById('btn-diag').style.display='block';
+      // Atualizar título da topbar com nome da empresa
+      if(u.empresa){
+        document.getElementById('topbar-title').textContent='Gestão de Negócios — '+u.empresa;
+      } else if(empresaConfig&&empresaConfig.nome_empresa){
+        document.getElementById('topbar-title').textContent='Gestão de Negócios — '+empresaConfig.nome_empresa;
+      }
       document.getElementById('top-avatar').textContent=(u.nome||u.usuario)[0].toUpperCase();
       // Carrega caches sequencialmente — mais seguro que Promise.all
       await carregarPerfisCache();
@@ -564,6 +748,7 @@ async function construirInterface(){
     adminItens.push({id:'usuarios',icon:'👤',label:'Gestão de Usuários'});
     adminItens.push({id:'acessos', icon:'🔐',label:'Gestão de Acessos'});
     adminItens.push({id:'labels',  icon:'🏷️',label:'Personalizar Labels'});
+    adminItens.push({id:'config-empresa',icon:'🏢',label:'Configurar Empresas'});
   } else if(isMasterEmpresa){
     adminItens.push({id:'usuarios',icon:'👤',label:'Gestão de Usuários'});
   }
@@ -623,6 +808,7 @@ function renderPanel(id){
     case 'usuarios': return renderUsuarios();
     case 'acessos':  return renderAcessos();
     case 'labels':   return renderLabelsPanel();
+    case 'config-empresa': return renderConfigEmpresaPanel();
     case 'clientes': return renderClientes();
     default:{
       const tit=getLabel(id+'_titulo',defLabels[id]||id);
@@ -647,6 +833,7 @@ function showPanel(name){
   if(name==='acessos')  onShowAcessos();
   if(name==='clientes') carregarClientes();
   if(name==='labels')   carregarLabelsTabela();
+  if(name==='config-empresa') carregarListaEmpresas();
 }
 
 // ─── PAINEL: GESTÃO DE USUÁRIOS ───────────────────────────────────
@@ -1032,6 +1219,75 @@ const ELEMENTOS_LABEL = [
 
 // Estado do wizard
 let lblPassoAtual=1, lblChaveSelecionada='', lblPerfilAtual='';
+
+
+async function carregarListaEmpresas(){
+  const wrap = document.getElementById('config-empresa-lista');
+  if(!wrap) return;
+  try{
+    const rows = await api('empresa_config?select=*&order=perfil_codigo.asc');
+    if(!rows||!rows.length){
+      wrap.innerHTML='<div class="empty">Nenhuma empresa configurada ainda. Clique em "+ Configurar Empresa" para começar.</div>';
+      return;
+    }
+    wrap.innerHTML='<div class="tbl-wrap"><table>'
+      +'<thead><tr><th>Perfil</th><th>Nome da Empresa</th><th>Logo</th><th>Link de Acesso</th><th>Ação</th></tr></thead>'
+      +'<tbody>'
+      +rows.map(r=>{
+        const logo = r.logo_base64
+          ? '<img src="'+r.logo_base64+'" style="width:40px;height:40px;border-radius:6px;object-fit:cover">'
+          : '<span style="color:var(--text3)">—</span>';
+        const link = 'arquivo.html?empresa='+r.perfil_codigo;
+        return '<tr>'
+          +'<td>'+perfilNome(r.perfil_codigo)+'</td>'
+          +'<td style="font-weight:500;color:var(--text)">'+r.nome_empresa+'</td>'
+          +'<td>'+logo+'</td>'
+          +'<td><code style="font-size:11px;color:var(--accent);background:var(--surface2);padding:2px 6px;border-radius:4px">'+link+'</code></td>'
+          +'<td><div class="action-btns">'
+          +'<button class="btn-sm btn-edit" onclick="editarConfigEmpresa(\"'+r.perfil_codigo+'\")">Editar</button>'
+          +'<button class="btn-sm btn-deact" onclick="deletarConfigEmpresa(\"'+r.perfil_codigo+'\")">Remover</button>'
+          +'</div></td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table></div>';
+  }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+}
+
+async function editarConfigEmpresa(perfil){
+  await openModalConfigEmpresa();
+  document.getElementById('cfg-perfil').value=perfil;
+  await onCfgPerfilChange();
+}
+
+async function deletarConfigEmpresa(perfil){
+  if(!confirm('Remover configuração de '+perfilNome(perfil)+'?')) return;
+  try{
+    await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil),{method:'DELETE',headers:{...hdrs,'Prefer':''}});
+    carregarListaEmpresas();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+function renderConfigEmpresaPanel(){
+  return `
+    <div class="panel-header">
+      <span class="panel-title">Configurar Empresas</span>
+      <button class="btn-new" onclick="openModalConfigEmpresa()">+ Configurar Empresa</button>
+    </div>
+    <div class="info-card">
+      <div class="info-card-icon">🏢</div>
+      <div class="info-card-body">
+        <div class="info-card-title">Como funciona</div>
+        <div class="info-card-desc">
+          Configure a tela de login personalizada para cada empresa cliente.<br>
+          Defina o nome e o logo que aparecerão na tela de acesso.<br><br>
+          <strong>Link personalizado para cada cliente:</strong><br>
+          <span style="color:var(--accent);font-family:monospace;font-size:12px">arquivo.html?empresa=<em>codigo_do_perfil</em></span><br>
+          <span style="color:var(--text3);font-size:12px">Ex: arquivo.html?empresa=hospital — para o perfil "hospital"</span>
+        </div>
+      </div>
+    </div>
+    <div id="config-empresa-lista"><div class="loading">Carregando...</div></div>`;
+}
 
 function renderLabelsPanel(){
   return `
