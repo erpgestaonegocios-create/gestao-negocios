@@ -717,7 +717,21 @@
         </select>
       </div>
       <div class="mfield col-2"><label>Categoria</label><select id="lan-categoria"><option value="">Sem categoria</option></select></div>
-      <div class="mfield col-2"><label>Cliente vinculado</label><select id="lan-cliente"><option value="">Nenhum</option></select></div>
+      <div class="mfield col-2">
+        <label>Cliente vinculado</label>
+        <div style="position:relative">
+          <input type="text" id="lan-cliente-busca" placeholder="🔍 Digite para buscar cliente..." autocomplete="off"
+            oninput="buscarClienteLan(this.value)"
+            onfocus="buscarClienteLan(this.value)"
+            style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+          <input type="hidden" id="lan-cliente">
+          <div id="lan-cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:180px;overflow-y:auto;z-index:999;margin-top:2px;box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
+        </div>
+        <div id="lan-cliente-selecionado" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(107,127,215,.1);border:1px solid var(--accent);border-radius:6px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
+          <span id="lan-cliente-nome" style="color:var(--accent);font-weight:600"></span>
+          <button onclick="limparClienteLan()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px">✕</button>
+        </div>
+      </div>
       <div class="mfield col-2"><label>Observações</label><textarea id="lan-obs" placeholder="Observações..." style="min-height:50px"></textarea></div>
     </div>
     <div class="modal-msg" id="modal-lan-msg"></div>
@@ -2112,18 +2126,69 @@ function popularSelectCategorias(elId,tipo){
   sel.innerHTML='<option value="">Sem categoria</option>'+filtradas.map(c=>'<option value="'+c.id+'">'+c.nome+'</option>').join('');
 }
 
+
+// ── Busca de cliente no modal de lançamento ─────────────────────
+let clientesLanCache=[];
+
+async function carregarClientesLanCache(){
+  const pf=currentUser.perfil||'master';
+  try{
+    clientesLanCache=await api('clientes?select=id,nome&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc')||[];
+  }catch(e){clientesLanCache=[];}
+}
+
+function buscarClienteLan(termo){
+  const dropdown=document.getElementById('lan-cliente-dropdown');
+  if(!dropdown)return;
+  if(!termo||termo.length<1){dropdown.style.display='none';return;}
+  const filtrados=clientesLanCache.filter(c=>c.nome.toLowerCase().includes(termo.toLowerCase())).slice(0,10);
+  if(!filtrados.length){
+    dropdown.innerHTML='<div style="padding:10px 14px;font-size:13px;color:var(--text3)">Nenhum cliente encontrado</div>';
+    dropdown.style.display='block';return;
+  }
+  dropdown.innerHTML=filtrados.map(c=>`
+    <div data-id="${c.id}" data-nome="${c.nome.replace(/"/g,'&quot;')}"
+      onclick="selecionarClienteLan(${c.id},'${c.nome.replace(/'/g,"\'")}' )"
+      style="padding:9px 14px;font-size:13px;cursor:pointer;color:var(--text);transition:background .1s"
+      onmouseover="this.style.background='var(--surface2)'"
+      onmouseout="this.style.background=''">${c.nome}</div>`).join('');
+  dropdown.style.display='block';
+}
+
+function selecionarClienteLan(id,nome){
+  document.getElementById('lan-cliente').value=id;
+  document.getElementById('lan-cliente-busca').value='';
+  document.getElementById('lan-cliente-dropdown').style.display='none';
+  document.getElementById('lan-cliente-nome').textContent=nome;
+  const sel=document.getElementById('lan-cliente-selecionado');
+  if(sel)sel.style.display='flex';
+}
+
+function limparClienteLan(){
+  document.getElementById('lan-cliente').value='';
+  document.getElementById('lan-cliente-busca').value='';
+  document.getElementById('lan-cliente-dropdown').style.display='none';
+  const sel=document.getElementById('lan-cliente-selecionado');
+  if(sel)sel.style.display='none';
+}
+
+// Fechar dropdown ao clicar fora
+document.addEventListener('click',e=>{
+  const drop=document.getElementById('lan-cliente-dropdown');
+  const busca=document.getElementById('lan-cliente-busca');
+  if(drop&&busca&&!busca.contains(e.target)&&!drop.contains(e.target)){
+    drop.style.display='none';
+  }
+});
+
 async function openModalLancamento(mode,id){
   editingLancamentoId=null;
   document.getElementById('modal-lan-msg').style.display='none';
   const pf=currentUser.perfil||'master';
   // Recarregar categorias
   try{finCategoriasCache=await api('financeiro_categorias?select=*&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc')||[];}catch(e){}
-  // Popular clientes
-  const selCli=document.getElementById('lan-cliente');
-  try{
-    const clis=await api('clientes?select=id,nome&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc');
-    selCli.innerHTML='<option value="">Nenhum</option>'+(clis||[]).map(x=>'<option value="'+x.id+'">'+x.nome+'</option>').join('');
-  }catch(e){}
+  // Carregar cache de clientes para busca
+  await carregarClientesLanCache();
   if(mode==='new'){
     document.getElementById('modal-lan-titulo').textContent='Novo Lançamento';
     document.getElementById('lan-desc').value='';
@@ -2133,7 +2198,7 @@ async function openModalLancamento(mode,id){
     document.getElementById('lan-status').value='pendente';
     document.getElementById('lan-obs').value='';
     document.querySelector('input[name="lan-tipo"][value="receita"]').checked=true;
-    selCli.value='';
+    limparClienteLan();
     popularSelectCategorias('lan-categoria','receita');
   } else {
     editingLancamentoId=id;
@@ -2149,7 +2214,19 @@ async function openModalLancamento(mode,id){
     document.getElementById('lan-pagamento').value=l.data_pagamento||'';
     document.getElementById('lan-status').value=l.status||'pendente';
     document.getElementById('lan-categoria').value=l.categoria_id||'';
-    document.getElementById('lan-cliente').value=l.cliente_id||'';
+    // Preencher campo de busca de cliente se houver vínculo
+    limparClienteLan();
+    if(l.cliente_id){
+      const cli=clientesLanCache.find(x=>x.id===l.cliente_id);
+      if(cli) selecionarClienteLan(cli.id,cli.nome);
+      else {
+        // Buscar nome do cliente se não estiver no cache
+        try{
+          const rows=await api('clientes?id=eq.'+l.cliente_id+'&select=id,nome');
+          if(rows&&rows.length) selecionarClienteLan(rows[0].id,rows[0].nome);
+        }catch(e){}
+      }
+    }
     document.getElementById('lan-obs').value=l.observacoes||'';
   }
   openModal('modal-lancamento');
@@ -3669,3 +3746,4 @@ async function salvarAcessos(){
 }
 </script>
 </body>
+</html>
