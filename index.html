@@ -1952,6 +1952,9 @@ async function onEstProdutoChange(){
     const prodInfo=await api('produtos?id=eq.'+pid+'&select=estoque_maximo');
     const max=prodInfo&&prodInfo[0]&&prodInfo[0].estoque_maximo!=null?parseFloat(prodInfo[0].estoque_maximo):null;
     document.getElementById('est-produto').dataset.max=max!=null?max:'';
+    const prodInfoMin=await api('produtos?id=eq.'+pid+'&select=estoque_minimo');
+    const min=prodInfoMin&&prodInfoMin[0]&&prodInfoMin[0].estoque_minimo!=null?parseFloat(prodInfoMin[0].estoque_minimo):null;
+    document.getElementById('est-produto').dataset.min=min!=null?min:'';
     onEstQtdChange();
   }catch(e){}
 }
@@ -1988,11 +1991,20 @@ function onEstQtdChange(){
     }
   } else if(tipo==='saida'){
     novoSaldo=saldoAtual-qtd;
+    const minVal=document.getElementById('est-produto').dataset.min;
+    const estoqueMin=minVal!==''&&minVal!=null?parseFloat(minVal):null;
     if(novoSaldo<0){
       hint.textContent='⚠️ Saldo ficará negativo: '+novoSaldo;
       hint.className='field-hint err';
+      if(btn)btn.disabled=true;
+      erro=true;
+    } else if(estoqueMin!=null&&novoSaldo<estoqueMin){
+      hint.textContent='⚠️ Ficará abaixo do mínimo ('+estoqueMin+'). Máximo que pode sair: '+(saldoAtual-estoqueMin);
+      hint.className='field-hint err';
+      if(btn)btn.disabled=true;
+      erro=true;
     } else {
-      hint.textContent='Novo saldo: '+novoSaldo;
+      hint.textContent='Novo saldo: '+novoSaldo+(estoqueMin!=null?' (mín: '+estoqueMin+')':'');
       hint.className='field-hint ok';
     }
   } else if(tipo==='ajuste'){
@@ -2026,7 +2038,7 @@ async function salvarMovimento(){
     const saldoAtual=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
     const saldoId=rows&&rows.length?rows[0].id:null;
     // Buscar estoque máximo do produto
-    const prodData=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,nome');
+    const prodData=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo,nome');
     const estoqueMax=prodData&&prodData[0]&&prodData[0].estoque_maximo!=null?parseFloat(prodData[0].estoque_maximo):null;
     // Calcular novo saldo
     let novoSaldo;
@@ -2034,10 +2046,18 @@ async function salvarMovimento(){
     else if(tipo==='saida') novoSaldo=saldoAtual-qtd;
     else if(tipo==='ajuste') novoSaldo=qtd;
     else if(tipo==='transferencia') novoSaldo=saldoAtual-qtd;
+    // Buscar estoque mínimo do produto
+    const estoqueMin=prodData&&prodData[0]&&prodData[0].estoque_minimo!=null?parseFloat(prodData[0].estoque_minimo):null;
     // Validar máximo para entrada e ajuste
     if(estoqueMax!=null&&(tipo==='entrada'||tipo==='ajuste')&&novoSaldo>estoqueMax){
       showMM('modal-est-msg',
         'Quantidade excede o estoque máximo permitido ('+estoqueMax+'). Saldo atual: '+saldoAtual+'. Máximo que pode entrar: '+(estoqueMax-saldoAtual)+'.','error');
+      return;
+    }
+    // Validar mínimo para saída e transferência
+    if(estoqueMin!=null&&(tipo==='saida'||tipo==='transferencia')&&novoSaldo<estoqueMin){
+      showMM('modal-est-msg',
+        'Quantidade deixaria o estoque abaixo do mínimo permitido ('+estoqueMin+'). Saldo atual: '+saldoAtual+'. Máximo que pode sair: '+(saldoAtual-estoqueMin)+'.','error');
       return;
     }
     // Registrar movimento
