@@ -174,8 +174,10 @@
       <div class="avatar" id="top-avatar">M</div>
       <span id="top-username"></span>
       <button class="btn-logout" onclick="doLogout()">Sair</button>
+      <button id="btn-diag" onclick="mostrarDiag()" style="background:rgba(212,168,67,.2);border:1px solid #d4a843;border-radius:4px;color:#d4a843;font-size:10px;padding:4px 8px;cursor:pointer;display:none">🔍 Diagnóstico</button>
     </div>
   </div>
+  <div id="diag-bar" style="display:none;background:#1a1200;border-bottom:1px solid #d4a843;padding:6px 24px;font-size:11px;color:#d4a843;font-family:monospace"></div>
   <div class="layout">
     <nav class="sidebar" id="sidebar"></nav>
     <div class="content" id="content-area"></div>
@@ -345,7 +347,7 @@
 <script>
 const SUPA_URL='https://uqigoyedyaltwjmfysnu.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaWdveWVkeWFsdHdqbWZ5c251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjY2MjcsImV4cCI6MjA5MjY0MjYyN30.EtTJIzn-OITNfp2uraLgSM0HH7ZLLjewa4l0zOggutI';
-const hdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+const hdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
 
 // ─── ESTADO GLOBAL ───────────────────────────────────────────────
 let currentUser=null;
@@ -367,7 +369,11 @@ const CAMPOS_LABELS=[
 
 // ─── API ─────────────────────────────────────────────────────────
 async function api(path,opts={}){
-  const res=await fetch(SUPA_URL+'/rest/v1/'+path,{headers:{...hdrs,...(opts.headers||{})},...opts});
+  // GETs não enviam Prefer:return=representation (causa problemas no Supabase)
+  const isWrite=opts.method&&opts.method!=='GET';
+  const baseHdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
+  if(isWrite) baseHdrs['Prefer']='return=representation';
+  const res=await fetch(SUPA_URL+'/rest/v1/'+path,{headers:{...baseHdrs,...(opts.headers||{})},...opts});
   if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.message||e.hint||'Erro '+res.status);}
   if(res.status===204)return null;
   return res.json();
@@ -442,6 +448,7 @@ async function doLogin(){
       document.getElementById('screen-login').style.display='none';
       document.getElementById('screen-main').style.display='flex';
       document.getElementById('top-username').textContent=u.nome||u.usuario;
+      if(u.nivel==='master_sistema') document.getElementById('btn-diag').style.display='block';
       document.getElementById('top-avatar').textContent=(u.nome||u.usuario)[0].toUpperCase();
       // Carrega caches sequencialmente — mais seguro que Promise.all
       await carregarPerfisCache();
@@ -485,6 +492,18 @@ async function carregarLabels(){
 }
 
 // ─── INTERFACE DINÂMICA ───────────────────────────────────────────
+function mostrarDiag(){
+  const bar=document.getElementById('diag-bar');
+  if(bar.style.display==='none'){
+    bar.style.display='block';
+    bar.innerHTML='perfisCache: '+JSON.stringify(perfisCache.map(p=>p.codigo))+
+      ' | funcCache: '+funcCache.length+' registros'+
+      ' | currentUser.nivel: '+(currentUser?.nivel||'N/A');
+  } else {
+    bar.style.display='none';
+  }
+}
+
 async function construirInterface(){
   const isMasterSistema=currentUser.nivel==='master_sistema';
   const isMasterEmpresa=currentUser.nivel==='master_empresa';
