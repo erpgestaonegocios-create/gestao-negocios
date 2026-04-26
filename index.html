@@ -639,7 +639,7 @@ async function salvarConfigEmpresa(){
       await api('empresa_config',{method:'POST',body:JSON.stringify(body)});
     }
     showMM('modal-cfg-msg','Configuração salva com sucesso!','success');
-    setTimeout(()=>closeModal('modal-config-empresa'),900);
+    setTimeout(()=>{closeModal('modal-config-empresa');carregarListaEmpresas();},900);
   }catch(e){showMM('modal-cfg-msg','Erro: '+e.message,'error');}
 }
 
