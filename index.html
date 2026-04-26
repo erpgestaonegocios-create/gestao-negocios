@@ -386,9 +386,13 @@ function getLabel(chave,padrao){const p=currentUser?.perfil||'';return(labelsCac
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 
 // Popula qualquer <select> com os perfis do cache
-function popularSelectPerfis(elId, placeholder){
+// Se o cache estiver vazio, busca do banco e então popula
+async function popularSelectPerfis(elId, placeholder){
   const sel=document.getElementById(elId);
   if(!sel)return;
+  if(!perfisCache.length){
+    try{perfisCache=await api('perfis?ativo=eq.true&select=*&order=id.asc')||[];}catch(e){}
+  }
   sel.innerHTML=`<option value="">${placeholder||'Selecione o perfil...'}</option>`+
     perfisCache.map(p=>`<option value="${p.codigo}">${p.descricao}</option>`).join('');
   sel.value='';
@@ -439,8 +443,10 @@ async function doLogin(){
       document.getElementById('screen-main').style.display='flex';
       document.getElementById('top-username').textContent=u.nome||u.usuario;
       document.getElementById('top-avatar').textContent=(u.nome||u.usuario)[0].toUpperCase();
-      // Carrega todos os caches em paralelo ANTES de construir a interface
-      await Promise.all([carregarPerfisCache(), carregarFuncCache(), carregarLabels()]);
+      // Carrega caches sequencialmente — mais seguro que Promise.all
+      await carregarPerfisCache();
+      await carregarFuncCache();
+      await carregarLabels();
       await construirInterface();
     },800);
   }catch(e){showMsg(msg,'Erro de conexão: '+e.message,'error');}
@@ -625,10 +631,10 @@ function renderUsuarios(){
     </table></div>`;
 }
 
-function onShowUsuarios(){
+async function onShowUsuarios(){
   if(currentUser.nivel==='master_sistema'){
     // Popula o combo com o perfisCache (já carregado no login)
-    popularSelectPerfis('filtro-perfil-usuarios','Selecione o perfil...');
+    await popularSelectPerfis('filtro-perfil-usuarios','Selecione o perfil...');
     // Garante que a tabela está oculta
     const wrap=document.getElementById('usuarios-tabela-wrap');
     if(wrap) wrap.style.display='none';
@@ -722,7 +728,7 @@ async function openModalUsuario(mode,id){
   const isMasterEmpresa=currentUser.nivel==='master_empresa';
 
   // Popula select de perfil com o cache (já carregado no login)
-  popularSelectPerfis('m-perfil','Selecione...');
+  await popularSelectPerfis('m-perfil','Selecione...');
 
   // Mostra/oculta campos conforme nível
   document.getElementById('wrap-nivel').style.display=isMasterEmpresa?'none':'block';
@@ -834,7 +840,10 @@ function renderAcessos(){
     <div id="acessos-corpo"></div>`;
 }
 
-function onShowAcessos(){
+async function onShowAcessos(){
+  // Garante caches carregados (fallback caso login tenha falhado ao buscar)
+  if(!perfisCache.length) await carregarPerfisCache();
+  if(!funcCache.length)   await carregarFuncCache();
   renderTabelaAcessos();
 }
 
@@ -939,6 +948,7 @@ function renderLabelsPanel(){
 
 async function carregarLabelsTabela(){
   const wrap=document.getElementById('labels-painel-wrap');if(!wrap)return;
+  if(!perfisCache.length) await carregarPerfisCache();
   try{
     const rows=await api('perfil_labels?select=id,perfil_codigo,chave,label&order=perfil_codigo.asc,chave.asc');
     if(!rows||!rows.length){wrap.innerHTML='<div class="empty">Nenhum label configurado ainda. Clique em "+ Novo Label" para começar.</div>';return;}
@@ -954,13 +964,13 @@ async function carregarLabelsTabela(){
   }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
 }
 
-function openModalLabel(){
+async function openModalLabel(){
   document.getElementById('modal-label-msg').style.display='none';
   document.getElementById('lbl-valor').value='';
   document.getElementById('lbl-atual-wrap').style.display='none';
   document.getElementById('labels-existentes-wrap').style.display='none';
   // Usa o perfisCache já carregado — sem nenhuma chamada à API
-  popularSelectPerfis('lbl-perfil','Selecione o perfil...');
+  await popularSelectPerfis('lbl-perfil','Selecione o perfil...');
   // Popula campos
   const selCampo=document.getElementById('lbl-campo');
   selCampo.innerHTML='<option value="">Selecione o campo...</option>'+
