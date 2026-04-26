@@ -549,6 +549,39 @@
   </div>
 </div>
 
+<!-- MODAL SERVIÇO -->
+<div class="modal-overlay" id="modal-servico">
+  <div class="modal modal-sm">
+    <div class="modal-title" id="modal-serv-titulo">Novo Serviço</div>
+    <div class="modal-sub" id="modal-serv-sub">Preencha os dados do serviço</div>
+    <div class="form-grid">
+      <div class="form-section">Identificação</div>
+      <div class="mfield col-1"><label>Código</label><input type="text" id="serv-codigo" placeholder="ex: SERV-001"></div>
+      <div class="mfield col-2"><label>Nome <span class="req">*</span></label><input type="text" id="serv-nome" placeholder="Nome do serviço"></div>
+      <div class="mfield col-2"><label>Descrição</label><textarea id="serv-desc" placeholder="Descrição do serviço..." style="min-height:60px"></textarea></div>
+      <div class="form-section">Valores e Duração</div>
+      <div class="mfield col-1"><label>Preço (R$)</label><input type="number" id="serv-preco" placeholder="0,00" min="0" step="0.01"></div>
+      <div class="mfield col-1"><label>Duração Estimada</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="serv-duracao-h" placeholder="h" min="0" max="99" style="width:70px" oninput="atualizarDuracaoTotal()">
+          <span style="color:var(--text3);font-size:13px">h</span>
+          <input type="number" id="serv-duracao-m" placeholder="min" min="0" max="59" style="width:80px" oninput="atualizarDuracaoTotal()">
+          <span style="color:var(--text3);font-size:13px">min</span>
+        </div>
+        <input type="hidden" id="serv-duracao-total">
+        <div class="field-hint" id="serv-duracao-hint"></div>
+      </div>
+      <div class="form-section">Informações Adicionais</div>
+      <div class="mfield col-2"><label>Observações</label><textarea id="serv-obs" placeholder="Observações..."></textarea></div>
+    </div>
+    <div class="modal-msg" id="modal-serv-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-servico')">Cancelar</button>
+      <button class="btn-save" onclick="salvarServico()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPA_URL='https://uqigoyedyaltwjmfysnu.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaWdveWVkeWFsdHdqbWZ5c251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjY2MjcsImV4cCI6MjA5MjY0MjYyN30.EtTJIzn-OITNfp2uraLgSM0HH7ZLLjewa4l0zOggutI';
@@ -926,6 +959,7 @@ function renderPanel(id){
     case 'acessos':  return renderAcessos();
     case 'labels':   return renderLabelsPanel();
     case 'config-empresa': return renderConfigEmpresaPanel();
+    case 'servicos':     return renderServicos();
     case 'produtos':     return renderProdutos();
     case 'fornecedores': return renderFornecedores();
     case 'clientes': return renderClientes();
@@ -950,6 +984,7 @@ function showPanel(name){
   // O DOM do painel já existe (criado em addMenuPanel), então não há race condition
   if(name==='usuarios') onShowUsuarios();
   if(name==='acessos')  onShowAcessos();
+  if(name==='servicos')     carregarServicos();
   if(name==='produtos')     carregarProdutos();
   if(name==='fornecedores') carregarFornecedores();
   if(name==='clientes') carregarClientes();
@@ -1590,6 +1625,159 @@ async function salvarLabelGuiado(){
       closeModal('modal-label');
     },800);
   }catch(e){showMM('modal-label-msg','Erro: '+e.message,'error');}
+}
+
+// ─── PAINEL: SERVIÇOS ────────────────────────────────────────────
+let editingServicoId=null;
+
+function renderServicos(){
+  const tit=getLabel('servicos_titulo','Serviços');
+  const novo=getLabel('servicos_novo','Novo Serviço');
+  return `<div class="panel-header">
+    <span class="panel-title">${tit} <span class="total-badge" id="serv-total"></span></span>
+    <button class="btn-new" onclick="openModalServico('new')">+ ${novo}</button></div>
+    <div class="search-bar">
+      <input type="text" id="serv-busca" placeholder="Buscar por nome ou código..." onkeydown="if(event.key==='Enter')buscarServicos()">
+      <button class="btn-search" onclick="buscarServicos()">Buscar</button>
+      <button class="btn-clear" onclick="limparBuscaServ()">✕ Limpar</button>
+    </div>
+    <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>#</th><th>Código</th><th>Nome</th><th>Preço</th>
+      <th>Duração</th><th>Status</th><th>Ações</th>
+    </tr></thead>
+    <tbody id="tbl-servicos"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+    </table></div>`;
+}
+
+function formatarDuracao(minutos){
+  if(!minutos&&minutos!==0)return'-';
+  const h=Math.floor(minutos/60);
+  const m=minutos%60;
+  if(h>0&&m>0)return h+'h '+m+'min';
+  if(h>0)return h+'h';
+  return m+'min';
+}
+
+function atualizarDuracaoTotal(){
+  const h=parseInt(document.getElementById('serv-duracao-h').value)||0;
+  const m=parseInt(document.getElementById('serv-duracao-m').value)||0;
+  const total=h*60+m;
+  document.getElementById('serv-duracao-total').value=total||'';
+  const hint=document.getElementById('serv-duracao-hint');
+  hint.textContent=total>0?'Total: '+formatarDuracao(total):'';
+}
+
+async function carregarServicos(filtro=''){
+  const tbody=document.getElementById('tbl-servicos');if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="7" class="loading">Carregando...</td></tr>';
+  try{
+    const pf=currentUser.perfil||'master';
+    let q='servicos?select=*&order=nome.asc&perfil_codigo=eq.'+encodeURIComponent(pf);
+    if(filtro){
+      const f=encodeURIComponent('%'+filtro+'%');
+      q+='&or=(nome.ilike.'+f+',codigo.ilike.'+f+')';
+    }
+    const data=await api(q);
+    const total=document.getElementById('serv-total');
+    if(total)total.textContent=data&&data.length?'('+data.length+')':'';
+    if(!data||!data.length){
+      tbody.innerHTML='<tr><td colspan="7" class="empty">'+(filtro?'Nenhum resultado.':'Nenhum serviço cadastrado.')+'</td></tr>';
+      return;
+    }
+    const fmt=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
+    tbody.innerHTML=data.map(s=>`<tr>
+      <td style="color:var(--text3)">${s.id}</td>
+      <td style="color:var(--text3);font-size:12px">${s.codigo||'-'}</td>
+      <td style="font-weight:500;color:var(--text)">${s.nome}</td>
+      <td style="color:var(--success);font-weight:600">${fmt(s.preco)}</td>
+      <td>${formatarDuracao(s.duracao_minutos)}</td>
+      <td><span class="badge ${s.ativo?'badge-ativo':'badge-inativo'}">${s.ativo?'Ativo':'Inativo'}</span></td>
+      <td><div class="action-btns">
+        <button class="btn-sm btn-edit" onclick="openModalServico('edit',${s.id})">Editar</button>
+        ${s.ativo
+          ?'<button class="btn-sm btn-deact" onclick="toggleServico('+s.id+',false)">Desativar</button>'
+          :'<button class="btn-sm btn-react" onclick="toggleServico('+s.id+',true)">Reativar</button>'}
+      </div></td></tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="7" class="empty">Erro: ${e.message}</td></tr>`;}
+}
+
+function buscarServicos(){carregarServicos(document.getElementById('serv-busca').value.trim());}
+function limparBuscaServ(){document.getElementById('serv-busca').value='';carregarServicos();}
+
+async function toggleServico(id,ativo){
+  try{
+    await api('servicos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});
+    carregarServicos(document.getElementById('serv-busca')?.value||'');
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+async function openModalServico(mode,id){
+  editingServicoId=null;
+  document.getElementById('modal-serv-msg').style.display='none';
+  document.getElementById('serv-duracao-hint').textContent='';
+  if(mode==='new'){
+    document.getElementById('modal-serv-titulo').textContent=getLabel('servicos_novo','Novo Serviço');
+    document.getElementById('modal-serv-sub').textContent='Preencha os dados do serviço';
+    ['serv-codigo','serv-nome','serv-desc','serv-preco','serv-obs'].forEach(i=>{
+      const el=document.getElementById(i);if(el)el.value='';
+    });
+    document.getElementById('serv-duracao-h').value='';
+    document.getElementById('serv-duracao-m').value='';
+    document.getElementById('serv-duracao-total').value='';
+  } else {
+    document.getElementById('modal-serv-titulo').textContent='Editar Serviço';
+    document.getElementById('modal-serv-sub').textContent='Altere os dados necessários';
+    editingServicoId=id;
+    const data=await api('servicos?id=eq.'+id+'&select=*');
+    if(!data||!data.length)return;
+    const s=data[0];
+    document.getElementById('serv-codigo').value=s.codigo||'';
+    document.getElementById('serv-nome').value=s.nome||'';
+    document.getElementById('serv-desc').value=s.descricao||'';
+    document.getElementById('serv-preco').value=s.preco!=null?s.preco:'';
+    document.getElementById('serv-obs').value=s.observacoes||'';
+    if(s.duracao_minutos){
+      document.getElementById('serv-duracao-h').value=Math.floor(s.duracao_minutos/60)||'';
+      document.getElementById('serv-duracao-m').value=s.duracao_minutos%60||'';
+      document.getElementById('serv-duracao-total').value=s.duracao_minutos;
+      document.getElementById('serv-duracao-hint').textContent='Total: '+formatarDuracao(s.duracao_minutos);
+    } else {
+      document.getElementById('serv-duracao-h').value='';
+      document.getElementById('serv-duracao-m').value='';
+      document.getElementById('serv-duracao-total').value='';
+    }
+  }
+  openModal('modal-servico');
+}
+
+async function salvarServico(){
+  const nome=document.getElementById('serv-nome').value.trim();
+  if(!nome){showMM('modal-serv-msg','Informe o nome do serviço','error');return;}
+  const duracaoTotal=document.getElementById('serv-duracao-total').value;
+  const body={
+    nome,
+    perfil_codigo:currentUser.perfil||'master',
+    codigo:document.getElementById('serv-codigo').value.trim()||null,
+    descricao:document.getElementById('serv-desc').value.trim()||null,
+    preco:document.getElementById('serv-preco').value||null,
+    duracao_minutos:duracaoTotal?parseInt(duracaoTotal):null,
+    observacoes:document.getElementById('serv-obs').value.trim()||null,
+    alterado_em:new Date().toISOString()
+  };
+  try{
+    if(!editingServicoId){
+      await api('servicos',{method:'POST',body:JSON.stringify({...body,ativo:true})});
+      showMM('modal-serv-msg','Serviço cadastrado com sucesso!','success');
+    } else {
+      await api('servicos?id=eq.'+editingServicoId,{method:'PATCH',body:JSON.stringify(body)});
+      showMM('modal-serv-msg','Serviço atualizado com sucesso!','success');
+    }
+    setTimeout(()=>{
+      closeModal('modal-servico');
+      carregarServicos(document.getElementById('serv-busca')?.value||'');
+    },900);
+  }catch(e){showMM('modal-serv-msg','Erro: '+e.message,'error');}
 }
 
 // ─── PAINEL: PRODUTOS ────────────────────────────────────────────
