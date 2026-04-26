@@ -368,15 +368,38 @@ const CAMPOS_LABELS=[
 ];
 
 // ─── API ─────────────────────────────────────────────────────────
+function logDiag(msg,ok){
+  let bar=document.getElementById('diag-log');
+  if(!bar){bar=document.createElement('div');bar.id='diag-log';
+    bar.style.cssText='position:fixed;bottom:0;left:0;right:0;max-height:180px;overflow-y:auto;background:#0a0a0a;border-top:2px solid #d4a843;padding:6px 12px;font-size:11px;font-family:monospace;z-index:9999';
+    document.body.appendChild(bar);}
+  const line=document.createElement('div');
+  line.style.color=ok?'#4caf7d':'#e05555';
+  line.textContent=new Date().toLocaleTimeString()+' '+msg;
+  bar.appendChild(line);bar.scrollTop=bar.scrollHeight;
+}
+
 async function api(path,opts={}){
-  // GETs não enviam Prefer:return=representation (causa problemas no Supabase)
   const isWrite=opts.method&&opts.method!=='GET';
   const baseHdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
   if(isWrite) baseHdrs['Prefer']='return=representation';
-  const res=await fetch(SUPA_URL+'/rest/v1/'+path,{headers:{...baseHdrs,...(opts.headers||{})},...opts});
-  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.message||e.hint||'Erro '+res.status);}
-  if(res.status===204)return null;
-  return res.json();
+  try{
+    const res=await fetch(SUPA_URL+'/rest/v1/'+path,{headers:{...baseHdrs,...(opts.headers||{})},...opts});
+    if(!res.ok){
+      const e=await res.json().catch(()=>({}));
+      const msg=e.message||e.hint||'Erro '+res.status;
+      logDiag('ERRO '+path.split('?')[0]+': '+msg, false);
+      throw new Error(msg);
+    }
+    if(res.status===204){logDiag('OK 204 '+path.split('?')[0],true);return null;}
+    const data=await res.json();
+    logDiag('OK '+path.split('?')[0]+' => '+(Array.isArray(data)?data.length+' registros':typeof data),true);
+    return data;
+  }catch(e){
+    if(e.message&&!e.message.startsWith('Erro')&&!e.message.startsWith('ERRO'))
+      logDiag('FALHA '+path.split('?')[0]+': '+e.message,false);
+    throw e;
+  }
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────
