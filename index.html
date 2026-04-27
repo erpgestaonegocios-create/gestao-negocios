@@ -3066,6 +3066,7 @@ let editingLancamentoId=null;
 let finCategoriasCache=[];
 let finAbaAtual='lancamentos';
 const FIN_STATUS={pendente:{label:'Pendente',icon:'⏳',cls:'badge-empresa'},pago:{label:'Pago',icon:'✅',cls:'badge-ativo'},vencido:{label:'Vencido',icon:'🔴',cls:'badge-inativo'},cancelado:{label:'Cancelado',icon:'❌',cls:'badge-usuario'}};
+const fmt=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
 
 function renderFinanceiro(){
   return `
