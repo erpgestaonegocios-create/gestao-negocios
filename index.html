@@ -2813,7 +2813,7 @@ async function carregarHistorico(){
     wrap.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Qtd</th><th>Saldo Anterior</th><th>Saldo Posterior</th><th>Motivo</th></tr></thead><tbody>'
       +movs.map(m=>{const dt=new Date(m.criado_em).toLocaleString('pt-BR');const sinal=m.tipo==='entrada'?'+':m.tipo==='saida'?'-':'';return `<tr><td style="font-size:12px;color:var(--text3)">${dt}</td><td style="font-weight:500;color:var(--text)">${m.produtos?.nome||'—'}</td><td><span style="color:${tipoColor[m.tipo]};font-weight:600">${tipoIcon[m.tipo]} ${tipoLabel[m.tipo]||m.tipo}</span></td><td style="color:${tipoColor[m.tipo]};font-weight:700">${sinal}${m.quantidade} ${m.produtos?.unidade||'un'}</td><td style="color:var(--text3)">${m.quantidade_anterior??'—'}</td><td style="color:var(--text3)">${m.quantidade_posterior??'—'}</td><td style="font-size:12px">${m.motivo||'—'}</td></tr>`;}).join('')
       +'</tbody></table></div>';
-  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
+  }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
 
 async function openModalMovimento(produtoId){
@@ -3657,34 +3657,62 @@ async function gerarDadosRelatorio(){
     const topServicosArr=Object.entries(topServicos).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
     // Salvar dados para o PDF
-    window._relDadosPDF={nomePeriodo,recPago,despPago,recPend,despPend,agPorStatus,
+    // Salvar dados completos e detalhados para PDFs individuais
+    const receitasPagas=(lancamentos||[]).filter(l=>l.tipo==='receita'&&l.status==='pago').sort((a,b)=>b.valor-a.valor);
+    const despesasPagas=(lancamentos||[]).filter(l=>l.tipo==='despesa'&&l.status==='pago').sort((a,b)=>b.valor-a.valor);
+    const receitasPend=(lancamentos||[]).filter(l=>l.tipo==='receita'&&l.status==='pendente').sort((a,b)=>new Date(a.data_vencimento)-new Date(b.data_vencimento));
+    const despesasPend=(lancamentos||[]).filter(l=>l.tipo==='despesa'&&l.status==='pendente').sort((a,b)=>new Date(a.data_vencimento)-new Date(b.data_vencimento));
+    const agRealizados=(agendamentos||[]).filter(a=>a.status==='realizado').sort((a,b)=>new Date(a.data_hora)-new Date(b.data_hora));
+    const agCancelados=(agendamentos||[]).filter(a=>a.status==='cancelado');
+    const agConfirmados=(agendamentos||[]).filter(a=>a.status==='confirmado');
+    const agAgendados=(agendamentos||[]).filter(a=>a.status==='agendado');
+    window._relDadosPDF={nomePeriodo,_ini:ini,_fim:fim,recPago,despPago,recPend,despPend,agPorStatus,
       agendamentos,estCrit,valorEstoque,novosCliPeriodo,topReceitas,topDespesas,topServicosArr,
-      totalAg:(agendamentos||[]).length,totalProd:(produtos||[]).length,totalCli:(clientes||[]).length};
+      totalAg:(agendamentos||[]).length,totalProd:(produtos||[]).length,totalCli:(clientes||[]).length,
+      // Detalhes completos para PDF individual
+      receitasPagas,despesasPagas,receitasPend,despesasPend,
+      agRealizados,agCancelados,agConfirmados,agAgendados,
+      lancamentos:lancamentos||[],
+      agendamentosTodos:agendamentos||[],
+      produtosTodos:produtos||[],
+      clientesTodos:clientes||[]};
 
     wrap.innerHTML=`
     <div style="font-size:12px;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">📊 Relatório — ${nomePeriodo}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">💰 Financeiro</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">💰 Financeiro</span>
+          <button onclick="gerarPDFFinanceiro()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">🖨️ PDF</button>
+        </div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Receitas pagas</span><span style="color:var(--success);font-weight:700">${fmtV(recPago)}</span></div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Despesas pagas</span><span style="color:var(--danger);font-weight:700">${fmtV(despPago)}</span></div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">A receber</span><span style="color:var(--accent);font-weight:700">${fmtV(recPend)}</span></div>
         <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;font-weight:700;color:var(--text)">Resultado</span><span style="font-weight:700;color:${recPago-despPago>=0?'var(--success)':'var(--danger)'}">${fmtV(recPago-despPago)}</span></div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📅 Agendamentos</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">📅 Agendamentos</span>
+          <button onclick="gerarPDFAgendamentos()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">🖨️ PDF</button>
+        </div>
         ${Object.entries({agendado:'🕐',confirmado:'✅',realizado:'🏁',cancelado:'❌'}).map(([s,ic])=>`
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">${ic} ${s.charAt(0).toUpperCase()+s.slice(1)}</span><span style="font-weight:700;color:var(--text)">${agPorStatus[s]||0}</span></div>`).join('')}
         <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;font-weight:700;color:var(--text)">Total</span><span style="font-weight:700;color:var(--accent)">${(agendamentos||[]).length}</span></div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📦 Estoque</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">📦 Estoque</span>
+          <button onclick="gerarPDFEstoque()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">🖨️ PDF</button>
+        </div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Produtos monitorados</span><span style="font-weight:700;color:var(--text)">${(produtos||[]).length}</span></div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Abaixo do mínimo</span><span style="font-weight:700;color:var(--danger)">${estCrit.length}</span></div>
         <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;color:var(--text2)">Valor em estoque</span><span style="font-weight:700;color:var(--accent)">${fmtV(valorEstoque)}</span></div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">👥 Clientes</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">👥 Clientes</span>
+          <button onclick="gerarPDFClientes()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">🖨️ PDF</button>
+        </div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Total ativos</span><span style="font-weight:700;color:var(--text)">${(clientes||[]).length}</span></div>
         <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;color:var(--text2)">Novos no período</span><span style="font-weight:700;color:var(--success)">${novosCliPeriodo}</span></div>
       </div>
@@ -3700,85 +3728,206 @@ async function gerarDadosRelatorio(){
     ${topServicosArr.length?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px">
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">🏆 Serviços Mais Agendados</div>
       ${topServicosArr.map(([s,n])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">${s}</span><span style="font-weight:600;color:var(--accent)">${n} agendamento(s)</span></div>`).join('')}
-    </div>`:''}`;
+    </div>`:''}
 
     document.getElementById('rel-btn-pdf').style.display='block';
-  }catch(e){wrap.innerHTML=`<div class="empty">Erro: ${e.message}</div>`;}
+  }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
 
-function exportarRelatorioPDF(){
-  const d=window._relDadosPDF;
-  if(!d){alert('Gere o relatório primeiro.');return;}
-  const empresa=empresaConfig?.nome_empresa||perfilNome(currentUser?.perfil)||'Empresa';
+function _pdfBase(titulo,periodo,empresa,conteudo){
+  // Função base de geração de PDF — usada por todos os relatórios
   const emissao=new Date().toLocaleString('pt-BR');
-  const fmtV=v=>'R$ '+parseFloat(v).toFixed(2).replace('.',',');
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:'Segoe UI',sans-serif;color:#222;padding:32px;max-width:800px;margin:0 auto;}
-    h1{font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
-    .sub{font-size:13px;color:#555;margin-bottom:4px;}
-    .periodo{font-size:12px;color:#888;}
-    .header{border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px;}
-    .aviso{text-align:center;font-size:11px;color:#999;font-style:italic;margin-bottom:20px;padding:8px;border:1px dashed #ccc;border-radius:4px;}
-    .secao{margin-bottom:24px;}
-    .secao-titulo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#666;border-bottom:1px solid #ddd;padding-bottom:6px;margin-bottom:12px;}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
-    .card{border:1px solid #ddd;border-radius:8px;padding:16px;}
-    .card-titulo{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:10px;}
-    .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}
-    .row:last-child{border-bottom:none;}
-    .val-pos{font-weight:700;color:#2e7d32;}
-    .val-neg{font-weight:700;color:#c62828;}
-    .val-acc{font-weight:700;color:#3949ab;}
-    .footer{text-align:center;font-size:10px;color:#aaa;margin-top:32px;padding-top:12px;border-top:1px solid #eee;}
-    @media print{body{padding:16px;}button{display:none;}}
-  </style></head><body>
-  <div class="header">
-    <h1>${empresa}</h1>
-    <div class="sub">Relatório Gerencial</div>
-    <div class="periodo">Período: ${d.nomePeriodo} &nbsp;|&nbsp; Emitido em: ${emissao}</div>
-  </div>
-  <div class="aviso">⚠️ Este documento NÃO possui valor fiscal — apenas controle interno</div>
-  <div class="grid">
-    <div class="card">
-      <div class="card-titulo">💰 Financeiro</div>
-      <div class="row"><span>Receitas pagas</span><span class="val-pos">${fmtV(d.recPago)}</span></div>
-      <div class="row"><span>Despesas pagas</span><span class="val-neg">${fmtV(d.despPago)}</span></div>
-      <div class="row"><span>A receber</span><span class="val-acc">${fmtV(d.recPend)}</span></div>
-      <div class="row"><span><strong>Resultado</strong></span><span class="${d.recPago-d.despPago>=0?'val-pos':'val-neg'}"><strong>${fmtV(d.recPago-d.despPago)}</strong></span></div>
-    </div>
-    <div class="card">
-      <div class="card-titulo">📅 Agendamentos</div>
-      <div class="row"><span>🕐 Agendados</span><span>${d.agPorStatus.agendado||0}</span></div>
-      <div class="row"><span>✅ Confirmados</span><span>${d.agPorStatus.confirmado||0}</span></div>
-      <div class="row"><span>🏁 Realizados</span><span>${d.agPorStatus.realizado||0}</span></div>
-      <div class="row"><span>❌ Cancelados</span><span>${d.agPorStatus.cancelado||0}</span></div>
-      <div class="row"><span><strong>Total</strong></span><span><strong>${d.totalAg}</strong></span></div>
-    </div>
-    <div class="card">
-      <div class="card-titulo">📦 Estoque</div>
-      <div class="row"><span>Produtos monitorados</span><span>${d.totalProd}</span></div>
-      <div class="row"><span>Abaixo do mínimo</span><span class="val-neg">${d.estCrit.length}</span></div>
-      <div class="row"><span>Valor em estoque</span><span class="val-acc">${fmtV(d.valorEstoque)}</span></div>
-    </div>
-    <div class="card">
-      <div class="card-titulo">👥 Clientes</div>
-      <div class="row"><span>Total ativos</span><span>${d.totalCli}</span></div>
-      <div class="row"><span>Novos no período</span><span class="val-pos">${d.novosCliPeriodo}</span></div>
-    </div>
-  </div>
-  ${d.topReceitas.length?`<div class="secao"><div class="secao-titulo">📈 Top Receitas do Período</div>${d.topReceitas.map(l=>`<div class="row"><span>${l.descricao}</span><span class="val-pos">${fmtV(parseFloat(l.valor))}</span></div>`).join('')}</div>`:''}
-  ${d.topDespesas.length?`<div class="secao"><div class="secao-titulo">📉 Top Despesas do Período</div>${d.topDespesas.map(l=>`<div class="row"><span>${l.descricao}</span><span class="val-neg">${fmtV(parseFloat(l.valor))}</span></div>`).join('')}</div>`:''}
-  ${d.topServicosArr.length?`<div class="secao"><div class="secao-titulo">🏆 Serviços Mais Agendados</div>${d.topServicosArr.map(([s,n])=>`<div class="row"><span>${s}</span><span class="val-acc">${n} agendamento(s)</span></div>`).join('')}</div>`:''}
-  <div class="footer">Gestão de Negócios — Documento gerado automaticamente</div>
-  <div style="text-align:center;margin-top:20px">
-    <button onclick="window.print()" style="padding:10px 24px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">🖨️ Imprimir / Salvar PDF</button>
-  </div>
-  </body></html>`;
-  const win=window.open('','_blank');
-  win.document.write(html);
-  win.document.close();
+  const estilos='*{margin:0;padding:0;box-sizing:border-box;}body{font-family:sans-serif;color:#222;padding:32px;max-width:900px;margin:0 auto;}h1{font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;}.sub{font-size:12px;color:#555;margin-top:3px;}.header{border-bottom:2px solid #222;padding-bottom:14px;margin-bottom:20px;}.aviso{font-size:11px;color:#999;font-style:italic;margin-bottom:18px;padding:7px 12px;border:1px dashed #ccc;border-radius:4px;text-align:center;}.secao{margin-bottom:24px;}.secao-tit{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;border-bottom:2px solid #222;padding-bottom:6px;margin-bottom:12px;display:flex;justify-content:space-between;}.secao-total{font-size:12px;font-weight:700;}table{width:100%;border-collapse:collapse;font-size:12px;}th{background:#f5f5f5;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:2px solid #ddd;}td{padding:7px 10px;border-bottom:1px solid #eee;}tr:last-child td{border-bottom:none;}.pos{color:#2e7d32;font-weight:600;}.neg{color:#c62828;font-weight:600;}.acc{color:#3949ab;font-weight:600;}.footer{text-align:center;font-size:10px;color:#aaa;margin-top:32px;padding-top:12px;border-top:1px solid #eee;}.resumo-box{background:#f9f9f9;border:1px solid #eee;border-radius:6px;padding:14px 16px;margin-bottom:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}.resumo-item{text-align:center;}.resumo-label{font-size:10px;text-transform:uppercase;color:#888;margin-bottom:3px;}.resumo-val{font-size:16px;font-weight:700;}@media print{button{display:none!important;}}';
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'+estilos+'</style></head><body>'
+    +'<div class="header"><h1>'+empresa+'</h1>'
+    +'<div class="sub">'+titulo+' | Período: '+periodo+'</div>'
+    +'<div class="sub" style="color:#999;margin-top:2px">Emitido em: '+emissao+'</div></div>'
+    +'<div class="aviso">Este documento não possui valor fiscal — apenas controle interno</div>'
+    +conteudo
+    +'<div class="footer">Gestão de Negócios — Documento gerado automaticamente pelo sistema</div>'
+    +'<div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 28px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">Imprimir / Salvar PDF</button></div>'
+    +'</body></html>';
+  const win=window.open('','_blank');win.document.write(html);win.document.close();
 }
+
+function _checkDados(){ const d=window._relDadosPDF;if(!d){alert('Gere o relatório primeiro.');return null;}return d;}
+function _fmtV(v){return v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';}
+function _fmtD(s){if(!s)return '-';return new Date(s+'T12:00').toLocaleDateString('pt-BR');}
+function _fmtDT(s){if(!s)return '-';return new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+const empresa=()=>empresaConfig?.nome_empresa||perfilNome(currentUser?.perfil)||'Empresa';
+
+function gerarPDFFinanceiro(){
+  const d=_checkDados();if(!d)return;
+  const fV=_fmtV,fD=_fmtD;
+  const tabela=(titulo,lista,corValor,totalLabel,total)=>{
+    if(!lista||!lista.length)return '<div style="font-size:12px;color:#888;padding:8px 0">Nenhum registro no período.</div>';
+    let t='<table><thead><tr><th>#</th><th>Descrição</th><th>Cliente</th><th>Categoria</th><th>Vencimento</th><th>Pagamento</th><th style="text-align:right">Valor</th></tr></thead><tbody>';
+    lista.forEach((l,i)=>{t+='<tr>'
+      +'<td style="color:#999">'+(i+1)+'</td>'
+      +'<td>'+(l.descricao||'-')+'</td>'
+      +'<td>'+(l.clientes?.nome||l.cliente_nome||'-')+'</td>'
+      +'<td style="color:#666">'+(l.financeiro_categorias?.nome||l.categoria_nome||'-')+'</td>'
+      +'<td>'+fD(l.data_vencimento)+'</td>'
+      +'<td>'+(fD(l.data_pagamento)||'-')+'</td>'
+      +'<td style="text-align:right" class="'+corValor+'">'+fV(l.valor)+'</td>'
+      +'</tr>';});
+    t+='<tr style="background:#f5f5f5;font-weight:700"><td colspan="6">'+totalLabel+'</td><td style="text-align:right" class="'+corValor+'">'+fV(total)+'</td></tr>';
+    t+='</tbody></table>';
+    return t;
+  };
+  const conteudo=''
+    +'<div class="resumo-box">'
+    +'<div class="resumo-item"><div class="resumo-label">Receitas Pagas</div><div class="resumo-val pos">'+fV(d.recPago)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Despesas Pagas</div><div class="resumo-val neg">'+fV(d.despPago)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Resultado</div><div class="resumo-val '+(d.recPago-d.despPago>=0?'pos':'neg')+'">'+fV(d.recPago-d.despPago)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">A Receber</div><div class="resumo-val acc">'+fV(d.recPend)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">A Pagar</div><div class="resumo-val neg">'+fV(d.despPend)+'</div></div>'
+    +'</div>'
+    +'<div class="secao"><div class="secao-tit"><span>Receitas Pagas ('+d.receitasPagas.length+')</span><span class="secao-total pos">'+fV(d.recPago)+'</span></div>'
+    +tabela('Receitas',d.receitasPagas,'pos','Total de Receitas Pagas',d.recPago)+'</div>'
+    +'<div class="secao"><div class="secao-tit"><span>Despesas Pagas ('+d.despesasPagas.length+')</span><span class="secao-total neg">'+fV(d.despPago)+'</span></div>'
+    +tabela('Despesas',d.despesasPagas,'neg','Total de Despesas Pagas',d.despPago)+'</div>'
+    +'<div class="secao"><div class="secao-tit"><span>A Receber — Pendentes ('+d.receitasPend.length+')</span><span class="secao-total acc">'+fV(d.recPend)+'</span></div>'
+    +tabela('Pendentes',d.receitasPend,'acc','Total a Receber',d.recPend)+'</div>'
+    +'<div class="secao"><div class="secao-tit"><span>A Pagar — Pendentes ('+d.despesasPend.length+')</span><span class="secao-total neg">'+fV(d.despPend)+'</span></div>'
+    +tabela('Pendentes',d.despesasPend,'neg','Total a Pagar',d.despPend)+'</div>';
+  _pdfBase('Relatório Financeiro Detalhado',d.nomePeriodo,empresa(),conteudo);
+}
+
+function gerarPDFAgendamentos(){
+  const d=_checkDados();if(!d)return;
+  const fDT=_fmtDT;
+  const tabAgend=(lista)=>{
+    if(!lista||!lista.length)return '<div style="font-size:12px;color:#888;padding:8px 0">Nenhum registro no período.</div>';
+    let t='<table><thead><tr><th>#</th><th>Data / Hora</th><th>Cliente</th><th>Serviço</th><th>Profissional</th><th>Status</th></tr></thead><tbody>';
+    lista.forEach((a,i)=>{t+='<tr>'
+      +'<td style="color:#999">'+(i+1)+'</td>'
+      +'<td>'+fDT(a.data_hora)+'</td>'
+      +'<td><strong>'+(a.clientes?.nome||'-')+'</strong></td>'
+      +'<td>'+(a.servicos?.nome||'-')+'</td>'
+      +'<td>'+(a.profissional||'-')+'</td>'
+      +'<td>'+(a.status||'-')+'</td>'
+      +'</tr>';});
+    t+='</tbody></table>';
+    return t;
+  };
+  const status=d.agPorStatus;
+  const conteudo=''
+    +'<div class="resumo-box">'
+    +'<div class="resumo-item"><div class="resumo-label">Total</div><div class="resumo-val">'+d.totalAg+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Realizados</div><div class="resumo-val pos">'+(status.realizado||0)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Confirmados</div><div class="resumo-val acc">'+(status.confirmado||0)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Agendados</div><div class="resumo-val">'+(status.agendado||0)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Cancelados</div><div class="resumo-val neg">'+(status.cancelado||0)+'</div></div>'
+    +'</div>'
+    +'<div class="secao"><div class="secao-tit"><span>Realizados ('+d.agRealizados.length+')</span></div>'+tabAgend(d.agRealizados)+'</div>'
+    +'<div class="secao"><div class="secao-tit"><span>Confirmados ('+d.agConfirmados.length+')</span></div>'+tabAgend(d.agConfirmados)+'</div>'
+    +'<div class="secao"><div class="secao-tit"><span>Agendados ('+d.agAgendados.length+')</span></div>'+tabAgend(d.agAgendados)+'</div>'
+    +'<div class="secao"><div class="secao-tit"><span>Cancelados ('+d.agCancelados.length+')</span></div>'+tabAgend(d.agCancelados)+'</div>';
+  _pdfBase('Relatório de Agendamentos Detalhado',d.nomePeriodo,empresa(),conteudo);
+}
+
+function gerarPDFEstoque(){
+  const d=_checkDados();if(!d)return;
+  const fV=_fmtV;
+  let conteudo='';
+  conteudo+='<div class="resumo-box">'
+    +'<div class="resumo-item"><div class="resumo-label">Produtos Monitorados</div><div class="resumo-val">'+d.totalProd+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Abaixo do Mínimo</div><div class="resumo-val neg">'+d.estCrit.length+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Valor em Estoque</div><div class="resumo-val acc">'+fV(d.valorEstoque)+'</div></div>'
+    +'</div>';
+  if(d.estCrit.length){
+    let t='<div class="secao"><div class="secao-tit"><span>Produtos Abaixo do Minimo ('+d.estCrit.length+')</span></div>';
+    t+='<table><thead><tr><th>Produto</th><th>Unidade</th><th>Saldo Atual</th><th>Minimo</th><th>Diferença</th><th style="text-align:right">Valor</th></tr></thead><tbody>';
+    d.estCrit.forEach(e=>{
+      const saldo=parseFloat(e.quantidade||0);
+      const min=parseFloat(e.produtos?.estoque_minimo||0);
+      t+='<tr>'
+        +'<td><strong>'+(e.produtos?.nome||'-')+'</strong></td>'
+        +'<td>'+(e.produtos?.unidade||'un')+'</td>'
+        +'<td class="neg">'+saldo+'</td>'
+        +'<td>'+(e.produtos?.estoque_minimo??'-')+'</td>'
+        +'<td class="neg">'+(saldo-min).toFixed(3)+'</td>'
+        +'<td style="text-align:right">'+fV(saldo*parseFloat(e.produtos?.preco_venda||0))+'</td>'
+        +'</tr>';
+    });
+    t+='</tbody></table></div>';
+    conteudo+=t;
+  }
+  conteudo+='<div class="secao"><div class="secao-tit"><span>Posição Completa do Estoque ('+d.produtosTodos.length+')</span></div>';
+  conteudo+='<table><thead><tr><th>Produto</th><th>Unidade</th><th>Saldo</th><th>Minimo</th><th>Maximo</th><th>Situação</th><th style="text-align:right">Valor</th></tr></thead><tbody>';
+  d.produtosTodos.forEach(e=>{
+    const saldo=parseFloat(e.quantidade||0);
+    const min=e.produtos?.estoque_minimo!=null?parseFloat(e.produtos.estoque_minimo):null;
+    const max=e.produtos?.estoque_maximo!=null?parseFloat(e.produtos.estoque_maximo):null;
+    let sit='Normal';if(min!=null&&saldo<min)sit='Critico';else if(max!=null&&saldo>=max)sit='Maximo';else if(saldo===0)sit='Zerado';
+    conteudo+='<tr>'
+      +'<td>'+(e.produtos?.nome||'-')+'</td>'
+      +'<td>'+(e.produtos?.unidade||'un')+'</td>'
+      +'<td '+(min!=null&&saldo<min?'class="neg"':'')+'>'+saldo+'</td>'
+      +'<td style="color:#888">'+(min??'-')+'</td>'
+      +'<td style="color:#888">'+(max??'-')+'</td>'
+      +'<td>'+sit+'</td>'
+      +'<td style="text-align:right">'+fV(saldo*parseFloat(e.produtos?.preco_venda||0))+'</td>'
+      +'</tr>';
+  });
+  conteudo+='</tbody></table></div>';
+  _pdfBase('Relatorio de Estoque Detalhado',d.nomePeriodo,empresa(),conteudo);
+}
+function gerarPDFClientes(){
+  const d=_checkDados();if(!d)return;
+  const fD=_fmtD;
+  const ini=d._ini||'';const fim=d._fim||'';
+  const novos=d.clientesTodos.filter(c=>{const dt=new Date(c.criado_em).toISOString().slice(0,10);return dt>=ini&&dt<=fim;});
+  let conteudo='';
+  conteudo+='<div class="resumo-box">'
+    +'<div class="resumo-item"><div class="resumo-label">Total Ativos</div><div class="resumo-val">'+d.totalCli+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Novos no Periodo</div><div class="resumo-val pos">'+d.novosCliPeriodo+'</div></div>'
+    +'</div>';
+  if(novos.length){
+    conteudo+='<div class="secao"><div class="secao-tit"><span>Novos Clientes no Periodo ('+novos.length+')</span></div>';
+    conteudo+='<table><thead><tr><th>#</th><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Cidade</th><th>Cadastrado em</th></tr></thead><tbody>';
+    novos.forEach((cli,i)=>{conteudo+='<tr>'
+      +'<td style="color:#999">'+(i+1)+'</td>'
+      +'<td><strong>'+(cli.nome||'-')+'</strong></td>'
+      +'<td>'+(cli.cpf||'-')+'</td>'
+      +'<td>'+(cli.telefone||'-')+'</td>'
+      +'<td>'+(cli.email||'-')+'</td>'
+      +'<td>'+(cli.cidade||'-')+'</td>'
+      +'<td>'+fD(cli.criado_em?.slice(0,10))+'</td>'
+      +'</tr>';});
+    conteudo+='</tbody></table></div>';
+  }
+  conteudo+='<div class="secao"><div class="secao-tit"><span>Base Completa de Clientes Ativos ('+d.totalCli+')</span></div>';
+  conteudo+='<table><thead><tr><th>#</th><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Cidade / UF</th></tr></thead><tbody>';
+  d.clientesTodos.forEach((cli,i)=>{conteudo+='<tr>'
+    +'<td style="color:#999">'+(i+1)+'</td>'
+    +'<td><strong>'+(cli.nome||'-')+'</strong></td>'
+    +'<td>'+(cli.cpf||'-')+'</td>'
+    +'<td>'+(cli.telefone||'-')+'</td>'
+    +'<td>'+(cli.email||'-')+'</td>'
+    +'<td>'+([cli.cidade,cli.estado].filter(Boolean).join(' / ')||'-')+'</td>'
+    +'</tr>';});
+  conteudo+='</tbody></table></div>';
+  _pdfBase('Relatorio de Clientes Detalhado',d.nomePeriodo,empresa(),conteudo);
+}
+// Manter exportarRelatorioPDF como atalho para PDF geral (resumo)
+function exportarRelatorioPDF(){
+  const d=_checkDados();if(!d)return;
+  const fV=_fmtV;
+  const conteudo=''
+    +'<div class="resumo-box">'
+    +'<div class="resumo-item"><div class="resumo-label">Receitas Pagas</div><div class="resumo-val pos">'+fV(d.recPago)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Despesas Pagas</div><div class="resumo-val neg">'+fV(d.despPago)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Resultado</div><div class="resumo-val '+(d.recPago-d.despPago>=0?'pos':'neg')+'">'+fV(d.recPago-d.despPago)+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Agendamentos</div><div class="resumo-val">'+d.totalAg+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Clientes</div><div class="resumo-val">'+d.totalCli+'</div></div>'
+    +'<div class="resumo-item"><div class="resumo-label">Valor Estoque</div><div class="resumo-val acc">'+fV(d.valorEstoque)+'</div></div>'
+    +'</div>'
+    +'<p style="font-size:12px;color:#666;margin-top:8px">Use os botoes PDF em cada card para relatorios detalhados por area.</p>';
+  _pdfBase('Relatorio Gerencial — Resumo Executivo',d.nomePeriodo,empresa(),conteudo);
+}
+
 </script>
 </body>
 </html>
