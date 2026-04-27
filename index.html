@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <title>Gestão de Negócios</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -2051,6 +2051,9 @@ function openModalImportacao(modulo){
 
 function baixarModeloImportacao(){
   if(!importConfig)return;
+  if(typeof XLSX==='undefined'){
+    alert('Biblioteca de Excel ainda carregando. Aguarde alguns segundos e tente novamente.');return;
+  }
   const cabecalho=importConfig.campos.map(f=>f.col);
   const ws=XLSX.utils.aoa_to_sheet([cabecalho]);
   const wb=XLSX.utils.book_new();
@@ -2077,6 +2080,9 @@ function processarArquivoImport(file){
   reader.onload=e=>{
     try{
       let rows=[];
+      if(typeof XLSX==='undefined'&&ext!=='csv'){
+        showMM('modal-imp-msg','Biblioteca Excel ainda carregando. Use CSV ou aguarde e tente novamente.','error');return;
+      }
       if(ext==='csv'){
         // CSV: parsear manualmente
         const txt=e.target.result;
@@ -2678,5 +2684,3 @@ function exportarRelatorioPDF(){
   win.document.write(html);
   win.document.close();
 }
-
-
