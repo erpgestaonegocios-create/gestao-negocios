@@ -3677,58 +3677,51 @@ async function gerarDadosRelatorio(){
       produtosTodos:produtos||[],
       clientesTodos:clientes||[]};
 
-    wrap.innerHTML=`
-    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">📊 Relatório — ${nomePeriodo}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">💰 Financeiro</span>
-          <button onclick="gerarPDFFinanceiro()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">🖨️ PDF</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Receitas pagas</span><span style="color:var(--success);font-weight:700">${fmtV(recPago)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Despesas pagas</span><span style="color:var(--danger);font-weight:700">${fmtV(despPago)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">A receber</span><span style="color:var(--accent);font-weight:700">${fmtV(recPend)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;font-weight:700;color:var(--text)">Resultado</span><span style="font-weight:700;color:${recPago-despPago>=0?'var(--success)':'var(--danger)'}">${fmtV(recPago-despPago)}</span></div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">📅 Agendamentos</span>
-          <button onclick="gerarPDFAgendamentos()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">🖨️ PDF</button>
-        </div>
-        ${Object.entries({agendado:'🕐',confirmado:'✅',realizado:'🏁',cancelado:'❌'}).map(([s,ic])=>`
-        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">${ic} ${s.charAt(0).toUpperCase()+s.slice(1)}</span><span style="font-weight:700;color:var(--text)">${agPorStatus[s]||0}</span></div>`).join('')}
-        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;font-weight:700;color:var(--text)">Total</span><span style="font-weight:700;color:var(--accent)">${(agendamentos||[]).length}</span></div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">📦 Estoque</span>
-          <button onclick="gerarPDFEstoque()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">🖨️ PDF</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Produtos monitorados</span><span style="font-weight:700;color:var(--text)">${(produtos||[]).length}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Abaixo do mínimo</span><span style="font-weight:700;color:var(--danger)">${estCrit.length}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;color:var(--text2)">Valor em estoque</span><span style="font-weight:700;color:var(--accent)">${fmtV(valorEstoque)}</span></div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">👥 Clientes</span>
-          <button onclick="gerarPDFClientes()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">🖨️ PDF</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Total ativos</span><span style="font-weight:700;color:var(--text)">${(clientes||[]).length}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;color:var(--text2)">Novos no período</span><span style="font-weight:700;color:var(--success)">${novosCliPeriodo}</span></div>
-      </div>
-    </div>
-    ${topReceitas.length?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px">
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📈 Top Receitas do Período</div>
-      ${topReceitas.map(l=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">${l.descricao}</span><span style="color:var(--success);font-weight:600">${fmtV(parseFloat(l.valor))}</span></div>`).join('')}
-    </div>`:''}
-    ${topDespesas.length?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px">
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📉 Top Despesas do Período</div>
-      ${topDespesas.map(l=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">${l.descricao}</span><span style="color:var(--danger);font-weight:600">${fmtV(parseFloat(l.valor))}</span></div>`).join('')}
-    </div>`:''}
-    ${topServicosArr.length?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px">
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">🏆 Serviços Mais Agendados</div>
-      ${topServicosArr.map(([s,n])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">${s}</span><span style="font-weight:600;color:var(--accent)">${n} agendamento(s)</span></div>`).join('')}
-    </div>`:''}
+    wrap.innerHTML=''
+    +'<div style="font-size:12px;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Relatório — '+nomePeriodo+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Financeiro</span>'
+    +'<button onclick="gerarPDFFinanceiro()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">PDF</button>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Receitas pagas</span><span style="color:var(--success);font-weight:700">'+fmtV(recPago)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Despesas pagas</span><span style="color:var(--danger);font-weight:700">'+fmtV(despPago)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">A receber</span><span style="color:var(--accent);font-weight:700">'+fmtV(recPend)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;font-weight:700;color:var(--text)">Resultado</span><span style="font-weight:700;color:'+(recPago-despPago>=0?'var(--success)':'var(--danger)')+'">'+fmtV(recPago-despPago)+'</span></div>'
+    +'</div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Agendamentos</span>'
+    +'<button onclick="gerarPDFAgendamentos()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">PDF</button>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Agendados</span><span style="font-weight:700;color:var(--text)">'+(agPorStatus.agendado||0)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Confirmados</span><span style="font-weight:700;color:var(--text)">'+(agPorStatus.confirmado||0)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Realizados</span><span style="font-weight:700;color:var(--text)">'+(agPorStatus.realizado||0)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Cancelados</span><span style="font-weight:700;color:var(--text)">'+(agPorStatus.cancelado||0)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;font-weight:700;color:var(--text)">Total</span><span style="font-weight:700;color:var(--accent)">'+((agendamentos||[]).length)+'</span></div>'
+    +'</div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Estoque</span>'
+    +'<button onclick="gerarPDFEstoque()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">PDF</button>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Produtos monitorados</span><span style="font-weight:700;color:var(--text)">'+((produtos||[]).length)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Abaixo do mínimo</span><span style="font-weight:700;color:var(--danger)">'+estCrit.length+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;color:var(--text2)">Valor em estoque</span><span style="font-weight:700;color:var(--accent)">'+fmtV(valorEstoque)+'</span></div>'
+    +'</div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Clientes</span>'
+    +'<button onclick="gerarPDFClientes()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">PDF</button>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Total ativos</span><span style="font-weight:700;color:var(--text)">'+((clientes||[]).length)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;color:var(--text2)">Novos no período</span><span style="font-weight:700;color:var(--success)">'+novosCliPeriodo+'</span></div>'
+    +'</div>'
+    +'</div>'
+    +(topReceitas.length?'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Top Receitas do Período</div>'+topReceitas.map(l=>'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">'+l.descricao+'</span><span style="color:var(--success);font-weight:600">'+fmtV(parseFloat(l.valor))+'</span></div>').join('')+'</div>':'')
+    +(topDespesas.length?'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Top Despesas do Período</div>'+topDespesas.map(l=>'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">'+l.descricao+'</span><span style="color:var(--danger);font-weight:600">'+fmtV(parseFloat(l.valor))+'</span></div>').join('')+'</div>':'')
+    +(topServicosArr.length?'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Serviços Mais Agendados</div>'+topServicosArr.map(([s,n])=>'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">'+s+'</span><span style="font-weight:600;color:var(--accent)">'+n+' agendamento(s)</span></div>').join('')+'</div>':'')
 
     document.getElementById('rel-btn-pdf').style.display='block';
   }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
