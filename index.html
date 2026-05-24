@@ -2603,16 +2603,22 @@ async function salvarCompraCliente(){
   const pf=currentUser.perfil||'master';
 
   // ── Validar estoque desta variação ───────────────────────────────
-  let qSaldo='estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf);
-  if(compraGenero)qSaldo+='&genero=eq.'+encodeURIComponent(compraGenero); else qSaldo+='&genero=is.null';
-  if(compraTamanho)qSaldo+='&tamanho=eq.'+encodeURIComponent(compraTamanho); else qSaldo+='&tamanho=is.null';
+  // Query precisa trazer todos os campos para confirmar a variação correta
+  let qSaldo='estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho';
+  const rows=await api(qSaldo).catch(e=>{showMM('modal-compra-msg','Erro ao verificar estoque: '+e.message,'error');return null;});
+  if(rows===null)return;
 
-  let saldoAtual=0, saldoId=null;
-  try{
-    const rows=await api(qSaldo+'&select=id,quantidade');
-    saldoAtual=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
-    saldoId=rows&&rows.length?rows[0].id:null;
-  }catch(e){showMM('modal-compra-msg','Erro ao verificar estoque: '+e.message,'error');return;}
+  // Filtrar no lado cliente para garantir correspondência EXATA de genero e tamanho
+  const compraGeneroNorm=compraGenero||null;
+  const compraTamanhoNorm=compraTamanho||null;
+  const registroExato=(rows||[]).find(r=>{
+    const rg=r.genero||null;
+    const rt=r.tamanho||null;
+    return rg===compraGeneroNorm && rt===compraTamanhoNorm;
+  });
+
+  let saldoAtual=registroExato?parseFloat(registroExato.quantidade)||0:0;
+  let saldoId=registroExato?registroExato.id:null;
 
   if(saldoAtual<=0){
     const varDesc=(compraGenero?compraGenero:'')+(compraTamanho?' / '+compraTamanho:'');
@@ -3598,12 +3604,12 @@ async function onEstProdutoChange(){
     const pf=currentUser.perfil||'master';
     const genero=document.getElementById('est-genero')?.value||null;
     const tamanho=document.getElementById('est-tamanho')?.value||null;
-    // Buscar saldo desta variação específica (produto+genero+tamanho)
-    let q='estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf);
-    if(genero)q+='&genero=eq.'+encodeURIComponent(genero); else q+='&genero=is.null';
-    if(tamanho)q+='&tamanho=eq.'+encodeURIComponent(tamanho); else q+='&tamanho=is.null';
-    const rows=await api(q+'&select=quantidade');
-    const saldo=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
+    // Buscar todos e filtrar no cliente para garantir variação exata
+    const todosRowsEst=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho');
+    const generoNorm=genero||null;
+    const tamanhoNorm=tamanho||null;
+    const registroEst=(todosRowsEst||[]).find(r=>(r.genero||null)===generoNorm&&(r.tamanho||null)===tamanhoNorm);
+    const saldo=registroEst?parseFloat(registroEst.quantidade)||0:0;
     document.getElementById('est-saldo-atual').textContent=saldo;
     wrap.style.display='block';
     const prodInfoMin=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo');
@@ -3661,12 +3667,13 @@ async function salvarMovimento(){
   const estGenero=document.getElementById('est-genero')?.value||null;
   const estTamanho=document.getElementById('est-tamanho')?.value||null;
   try{
-    let qSaldo='estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf);
-    if(estGenero)qSaldo+='&genero=eq.'+encodeURIComponent(estGenero);else qSaldo+='&genero=is.null';
-    if(estTamanho)qSaldo+='&tamanho=eq.'+encodeURIComponent(estTamanho);else qSaldo+='&tamanho=is.null';
-    const rows=await api(qSaldo+'&select=id,quantidade');
-    const saldoAtual=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
-    const saldoId=rows&&rows.length?rows[0].id:null;
+    // Buscar todos os saldos e filtrar no cliente para garantir variação exata
+    const todosRowsMov=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho');
+    const estGeneroNorm=estGenero||null;
+    const estTamanhoNorm=estTamanho||null;
+    const registroMov=(todosRowsMov||[]).find(r=>(r.genero||null)===estGeneroNorm&&(r.tamanho||null)===estTamanhoNorm);
+    const saldoAtual=registroMov?parseFloat(registroMov.quantidade)||0:0;
+    const saldoId=registroMov?registroMov.id:null;
     const prodData=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo,nome');
     const estoqueMax=prodData&&prodData[0]&&prodData[0].estoque_maximo!=null?parseFloat(prodData[0].estoque_maximo):null;
     const estoqueMin=prodData&&prodData[0]&&prodData[0].estoque_minimo!=null?parseFloat(prodData[0].estoque_minimo):null;
