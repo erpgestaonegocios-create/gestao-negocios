@@ -3584,3 +3584,148 @@ function exportarRelatorioPDF(){
 </script>
 </body>
 </html>
+<script>
+// ── Funções render dos painéis ────────────────────────────────────
+
+function renderClientes(){
+  const tit=getLabel('clientes_titulo','Clientes');
+  const novo=getLabel('clientes_novo','Novo Cliente');
+  return '<div class="panel-header"><span class="panel-title">'+tit+' <span class="total-badge" id="cli-total"></span></span>'
+    +'<div class="panel-actions"><button class="btn-secondary" onclick="openModalImportacao(\'clientes\')">📥 Importar</button>'
+    +'<button class="btn-new" onclick="openModalCliente(\'new\')">+ '+novo+'</button></div></div>'
+    +'<div class="search-bar"><input type="text" id="cli-busca" placeholder="Buscar por nome, CPF ou e-mail..." onkeydown="if(event.key===\'Enter\')buscarClientes()">'
+    +'<button class="btn-search" onclick="buscarClientes()">Buscar</button>'
+    +'<button class="btn-clear" onclick="limparBuscaCli()">✕ Limpar</button></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead>'
+    +'<tbody id="tbl-clientes"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div>';
+}
+
+function renderFornecedores(){
+  const tit=getLabel('fornecedores_titulo','Fornecedores');
+  const novo=getLabel('fornecedores_novo','Novo Fornecedor');
+  return '<div class="panel-header"><span class="panel-title">'+tit+' <span class="total-badge" id="forn-total"></span></span>'
+    +'<div class="panel-actions"><button class="btn-secondary" onclick="openModalImportacao(\'fornecedores\')">📥 Importar</button>'
+    +'<button class="btn-new" onclick="openModalFornecedor(\'new\')">+ '+novo+'</button></div></div>'
+    +'<div class="search-bar"><input type="text" id="forn-busca" placeholder="Buscar por nome, CNPJ ou CPF..." onkeydown="if(event.key===\'Enter\')buscarFornecedores()">'
+    +'<button class="btn-search" onclick="buscarFornecedores()">Buscar</button>'
+    +'<button class="btn-clear" onclick="limparBuscaForn()">✕ Limpar</button></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Nome/Razão Social</th><th>Tipo</th><th>CNPJ/CPF</th><th>Telefone</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead>'
+    +'<tbody id="tbl-fornecedores"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div>';
+}
+
+function renderProdutos(){
+  const tit=getLabel('produtos_titulo','Produtos');
+  const novo=getLabel('produtos_novo','Novo Produto');
+  return '<div class="panel-header"><span class="panel-title">'+tit+' <span class="total-badge" id="prod-total"></span></span>'
+    +'<div class="panel-actions"><button class="btn-secondary" onclick="openModalImportacao(\'produtos\')">📥 Importar</button>'
+    +'<button class="btn-new" onclick="openModalProduto(\'new\')">+ '+novo+'</button></div></div>'
+    +'<div class="search-bar"><input type="text" id="prod-busca" placeholder="Buscar por nome, código ou categoria..." onkeydown="if(event.key===\'Enter\')buscarProdutos()">'
+    +'<button class="btn-search" onclick="buscarProdutos()">Buscar</button>'
+    +'<button class="btn-clear" onclick="limparBuscaProd()">✕ Limpar</button></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Imagem</th><th>Código</th><th>Nome</th><th>Categoria</th><th>Unidade</th><th>Preço Venda</th><th>Est. Mín.</th><th>Status</th><th>Ações</th></tr></thead>'
+    +'<tbody id="tbl-produtos"><tr><td colspan="10" class="loading">Carregando...</td></tr></tbody></table></div>';
+}
+
+function renderServicos(){
+  const tit=getLabel('servicos_titulo','Serviços');
+  const novo=getLabel('servicos_novo','Novo Serviço');
+  return '<div class="panel-header"><span class="panel-title">'+tit+' <span class="total-badge" id="serv-total"></span></span>'
+    +'<div class="panel-actions"><button class="btn-secondary" onclick="openModalImportacao(\'servicos\')">📥 Importar</button>'
+    +'<button class="btn-new" onclick="openModalServico(\'new\')">+ '+novo+'</button></div></div>'
+    +'<div class="search-bar"><input type="text" id="serv-busca" placeholder="Buscar por nome ou código..." onkeydown="if(event.key===\'Enter\')buscarServicos()">'
+    +'<button class="btn-search" onclick="buscarServicos()">Buscar</button>'
+    +'<button class="btn-clear" onclick="limparBuscaServ()">✕ Limpar</button></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Código</th><th>Nome</th><th>Preço</th><th>Duração</th><th>Status</th><th>Ações</th></tr></thead>'
+    +'<tbody id="tbl-servicos"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody></table></div>';
+}
+
+function renderEstoque(){
+  return '<div class="panel-header"><span class="panel-title">Controle de Estoque</span>'
+    +'<button class="btn-new" onclick="openModalMovimento()">+ Nova Movimentação</button></div>'
+    +'<div id="estoque-alertas"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Produtos cadastrados</div><div id="est-count-total" style="font-size:28px;font-weight:700;color:var(--text)">—</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Abaixo do mínimo</div><div id="est-count-critico" style="font-size:28px;font-weight:700;color:var(--danger)">—</div></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">'
+    +'<input type="text" id="est-busca" placeholder="Buscar produto..." onkeydown="if(event.key===\'Enter\')filtrarEstoque()" style="flex:1;padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">'
+    +'<select id="est-filtro-status" onchange="filtrarEstoque()" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">'
+    +'<option value="">Todos</option><option value="critico">⚠️ Crítico</option><option value="ok">✅ OK</option><option value="sem">Zerado</option></select>'
+    +'<button class="btn-search" onclick="filtrarEstoque()">Filtrar</button></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Saldo Atual</th><th>Mínimo</th><th>Máximo</th><th>Situação</th><th>Ações</th></tr></thead>'
+    +'<tbody id="tbl-estoque"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div>'
+    +'<div style="margin-top:24px"><div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+    +'<span id="hist-titulo">📋 Histórico de Movimentações</span>'
+    +'<div style="display:flex;gap:8px;align-items:center">'
+    +'<select id="hist-filtro-produto" onchange="selecionarProdutoHistoricoSelect()" style="padding:7px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none;min-width:200px"><option value="">Todos os produtos</option></select>'
+    +'<button class="btn-secondary" onclick="carregarHistorico()">Atualizar</button></div></div>'
+    +'<div id="est-historico"><div class="empty" style="padding:20px;color:var(--text3)">← Clique no nome de um produto para ver o histórico.</div></div></div>';
+}
+
+function renderAgendamentos(){
+  const tit=getLabel('agendamentos_titulo','Agendamentos');
+  const novo=getLabel('agendamentos_novo','Novo Agendamento');
+  return '<div class="panel-header"><span class="panel-title">'+tit+' <span class="total-badge" id="ag-total"></span></span>'
+    +'<div class="panel-actions"><button class="btn-secondary" id="ag-btn-lista" onclick="agModoVista(\'lista\')" style="border-color:var(--accent);color:var(--accent)">☰ Lista</button>'
+    +'<button class="btn-secondary" id="ag-btn-cal" onclick="agModoVista(\'calendario\')">📅 Calendário</button>'
+    +'<button class="btn-new" onclick="openModalAgendamento(\'new\')">+ '+novo+'</button></div></div>'
+    +'<div class="search-bar" id="ag-search-bar">'
+    +'<input type="text" id="ag-busca" placeholder="Buscar por cliente ou profissional..." onkeydown="if(event.key===\'Enter\')buscarAgendamentos()">'
+    +'<select id="ag-filtro-status" onchange="carregarAgendamentos()" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">'
+    +'<option value="">Todos os status</option><option value="agendado">🕐 Agendado</option><option value="confirmado">✅ Confirmado</option><option value="realizado">🏁 Realizado</option><option value="cancelado">❌ Cancelado</option></select>'
+    +'<button class="btn-search" onclick="buscarAgendamentos()">Buscar</button>'
+    +'<button class="btn-clear" onclick="limparBuscaAg()">✕ Limpar</button></div>'
+    +'<div id="ag-vista-lista"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Data/Hora</th><th>Cliente</th><th>Serviço</th><th>Profissional</th><th>Duração</th><th>Status</th><th>Ações</th></tr></thead>'
+    +'<tbody id="tbl-agendamentos"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div></div>'
+    +'<div id="ag-vista-calendario" style="display:none">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    +'<button class="btn-secondary" onclick="agCalNavegar(-1)">← Anterior</button>'
+    +'<span id="ag-cal-titulo" style="font-size:16px;font-weight:600;color:var(--text)"></span>'
+    +'<button class="btn-secondary" onclick="agCalNavegar(1)">Próximo →</button></div>'
+    +'<div id="ag-calendario"></div></div>';
+}
+
+function renderFinanceiro(){
+  const temAg=perfilTemFunc('agendamentos');
+  const dashLojista='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Compra de Produtos</div><div id="fin-total-compra" style="font-size:24px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Custo total de reposição</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Venda de Produtos</div><div id="fin-total-venda" style="font-size:24px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Total recebido nas vendas</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Faturamento — Lucro</div><div id="fin-lucro" style="font-size:24px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Compras</div></div>'
+    +'</div>';
+  const dashCompleto='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Saldo Atual</div><div id="fin-saldo" style="font-size:24px;font-weight:700;color:var(--text)">—</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">A Receber</div><div id="fin-a-receber" style="font-size:24px;font-weight:700;color:var(--success)">—</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">A Pagar</div><div id="fin-a-pagar" style="font-size:24px;font-weight:700;color:var(--danger)">—</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Vencidos</div><div id="fin-vencidos" style="font-size:24px;font-weight:700;color:var(--warn)">—</div></div>'
+    +'</div>';
+  const acoesBtns=temAg?'<button class="btn-secondary" onclick="openModalImportacao(\'financeiro_categorias\')">📥 Categorias</button>'
+    +'<button class="btn-secondary" onclick="openModalCategoria()">+ Categoria</button>'
+    +'<button class="btn-secondary" id="fin-btn-caixa" onclick="finAba(\'caixa\')">💵 Caixa</button>'
+    +'<button class="btn-new" id="fin-btn-novo" onclick="openModalLancamento(\'new\')">+ Novo Lançamento</button>':'';
+  return '<div class="panel-header"><span class="panel-title">Financeiro</span>'
+    +'<div class="panel-actions">'+acoesBtns+'</div></div>'
+    +(temAg?dashCompleto:dashLojista)
+    +'<div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)">'
+    +'<button id="fin-aba-lan" onclick="finAba(\'lancamentos\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">📋 Lançamentos</button>'
+    +(temAg?'<button id="fin-aba-cx" onclick="finAba(\'caixa\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">💵 Caixa do Dia</button>':'')
+    +'</div>'
+    +'<div id="fin-vista-lancamentos">'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
+    +'<select id="fin-filtro-tipo" onchange="carregarLancamentos()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none"><option value="">Receitas e Despesas</option><option value="receita">📈 Receitas</option><option value="despesa">📉 Despesas</option></select>'
+    +'<select id="fin-filtro-status" onchange="carregarLancamentos()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none"><option value="">Todos os status</option><option value="pendente">⏳ Pendente</option><option value="pago">✅ Pago</option><option value="vencido">🔴 Vencido</option></select>'
+    +'<input type="month" id="fin-filtro-mes" onchange="carregarLancamentos()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none">'
+    +'</div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>'
+    +'<tbody id="tbl-lancamentos"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div></div>'
+    +(temAg?'<div id="fin-vista-caixa" style="display:none">'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">'
+    +'<input type="date" id="cx-filtro-data" onchange="carregarCaixa()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none">'
+    +'<button class="btn-new" onclick="openModalCaixa()">+ Movimento</button></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Entradas</div><div id="cx-total-entrada" style="font-size:20px;font-weight:700;color:var(--success)">—</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Saídas</div><div id="cx-total-saida" style="font-size:20px;font-weight:700;color:var(--danger)">—</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Saldo</div><div id="cx-saldo-dia" style="font-size:20px;font-weight:700;color:var(--accent)">—</div></div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ação</th></tr></thead>'
+    +'<tbody id="tbl-caixa"><tr><td colspan="6" class="loading">Carregando...</td></tr></tbody></table></div></div>':'');
+}
+</script>
