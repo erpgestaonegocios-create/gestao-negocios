@@ -738,7 +738,7 @@
       </div>
       <div class="mfield col-1">
         <label id="est-qtd-label">Quantidade <span class="req">*</span></label>
-        <input type="number" id="est-quantidade" placeholder="0" min="0" step="0.001" oninput="onEstQtdChange();calcularCustoTotal()">
+        <input type="number" id="est-quantidade" placeholder="0" min="0" step="1" oninput="onEstQtdChange();calcularCustoTotal()">
         <div class="field-hint" id="est-qtd-hint"></div>
       </div>
       <div class="mfield col-1" id="est-genero-wrap">
@@ -763,12 +763,18 @@
       </div>
       <div class="mfield col-1" id="est-valor-venda-wrap" style="display:none">
         <label>Valor de Venda (R$) <span style="font-size:10px;color:var(--text3)">por unidade</span></label>
-        <input type="number" id="est-valor-venda" placeholder="0,00" min="0" step="0.01">
+        <input type="number" id="est-valor-venda" placeholder="0,00" min="0" step="0.01" oninput="calcularCustoTotal()">
       </div>
       <div class="mfield col-2" id="est-custo-total-wrap" style="display:none">
-        <div style="padding:10px 14px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:6px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;color:var(--text3)">💰 Custo total da reposição</span>
-          <span id="est-custo-total" style="font-size:18px;font-weight:700;color:var(--danger)">R$ 0,00</span>
+        <div style="padding:12px 16px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center">
+          <div>
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">💰 Custo total da reposição</div>
+            <div id="est-custo-total" style="font-size:22px;font-weight:700;color:var(--danger)">R$ 0,00</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">📈 Receita estimada</div>
+            <div id="est-receita-total" style="font-size:22px;font-weight:700;color:var(--success)">R$ 0,00</div>
+          </div>
         </div>
       </div>
       <div class="mfield col-2">
@@ -3428,9 +3434,13 @@ document.addEventListener('click',e=>{
 function calcularCustoTotal(){
   const qtd=parseFloat(document.getElementById('est-quantidade')?.value)||0;
   const custo=parseFloat(document.getElementById('est-valor-custo')?.value)||0;
-  const total=qtd*custo;
-  const el=document.getElementById('est-custo-total');
-  if(el)el.textContent='R$ '+total.toFixed(2).replace('.',',');
+  const venda=parseFloat(document.getElementById('est-valor-venda')?.value)||0;
+  const totalCusto=qtd*custo;
+  const totalVenda=qtd*venda;
+  const elC=document.getElementById('est-custo-total');
+  const elV=document.getElementById('est-receita-total');
+  if(elC)elC.textContent='R$ '+totalCusto.toFixed(2).replace('.',',');
+  if(elV)elV.textContent='R$ '+totalVenda.toFixed(2).replace('.',',');
 }
 
 function onEstTipoChangeExtra(){
@@ -3728,7 +3738,7 @@ async function onEstProdutoChange(){
   }catch(e){}
 }
 
-function onEstTipoChange(){const tipo=document.querySelector('input[name="est-tipo"]:checked')?.value||'entrada';const labels={entrada:'Quantidade a Entrar',saida:'Quantidade a Sair',ajuste:'Nova Quantidade Total',transferencia:'Quantidade a Transferir'};document.getElementById('est-qtd-label').innerHTML=(labels[tipo]||'Quantidade')+' <span class="req">*</span>';onEstTipoChangeExtra();onEstQtdChange();}
+function onEstTipoChange(){const tipo=document.querySelector('input[name="est-tipo"]:checked')?.value||'entrada';const labels={entrada:'Quantidade',saida:'Quantidade',ajuste:'Nova Quantidade Total',transferencia:'Quantidade'};document.getElementById('est-qtd-label').innerHTML=(labels[tipo]||'Quantidade')+' <span class="req">*</span>';onEstTipoChangeExtra();onEstQtdChange();}
 
 function onEstQtdChange(){
   const tipo=document.querySelector('input[name="est-tipo"]:checked')?.value||'entrada';
@@ -4020,23 +4030,39 @@ const FIN_STATUS={pendente:{label:'Pendente',icon:'⏳',cls:'badge-empresa'},pag
 const fmt=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
 
 function renderFinanceiro(){
-  return `
-  <div class="panel-header">
-    <span class="panel-title">Financeiro</span>
-    <div class="panel-actions">
-      <button class="btn-secondary" onclick="openModalImportacao('financeiro_categorias')">📥 Categorias</button>
-      <button class="btn-secondary" onclick="openModalImportacao('financeiro_lancamentos')">📥 Lançamentos</button>
-      <button class="btn-secondary" onclick="openModalCategoria()">+ Categoria</button>
-      <button class="btn-secondary" id="fin-btn-caixa" onclick="finAba('caixa')">💵 Caixa</button>
-      <button class="btn-new" id="fin-btn-novo" onclick="openModalLancamento('new')">+ Novo Lançamento</button>
+  const temAg=perfilTemFunc('agendamentos');
+  const dashboardLojista=!temAg?`
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Compra de Produtos</div>
+      <div id="fin-total-compra" style="font-size:24px;font-weight:700;color:var(--danger)">—</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Custo total de reposição</div>
     </div>
-  </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Venda de Produtos</div>
+      <div id="fin-total-venda" style="font-size:24px;font-weight:700;color:var(--success)">—</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Total recebido nas vendas</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Faturamento — Lucro</div>
+      <div id="fin-lucro" style="font-size:24px;font-weight:700;color:var(--accent)">—</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Compras</div>
+    </div>
+  </div>`:`
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Saldo Atual</div><div id="fin-saldo" style="font-size:24px;font-weight:700;color:var(--text)">—</div></div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">A Receber</div><div id="fin-a-receber" style="font-size:24px;font-weight:700;color:var(--success)">—</div></div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">A Pagar</div><div id="fin-a-pagar" style="font-size:24px;font-weight:700;color:var(--danger)">—</div></div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Vencidos</div><div id="fin-vencidos" style="font-size:24px;font-weight:700;color:var(--warn)">—</div></div>
+  </div>`;
+  return `
+  <div class="panel-header">
+    <span class="panel-title">Financeiro</span>
+    <div class="panel-actions">
+      ${temAg?`<button class="btn-secondary" onclick="openModalImportacao('financeiro_categorias')">📥 Categorias</button><button class="btn-secondary" onclick="openModalImportacao('financeiro_lancamentos')">📥 Lançamentos</button><button class="btn-secondary" onclick="openModalCategoria()">+ Categoria</button><button class="btn-secondary" id="fin-btn-caixa" onclick="finAba('caixa')">💵 Caixa</button><button class="btn-new" id="fin-btn-novo" onclick="openModalLancamento('new')">+ Novo Lançamento</button>`:''}
+    </div>
   </div>
+  ${dashboardLojista}
   <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)">
     <button id="fin-aba-lan" onclick="finAba('lancamentos')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">📋 Lançamentos</button>
     <button id="fin-aba-cx" onclick="finAba('caixa')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">💵 Caixa do Dia</button>
@@ -4096,21 +4122,42 @@ async function carregarFinanceiro(){
 
 async function carregarDashboard(){
   const pf=currentUser.perfil||'master';
+  const temAg=perfilTemFunc('agendamentos');
   try{
-    const [recPagas,despPagas,recPendentes,despPendentes,vencidos]=await Promise.all([
-      api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pago'),
-      api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago'),
-      api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pendente'),
-      api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pendente'),
-      api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=eq.vencido'),
-    ]);
-    const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
-    const saldo=soma(recPagas)-soma(despPagas);const totRec=soma(recPendentes);const totDesp=soma(despPendentes);const totVenc=soma(vencidos);
-    const el=id=>document.getElementById(id);
-    if(el('fin-saldo')){el('fin-saldo').textContent=fmt(saldo);el('fin-saldo').style.color=saldo>=0?'var(--success)':'var(--danger)';}
-    if(el('fin-a-receber'))el('fin-a-receber').textContent=fmt(totRec);
-    if(el('fin-a-pagar'))el('fin-a-pagar').textContent=fmt(totDesp);
-    if(el('fin-vencidos'))el('fin-vencidos').textContent=fmt(totVenc);
+    if(!temAg){
+      // Dashboard lojista: total compras (despesas pagas) + total vendas (receitas pagas) + lucro
+      const [compras,vendas]=await Promise.all([
+        api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago'),
+        api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pago'),
+      ]);
+      const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
+      const totalCompra=soma(compras);
+      const totalVenda=soma(vendas);
+      const lucro=totalVenda-totalCompra;
+      const el=id=>document.getElementById(id);
+      if(el('fin-total-compra'))el('fin-total-compra').textContent=fmt(totalCompra);
+      if(el('fin-total-venda'))el('fin-total-venda').textContent=fmt(totalVenda);
+      if(el('fin-lucro')){
+        el('fin-lucro').textContent=fmt(lucro);
+        el('fin-lucro').style.color=lucro>=0?'var(--success)':'var(--danger)';
+      }
+    } else {
+      // Dashboard completo
+      const [recPagas,despPagas,recPendentes,despPendentes,vencidos]=await Promise.all([
+        api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pago'),
+        api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago'),
+        api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pendente'),
+        api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pendente'),
+        api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=eq.vencido'),
+      ]);
+      const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
+      const saldo=soma(recPagas)-soma(despPagas);
+      const el=id=>document.getElementById(id);
+      if(el('fin-saldo')){el('fin-saldo').textContent=fmt(saldo);el('fin-saldo').style.color=saldo>=0?'var(--success)':'var(--danger)';}
+      if(el('fin-a-receber'))el('fin-a-receber').textContent=fmt(soma(recPendentes));
+      if(el('fin-a-pagar'))el('fin-a-pagar').textContent=fmt(soma(despPendentes));
+      if(el('fin-vencidos'))el('fin-vencidos').textContent=fmt(soma(vencidos));
+    }
   }catch(e){}
 }
 
@@ -4330,6 +4377,102 @@ function perfilTemFunc(func){
 }
 
 async function carregarAlertas(){
+  const wrap=document.getElementById('rel-conteudo');
+  if(!wrap)return;
+  const pf=currentUser.perfil||'master';
+  const empresa=empresaConfig?.nome_empresa||perfilNome(pf)||'Empresa';
+  const hoje=new Date();
+  const hojeStr=hoje.toISOString().slice(0,10);
+  const amanha=new Date(hoje);amanha.setDate(amanha.getDate()+1);
+  const amanhaStr=amanha.toISOString().slice(0,10);
+  const seteDias=new Date(hoje);seteDias.setDate(seteDias.getDate()+7);
+  const seteDiasStr=seteDias.toISOString().slice(0,10);
+  wrap.innerHTML='<div class="loading">Carregando alertas...</div>';
+  const temAg=perfilTemFunc('agendamentos');
+  try{
+    const [agAmanha,agHoje,contasVenc,estoqueMin,clientes]=await Promise.all([
+      temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+amanhaStr+'T00:00:00&data_hora=lte.'+amanhaStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
+      temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+hojeStr+'T00:00:00&data_hora=lte.'+hojeStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
+      temAg?api('financeiro_lancamentos?select=*,clientes(nome,id)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=in.(pendente,vencido)&data_vencimento=lte.'+seteDiasStr+'&order=data_vencimento.asc'):Promise.resolve([]),
+      api('estoque_saldo?select=quantidade,produto_id,genero,tamanho,produtos(nome,estoque_minimo,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)),
+      api('clientes?select=nome,data_nascimento,telefone&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+    ]);
+
+    const mesAtual=hoje.getMonth()+1;
+    const diaAtual=hoje.getDate();
+    const aniversariantesHoje=(clientes||[]).filter(cl=>{
+      if(!cl.data_nascimento)return false;
+      const d=new Date(cl.data_nascimento+'T12:00');
+      return d.getMonth()+1===mesAtual&&d.getDate()===diaAtual;
+    });
+
+    // Estoque crítico
+    const criticos=(estoqueMin||[]).filter(e=>e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo));
+
+    let html='';
+
+    // ── Alertas de agendamentos (só se perfil tiver) ──
+    if(temAg){
+      const fmtHora=s=>{const d=new Date(s);return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});};
+      if(agHoje&&agHoje.length){
+        html+='<div style="background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;padding:16px;margin-bottom:12px">';
+        html+='<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">📅 Agendamentos de Hoje ('+agHoje.length+')</div>';
+        agHoje.forEach(a=>{html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+fmtHora(a.data_hora)+' — '+(a.clientes?.nome||'—')+' / '+(a.servicos?.nome||'—')+'</span><span style="color:var(--text3)">'+a.status+'</span></div>';});
+        html+='</div>';
+      }
+      if(agAmanha&&agAmanha.length){
+        html+='<div style="background:rgba(212,168,67,.08);border:1px solid var(--warn);border-radius:10px;padding:16px;margin-bottom:12px">';
+        html+='<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">📅 Agendamentos de Amanhã ('+agAmanha.length+')</div>';
+        agAmanha.forEach(a=>{html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+fmtHora(a.data_hora)+' — '+(a.clientes?.nome||'—')+' / '+(a.servicos?.nome||'—')+'</span></div>';});
+        html+='</div>';
+      }
+      if(contasVenc&&contasVenc.length){
+        const vencidas=(contasVenc||[]).filter(l=>l.status==='vencido');
+        const vencendo=(contasVenc||[]).filter(l=>l.status==='pendente');
+        if(vencidas.length){
+          html+='<div style="background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:10px;padding:16px;margin-bottom:12px">';
+          html+='<div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px">🔴 Contas Vencidas ('+vencidas.length+')</div>';
+          vencidas.forEach(l=>{html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+(l.descricao||'—')+'</span><span style="color:var(--danger);font-weight:600">'+fmt(l.valor)+'</span></div>';});
+          html+='</div>';
+        }
+        if(vencendo.length){
+          html+='<div style="background:rgba(212,168,67,.08);border:1px solid var(--warn);border-radius:10px;padding:16px;margin-bottom:12px">';
+          html+='<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">⚠️ Vencendo em 7 dias ('+vencendo.length+')</div>';
+          vencendo.forEach(l=>{const venc=l.data_vencimento?new Date(l.data_vencimento+'T12:00').toLocaleDateString('pt-BR'):'-';html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+(l.descricao||'—')+' — '+venc+'</span><span style="color:var(--warn);font-weight:600">'+fmt(l.valor)+'</span></div>';});
+          html+='</div>';
+        }
+      }
+    }
+
+    // ── Estoque crítico (todos os perfis) ──
+    if(criticos.length){
+      html+='<div style="background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:10px;padding:16px;margin-bottom:12px">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px">📦 Estoque Crítico — Abaixo do Mínimo ('+criticos.length+')</div>';
+      criticos.forEach(e=>{
+        const generoStr=e.genero?e.genero.charAt(0).toUpperCase()+e.genero.slice(1):'';
+        const tamanhoStr=e.tamanho?' / '+e.tamanho:'';
+        html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">'
+          +'<span>'+(e.produtos?.nome||'—')+(generoStr?' <span style="color:var(--text3)">'+generoStr+tamanhoStr+'</span>':'')+'</span>'
+          +'<span style="color:var(--danger);font-weight:600">'+e.quantidade+' / mín: '+e.produtos.estoque_minimo+' '+(e.produtos?.unidade||'un')+'</span>'
+          +'</div>';
+      });
+      html+='</div>';
+    } else {
+      html+='<div style="background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:13px;color:var(--success)">✅ Todos os produtos estão acima do estoque mínimo.</div>';
+    }
+
+    // ── Aniversariantes (todos os perfis) ──
+    if(aniversariantesHoje.length){
+      html+='<div style="background:rgba(212,168,67,.08);border:1px solid var(--warn);border-radius:10px;padding:16px;margin-bottom:12px">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">🎂 Aniversariantes Hoje ('+aniversariantesHoje.length+')</div>';
+      aniversariantesHoje.forEach(cl=>{html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+cl.nome+'</span><span style="color:var(--text3)">'+(cl.telefone||'Sem telefone')+'</span></div>';});
+      html+='</div>';
+    }
+
+    if(!html)html='<div style="color:var(--text3);text-align:center;padding:40px">✅ Nenhum alerta no momento.</div>';
+    wrap.innerHTML=html;
+  }catch(e){wrap.innerHTML='<div class="empty">Erro ao carregar alertas: '+e.message+'</div>';}
+}async function carregarAlertas(){
   const wrap=document.getElementById('rel-conteudo');
   const pf=currentUser.perfil||'master';
   const hoje=new Date();
@@ -4707,10 +4850,12 @@ function carregarWhatsApp(){
   const temAg=perfilTemFunc('agendamentos');
   // Modelos base — sempre disponíveis
   const modelosBase=[
+    {id:'msg_aniversario',titulo:'🎂 Feliz Aniversário',msg:'Olá {nome}! Hoje, dia {data}, toda a equipe da '+empresa+' deseja a você um feliz aniversário! Parabéns! 🎉'},
+  ];
+  const modelosCobranca=temAg?[
     {id:'msg_cobranca_vencendo',titulo:'Cobrança — Vencimento Próximo',msg:'Olá {nome}! Seu pagamento de {descricao} no valor de {valor} vence em {vencimento}.\n\nQualquer dúvida, entre em contato. Obrigado!'},
     {id:'msg_cobranca_vencida',titulo:'Cobrança — Pagamento Vencido',msg:'Olá {nome}! O pagamento de {descricao} no valor de {valor} venceu em {vencimento}.\n\nPor gentileza, entre em contato para regularizarmos.'},
-    {id:'msg_aniversario',titulo:'Feliz Aniversário',msg:'Olá {nome}! Hoje, dia {data}, toda a equipe da '+empresa+' deseja a você um feliz aniversário! Parabéns!'},
-  ];
+  ]:[];
   // Modelos de agendamento — só se o perfil tiver
   const modelosAg=temAg?[
     {id:'msg_agendamento_amanha',titulo:'Confirmação de Agendamento (amanhã)',msg:'Olá {nome}! Passando para confirmar seu agendamento amanhã na '+empresa+'.\n\nHorário: {hora}\nServiço: {servico}\n\nPor favor, confirme sua presença respondendo esta mensagem. Até amanhã!'},
@@ -4722,7 +4867,7 @@ function carregarWhatsApp(){
     {id:'msg_promocao',titulo:'Promoção Especial',msg:'Olá {nome}! 🔥 Promoção imperdível na '+empresa+'!\n\nNão perca essa oportunidade. Entre em contato e saiba mais!'},
     {id:'msg_reposicao',titulo:'Produto Reposto em Estoque',msg:'Olá {nome}! ✅ Boa notícia! O produto que você estava esperando voltou ao estoque na '+empresa+'.\n\nGaranta o seu agora!'},
   ]:[];
-  const modelos=[...modelosAg,...modelosBase,...modelosLoja];
+  const modelos=[...modelosAg,...modelosBase,...modelosCobranca,...modelosLoja];
   let html='<div style="margin-bottom:20px;padding:14px 18px;background:rgba(37,211,102,.07);border:1px solid #25D366;border-radius:10px;font-size:13px;color:var(--text2)">';
   html+='<strong style="color:#25D366">Como funciona:</strong> Ao clicar em enviar, o WhatsApp abre com a mensagem pré-preenchida. Você revisa e clica em Enviar. Gratuito e sem custo adicional.</div>';
   html+='<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px">Modelos de Mensagem — edite conforme sua necessidade:</div>';
@@ -4800,10 +4945,17 @@ function enviarWhatsAppAniversario(telefone,nome,dataNasc){
 // ── ABA: ANÁLISE IA ──────────────────────────────────────────────
 function carregarAnaliseIA(){
   const wrap=document.getElementById('rel-conteudo');
+  const apiKey=localStorage.getItem('anthropic_api_key')||'';
   wrap.innerHTML=''
     +'<div style="margin-bottom:16px;padding:14px 18px;background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;font-size:13px;color:var(--text2)">'
     +'<strong style="color:var(--accent)">Análise Estratégica por IA</strong><br>'
     +'A IA analisa os dados da sua empresa e gera insights, identifica padrões e sugere ações. Você também pode fazer perguntas específicas abaixo.</div>'
+    +(apiKey?'':'<div style="margin-bottom:16px;padding:12px 16px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px">'
+    +'<div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:6px">🔑 API Key da Anthropic necessária</div>'
+    +'<div style="display:flex;gap:8px"><input type="password" id="ia-api-key-input" placeholder="sk-ant-..." style="flex:1;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none">'
+    +'<button onclick="salvarApiKeyIA()" class="btn-new" style="white-space:nowrap">Salvar Chave</button></div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:6px">Obtenha sua chave em console.anthropic.com. A chave fica salva apenas neste navegador.</div>'
+    +'</div>')
     +'<button class="btn-primary" onclick="executarAnaliseIA()" id="btn-exec-ia" style="margin-bottom:20px">📊 Gerar Análise Completa Agora</button>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">'
     +'<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">💬 Ou faça uma pergunta específica sobre seus dados:</div>'
@@ -4816,6 +4968,15 @@ function carregarAnaliseIA(){
     +'<div id="ia-resultado" style="margin-top:4px"></div>';
 }
 
+
+
+function salvarApiKeyIA(){
+  const key=document.getElementById('ia-api-key-input')?.value?.trim();
+  if(!key||!key.startsWith('sk-ant-')){alert('Chave inválida. Deve começar com sk-ant-');return;}
+  localStorage.setItem('anthropic_api_key',key);
+  alert('Chave salva com sucesso!');
+  carregarAnaliseIA(); // Recarregar tela sem o aviso
+}
 
 async function executarPerguntaIA(){
   const pergunta=document.getElementById('ia-pergunta-livre')?.value?.trim();
@@ -4851,7 +5012,9 @@ async function executarPerguntaIA(){
       +'\nEstoque: '+(estoque||[]).length+' variações | Críticos (abaixo do mín): '+estCrit.length
       +'\nClientes ativos: '+((clientes||[]).length);
     const prompt='Você é um assistente de gestão empresarial. Contexto:\n'+contexto+'\n\nPergunta do usuário: '+pergunta+'\n\nResponda de forma direta, clara e objetiva em português. Se a pergunta não puder ser respondida com os dados disponíveis, diga isso claramente e sugira como obter a informação.';
-    const response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true','anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const _apiKeyP=localStorage.getItem('anthropic_api_key')||'';
+    if(!_apiKeyP){resultado.innerHTML='<div class="empty">Configure a API Key da Anthropic antes de usar esta função.</div>';return;}
+    const response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_apiKeyP,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error){resultado.innerHTML='<div class="empty">Erro da API: '+data.error.message+'</div>';return;}
     const texto=data.content?.map(b=>b.text||'').join('')||'Sem resposta.';
@@ -4892,7 +5055,9 @@ async function executarAnaliseIA(){
     const estCrit=(estoque||[]).filter(e=>e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo));
     const valorEstoque=soma(estoque,e=>parseFloat(e.quantidade||0)*parseFloat(e.produtos?.preco_venda||0));
     const prompt='Você é um consultor financeiro e de gestão empresarial analisando os dados do mês de uma empresa.\n\nEmpresa: '+empresa+'\nData de análise: '+new Date().toLocaleDateString('pt-BR')+'\n\nDADOS FINANCEIROS DO MÊS:\n- Receitas pagas: R$ '+recPago.toFixed(2)+'\n- Despesas pagas: R$ '+despPago.toFixed(2)+'\n- Resultado líquido: R$ '+(recPago-despPago).toFixed(2)+'\n- A receber (pendente): R$ '+recPend.toFixed(2)+'\n- A pagar (pendente): R$ '+despPend.toFixed(2)+'\n- Valores vencidos: R$ '+vencido.toFixed(2)+'\n\nAGENDAMENTOS DO MÊS:\n- Agendados: '+(agPorStatus.agendado||0)+'\n- Confirmados: '+(agPorStatus.confirmado||0)+'\n- Realizados: '+(agPorStatus.realizado||0)+'\n- Cancelados: '+(agPorStatus.cancelado||0)+'\n- Total: '+((agendamentos||[]).length)+'\n\nESTOQUE:\n- Produtos monitorados: '+((estoque||[]).length)+'\n- Produtos abaixo do mínimo: '+estCrit.length+'\n- Valor estimado em estoque: R$ '+valorEstoque.toFixed(2)+'\n\nCADASTROS:\n- Clientes ativos: '+((clientes||[]).length)+'\n- Fornecedores ativos: '+((fornecedores||[]).length)+'\n\nCom base nesses dados, gere uma análise estratégica em português com:\n1. Um diagnóstico geral da saúde do negócio (máx. 3 parágrafos)\n2. Pontos de atenção prioritários (liste até 4)\n3. Sugestões de ação concretas (liste até 4)\n4. Uma previsão ou observação positiva sobre o negócio\n\nSeja direto, use linguagem profissional mas acessível. Formate com seções claras usando emojis.';
-    const response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true','anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const _apiKeyA=localStorage.getItem('anthropic_api_key')||'';
+    if(!_apiKeyA){resultado.innerHTML='<div class="empty">Configure a API Key da Anthropic antes de usar esta função.</div>';if(btn){btn.disabled=false;btn.textContent='Gerar Análise Agora';}return;}
+    const response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_apiKeyA,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error){resultado.innerHTML='<div class="empty">Erro da API: '+data.error.message+'</div>';if(btn){btn.disabled=false;btn.textContent='Gerar Análise Agora';}return;}
     const texto=data.content?.map(b=>b.text||'').join('')||'Não foi possível gerar análise.';
