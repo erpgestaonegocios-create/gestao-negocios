@@ -447,11 +447,59 @@
       <div class="mfield col-2"><label>País</label><input type="text" id="cli-pais" placeholder="País"></div>
       <div class="form-section">Informações Adicionais</div>
       <div class="mfield col-2"><label>Observações</label><textarea id="cli-obs" placeholder="Observações..."></textarea></div>
+      <div class="form-section">Frete Estimado</div>
+      <div class="mfield col-2">
+        <div id="cli-frete-box" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--text3)">
+          Preencha o CEP acima para calcular o frete estimado automaticamente.
+        </div>
+      </div>
     </div>
     <div class="modal-msg" id="modal-cli-msg"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-cliente')">Cancelar</button>
       <button class="btn-save" onclick="salvarCliente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTÓRICO COMPRAS -->
+<div class="modal-overlay" id="modal-compra-cliente">
+  <div class="modal modal-sm">
+    <div class="modal-title">Registrar Compra</div>
+    <div class="modal-sub" id="modal-compra-sub">Busque o produto e registre a compra</div>
+    <div class="form-grid">
+      <div class="mfield col-2">
+        <label>Buscar Produto <span class="req">*</span></label>
+        <div style="position:relative">
+          <input type="text" id="compra-prod-busca" placeholder="🔍 Digite código ou nome do produto..." autocomplete="off"
+            oninput="buscarProdutoCompra(this.value)" onfocus="buscarProdutoCompra(this.value)">
+          <div id="compra-prod-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:180px;overflow-y:auto;z-index:999;margin-top:2px;box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
+        </div>
+        <div id="compra-prod-selecionado" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(107,127,215,.1);border:1px solid var(--accent);border-radius:6px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <span id="compra-prod-nome" style="color:var(--accent);font-weight:600"></span>
+            <span id="compra-prod-preco" style="color:var(--text3);margin-left:8px"></span>
+          </div>
+          <button onclick="limparProdutoCompra()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">✕</button>
+        </div>
+        <input type="hidden" id="compra-prod-id">
+        <input type="hidden" id="compra-prod-valor-unit">
+      </div>
+      <div class="mfield col-1"><label>Quantidade <span class="req">*</span></label><input type="number" id="compra-qtd" placeholder="1" min="1" step="1" value="1" oninput="calcularTotalCompra()"></div>
+      <div class="mfield col-1"><label>Valor Unitário (R$)</label><input type="number" id="compra-valor-unit" placeholder="0,00" min="0" step="0.01" oninput="calcularTotalCompra()"></div>
+      <div class="mfield col-1"><label>Desconto (R$)</label><input type="number" id="compra-desconto" placeholder="0,00" min="0" step="0.01" value="0" oninput="calcularTotalCompra()"></div>
+      <div class="mfield col-1">
+        <label>Total Pago</label>
+        <div id="compra-total-display" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:16px;font-weight:700;color:var(--success)">R$ 0,00</div>
+        <input type="hidden" id="compra-total">
+      </div>
+      <div class="mfield col-1"><label>Data da Compra</label><input type="date" id="compra-data"></div>
+      <div class="mfield col-2"><label>Observações</label><textarea id="compra-obs" placeholder="Ex: Troca, presente, tamanho M..." style="min-height:50px"></textarea></div>
+    </div>
+    <div class="modal-msg" id="modal-compra-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-compra-cliente')">Cancelar</button>
+      <button class="btn-save" onclick="salvarCompraCliente()">Registrar Compra</button>
     </div>
   </div>
 </div>
@@ -515,7 +563,7 @@
       <div class="mfield col-1"><label>Código</label><input type="text" id="prod-codigo" placeholder="ex: PROD-001"></div>
       <div class="mfield col-2"><label>Nome <span class="req">*</span></label><input type="text" id="prod-nome" placeholder="Nome do produto"></div>
       <div class="mfield col-2"><label>Descrição</label><textarea id="prod-desc" placeholder="Descrição do produto..." style="min-height:60px"></textarea></div>
-      <div class="mfield col-1"><label>Categoria / Grupo</label><input type="text" id="prod-categoria" placeholder="ex: Medicamentos, Alimentos..."></div>
+      <div class="mfield col-1"><label>Categoria / Grupo</label><input type="text" id="prod-categoria" placeholder="ex: Vestuário, Calçados..."></div>
       <div class="mfield col-1"><label>Unidade de Medida</label>
         <select id="prod-unidade">
           <option value="un">un — Unidade</option>
@@ -531,27 +579,70 @@
           <option value="outro">outro</option>
         </select>
       </div>
+      <div class="form-section">Gênero e Tamanhos</div>
+      <div class="mfield col-1">
+        <label>Gênero</label>
+        <select id="prod-genero" onchange="onProdGeneroChange()">
+          <option value="">Não aplicável</option>
+          <option value="masculino">Masculino</option>
+          <option value="feminino">Feminino</option>
+          <option value="infantil">Infantil</option>
+          <option value="unissex">Unissex</option>
+        </select>
+      </div>
+      <div class="mfield col-2" id="prod-tamanhos-wrap" style="display:none">
+        <label>Tamanhos Disponíveis</label>
+        <div id="prod-tamanhos-adulto" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="PP" class="prod-tam-check" style="accent-color:var(--accent)"> PP</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="P" class="prod-tam-check" style="accent-color:var(--accent)"> P</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="M" class="prod-tam-check" style="accent-color:var(--accent)"> M</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="G" class="prod-tam-check" style="accent-color:var(--accent)"> G</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="GG" class="prod-tam-check" style="accent-color:var(--accent)"> GG</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="XGG" class="prod-tam-check" style="accent-color:var(--accent)"> XGG</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="XGGG" class="prod-tam-check" style="accent-color:var(--accent)"> XGGG</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="34" class="prod-tam-check" style="accent-color:var(--accent)"> 34</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="36" class="prod-tam-check" style="accent-color:var(--accent)"> 36</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="38" class="prod-tam-check" style="accent-color:var(--accent)"> 38</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="40" class="prod-tam-check" style="accent-color:var(--accent)"> 40</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="42" class="prod-tam-check" style="accent-color:var(--accent)"> 42</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="44" class="prod-tam-check" style="accent-color:var(--accent)"> 44</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="46" class="prod-tam-check" style="accent-color:var(--accent)"> 46</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="48" class="prod-tam-check" style="accent-color:var(--accent)"> 48</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="50" class="prod-tam-check" style="accent-color:var(--accent)"> 50</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="Único" class="prod-tam-check" style="accent-color:var(--accent)"> Único</label>
+        </div>
+        <div id="prod-tamanhos-infantil" style="display:none;flex-wrap:wrap;gap:8px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="RN" class="prod-tam-check" style="accent-color:var(--accent)"> RN</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="P" class="prod-tam-check" style="accent-color:var(--accent)"> P</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="M" class="prod-tam-check" style="accent-color:var(--accent)"> M</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="G" class="prod-tam-check" style="accent-color:var(--accent)"> G</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="1" class="prod-tam-check" style="accent-color:var(--accent)"> 1 ano</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="2" class="prod-tam-check" style="accent-color:var(--accent)"> 2 anos</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="4" class="prod-tam-check" style="accent-color:var(--accent)"> 4 anos</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="6" class="prod-tam-check" style="accent-color:var(--accent)"> 6 anos</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="8" class="prod-tam-check" style="accent-color:var(--accent)"> 8 anos</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="10" class="prod-tam-check" style="accent-color:var(--accent)"> 10 anos</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="12" class="prod-tam-check" style="accent-color:var(--accent)"> 12 anos</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="14" class="prod-tam-check" style="accent-color:var(--accent)"> 14 anos</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="16" class="prod-tam-check" style="accent-color:var(--accent)"> 16 anos</label>
+        </div>
+      </div>
       <div class="form-section">Preços</div>
       <div class="mfield col-1"><label>Preço de Custo (R$)</label><input type="number" id="prod-custo" placeholder="0,00" min="0" step="0.01"></div>
       <div class="mfield col-1"><label>Preço de Venda (R$)</label><input type="number" id="prod-venda" placeholder="0,00" min="0" step="0.01"></div>
       <div class="form-section">Estoque</div>
       <div class="mfield col-1"><label>Estoque Mínimo</label><input type="number" id="prod-est-min" placeholder="0" min="0" step="0.001"></div>
       <div class="mfield col-1"><label>Estoque Máximo</label><input type="number" id="prod-est-max" placeholder="0" min="0" step="0.001"></div>
-      <div class="form-section">Fornecedor e Imagem</div>
+      <div class="form-section">Fornecedor</div>
       <div class="mfield col-2"><label>Fornecedor</label>
         <select id="prod-fornecedor"><option value="">Nenhum / Sem vínculo</option></select>
       </div>
+      <div class="form-section">Fotos do Produto <span style="font-size:11px;color:var(--text3);font-weight:400">(até 10 fotos — a primeira será a capa)</span></div>
       <div class="mfield col-2">
-        <label>Imagem do Produto</label>
-        <div style="display:flex;align-items:center;gap:14px;margin-top:4px">
-          <div id="prod-img-preview" style="width:80px;height:80px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0">📦</div>
-          <div style="flex:1">
-            <input type="file" id="prod-img-file" accept="image/*" onchange="onProdImageChange(event)" style="display:none">
-            <button class="btn-secondary" style="width:100%;margin-bottom:8px" onclick="document.getElementById('prod-img-file').click()">📁 Escolher imagem</button>
-            <button class="btn-secondary" style="width:100%;color:var(--danger);border-color:var(--danger)" onclick="removerImagemProd()">🗑️ Remover imagem</button>
-          </div>
-        </div>
-        <div style="font-size:11px;color:var(--text3);margin-top:6px">Formatos: JPG, PNG, WebP. Máx. 2MB.</div>
+        <div id="prod-fotos-grid" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px"></div>
+        <input type="file" id="prod-img-file" accept="image/*" multiple style="display:none" onchange="onProdFotosChange(event)">
+        <button class="btn-secondary" onclick="document.getElementById('prod-img-file').click()" style="margin-bottom:6px">📁 Adicionar Fotos</button>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Formatos: JPG, PNG, WebP. Máx. 2MB por foto. Arraste para reordenar.</div>
       </div>
       <div class="form-section">Informações Adicionais</div>
       <div class="mfield col-2"><label>Observações</label><textarea id="prod-obs" placeholder="Observações..."></textarea></div>
@@ -560,6 +651,25 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-produto')">Cancelar</button>
       <button class="btn-save" onclick="salvarProduto()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GALERIA PRODUTO -->
+<div class="modal-overlay" id="modal-galeria-produto">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-title" id="galeria-prod-nome">Fotos do Produto</div>
+    <div style="position:relative">
+      <div id="galeria-img-wrap" style="text-align:center;margin-bottom:12px">
+        <img id="galeria-img-principal" src="" style="max-width:100%;max-height:420px;border-radius:8px;object-fit:contain;cursor:zoom-in" onclick="toggleZoomGaleria(this)">
+      </div>
+      <button onclick="galeiraNav(-1)" style="position:absolute;left:0;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;font-size:20px;padding:8px 14px;border-radius:6px;cursor:pointer">‹</button>
+      <button onclick="galeiraNav(1)" style="position:absolute;right:0;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;font-size:20px;padding:8px 14px;border-radius:6px;cursor:pointer">›</button>
+    </div>
+    <div id="galeria-thumbs" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px"></div>
+    <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--text3)" id="galeria-counter"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-galeria-produto')">Fechar</button>
     </div>
   </div>
 </div>
@@ -931,6 +1041,7 @@ async function buscarCEP(){
     document.getElementById('cli-comp').value='';
     document.getElementById('cli-num').focus();
     hint.className='field-hint ok';hint.textContent='✓ CEP encontrado';
+    calcularFreteEstimado(cep);
   }catch(e){hint.className='field-hint err';hint.textContent='Erro ao buscar CEP';}
 }
 
@@ -2236,6 +2347,152 @@ async function executarImportacao(){
   else if(modulo==='financeiro_categorias'||modulo==='financeiro_lancamentos') carregarLancamentos();
 }
 
+
+// ── Frete estimado por CEP ────────────────────────────────────────
+function calcularFreteEstimado(cep){
+  const box=document.getElementById('cli-frete-box');
+  if(!box)return;
+  const num=cep.replace(/\D/g,'');
+  if(num.length!==8){box.innerHTML='<span style="color:var(--text3)">Preencha o CEP para calcular o frete estimado.</span>';return;}
+  const prefix=parseInt(num.slice(0,5));
+  // Tabela de faixas por região baseada no CEP
+  let regiao,preco,prazo;
+  if(prefix>=1000&&prefix<=19999){regiao='São Paulo Capital';preco='R$ 12,00';prazo='1-2 dias úteis';}
+  else if(prefix>=20000&&prefix<=28999){regiao='Rio de Janeiro';preco='R$ 15,00';prazo='2-3 dias úteis';}
+  else if(prefix>=29000&&prefix<=29999){regiao='Espírito Santo';preco='R$ 16,00';prazo='2-3 dias úteis';}
+  else if(prefix>=30000&&prefix<=39999){regiao='Minas Gerais';preco='R$ 14,00';prazo='1-3 dias úteis';}
+  else if(prefix>=40000&&prefix<=48999){regiao='Bahia';preco='R$ 22,00';prazo='3-5 dias úteis';}
+  else if(prefix>=49000&&prefix<=49999){regiao='Sergipe';preco='R$ 24,00';prazo='3-5 dias úteis';}
+  else if(prefix>=50000&&prefix<=56999){regiao='Pernambuco';preco='R$ 25,00';prazo='4-6 dias úteis';}
+  else if(prefix>=57000&&prefix<=57999){regiao='Alagoas';preco='R$ 26,00';prazo='4-6 dias úteis';}
+  else if(prefix>=58000&&prefix<=58999){regiao='Paraíba';preco='R$ 27,00';prazo='4-6 dias úteis';}
+  else if(prefix>=59000&&prefix<=59999){regiao='Rio Grande do Norte';preco='R$ 28,00';prazo='4-7 dias úteis';}
+  else if(prefix>=60000&&prefix<=63999){regiao='Ceará';preco='R$ 29,00';prazo='5-7 dias úteis';}
+  else if(prefix>=64000&&prefix<=64999){regiao='Piauí';preco='R$ 30,00';prazo='5-8 dias úteis';}
+  else if(prefix>=65000&&prefix<=65999){regiao='Maranhão';preco='R$ 32,00';prazo='5-8 dias úteis';}
+  else if(prefix>=66000&&prefix<=68899){regiao='Pará';preco='R$ 35,00';prazo='6-10 dias úteis';}
+  else if(prefix>=68900&&prefix<=68999){regiao='Amapá';preco='R$ 38,00';prazo='7-12 dias úteis';}
+  else if(prefix>=69000&&prefix<=69299){regiao='Amazonas';preco='R$ 40,00';prazo='7-12 dias úteis';}
+  else if(prefix>=69300&&prefix<=69399){regiao='Roraima';preco='R$ 42,00';prazo='8-14 dias úteis';}
+  else if(prefix>=69400&&prefix<=69899){regiao='Acre';preco='R$ 45,00';prazo='8-14 dias úteis';}
+  else if(prefix>=69900&&prefix<=69999){regiao='Rondônia';preco='R$ 38,00';prazo='6-10 dias úteis';}
+  else if(prefix>=70000&&prefix<=73699){regiao='Distrito Federal';preco='R$ 18,00';prazo='2-4 dias úteis';}
+  else if(prefix>=73700&&prefix<=76799){regiao='Goiás';preco='R$ 19,00';prazo='2-4 dias úteis';}
+  else if(prefix>=76800&&prefix<=77999){regiao='Tocantins';preco='R$ 28,00';prazo='4-7 dias úteis';}
+  else if(prefix>=78000&&prefix<=78899){regiao='Mato Grosso';preco='R$ 25,00';prazo='3-6 dias úteis';}
+  else if(prefix>=78900&&prefix<=79999){regiao='Mato Grosso do Sul';preco='R$ 22,00';prazo='3-5 dias úteis';}
+  else if(prefix>=80000&&prefix<=87999){regiao='Paraná';preco='R$ 16,00';prazo='2-3 dias úteis';}
+  else if(prefix>=88000&&prefix<=89999){regiao='Santa Catarina';preco='R$ 18,00';prazo='2-4 dias úteis';}
+  else if(prefix>=90000&&prefix<=99999){regiao='Rio Grande do Sul';preco='R$ 20,00';prazo='2-4 dias úteis';}
+  else{regiao='Região não identificada';preco='Consultar';prazo='—';}
+  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+    +'<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Destino</div>'
+    +'<div style="font-weight:600;color:var(--text)">'+regiao+'</div></div>'
+    +'<div style="text-align:center"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Frete Estimado</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--success)">'+preco+'</div></div>'
+    +'<div style="text-align:right"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Prazo</div>'
+    +'<div style="font-weight:600;color:var(--accent)">'+prazo+'</div></div>'
+    +'</div>'
+    +'<div style="font-size:10px;color:var(--text3);margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">⚠️ Estimativa baseada na região. Valores reais podem variar conforme transportadora, peso e dimensões.</div>';
+}
+
+// ── Histórico de compras do cliente ──────────────────────────────
+let compraClienteId=null;
+
+async function abrirHistoricoCompras(clienteId,clienteNome){
+  compraClienteId=clienteId;
+  document.getElementById('modal-compra-sub').textContent='Cliente: '+clienteNome;
+  document.getElementById('modal-compra-msg').style.display='none';
+  limparProdutoCompra();
+  document.getElementById('compra-qtd').value='1';
+  document.getElementById('compra-valor-unit').value='';
+  document.getElementById('compra-desconto').value='0';
+  document.getElementById('compra-total').value='';
+  document.getElementById('compra-total-display').textContent='R$ 0,00';
+  document.getElementById('compra-data').value=new Date().toISOString().slice(0,10);
+  document.getElementById('compra-obs').value='';
+  openModal('modal-compra-cliente');
+}
+
+function buscarProdutoCompra(termo){
+  const dropdown=document.getElementById('compra-prod-dropdown');
+  if(!dropdown)return;
+  if(!termo||termo.length<1){dropdown.style.display='none';return;}
+  const pf=currentUser.perfil||'master';
+  const f=encodeURIComponent('%'+termo+'%');
+  api('produtos?select=id,nome,codigo,preco_venda&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&or=(nome.ilike.'+f+',codigo.ilike.'+f+')&limit=10')
+    .then(rows=>{
+      if(!rows||!rows.length){dropdown.innerHTML='<div style="padding:10px 14px;font-size:13px;color:var(--text3)">Nenhum produto encontrado</div>';dropdown.style.display='block';return;}
+      dropdown.innerHTML=rows.map(p=>'<div onclick="selecionarProdutoCompra('+p.id+',\''+p.nome.replace(/'/g,"\\'")+'\','+( p.preco_venda||0)+')" style="padding:9px 14px;font-size:13px;cursor:pointer;color:var(--text);display:flex;justify-content:space-between" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'"><span>'+(p.codigo?'['+p.codigo+'] ':'')+p.nome+'</span><span style="color:var(--success)">R$ '+(p.preco_venda?parseFloat(p.preco_venda).toFixed(2).replace('.',','):'—')+'</span></div>').join('');
+      dropdown.style.display='block';
+    }).catch(()=>{});
+}
+
+function selecionarProdutoCompra(id,nome,preco){
+  document.getElementById('compra-prod-id').value=id;
+  document.getElementById('compra-prod-valor-unit').value=preco||0;
+  document.getElementById('compra-prod-busca').value='';
+  document.getElementById('compra-prod-dropdown').style.display='none';
+  document.getElementById('compra-prod-nome').textContent=nome;
+  document.getElementById('compra-prod-preco').textContent=preco?'R$ '+parseFloat(preco).toFixed(2).replace('.',','):'';
+  document.getElementById('compra-prod-selecionado').style.display='flex';
+  document.getElementById('compra-valor-unit').value=preco?parseFloat(preco).toFixed(2):'';
+  calcularTotalCompra();
+}
+
+function limparProdutoCompra(){
+  document.getElementById('compra-prod-id').value='';
+  document.getElementById('compra-prod-busca').value='';
+  document.getElementById('compra-prod-dropdown').style.display='none';
+  document.getElementById('compra-prod-selecionado').style.display='none';
+  document.getElementById('compra-prod-nome').textContent='';
+  document.getElementById('compra-prod-preco').textContent='';
+}
+
+function calcularTotalCompra(){
+  const qtd=parseFloat(document.getElementById('compra-qtd').value)||0;
+  const unit=parseFloat(document.getElementById('compra-valor-unit').value)||0;
+  const desc=parseFloat(document.getElementById('compra-desconto').value)||0;
+  const total=Math.max(0,(qtd*unit)-desc);
+  document.getElementById('compra-total').value=total.toFixed(2);
+  document.getElementById('compra-total-display').textContent='R$ '+total.toFixed(2).replace('.',',');
+  document.getElementById('compra-total-display').style.color=total>0?'var(--success)':'var(--text3)';
+}
+
+async function salvarCompraCliente(){
+  const prodId=document.getElementById('compra-prod-id').value;
+  const qtd=parseFloat(document.getElementById('compra-qtd').value)||0;
+  const data=document.getElementById('compra-data').value;
+  if(!prodId){showMM('modal-compra-msg','Selecione o produto','error');return;}
+  if(!qtd||qtd<=0){showMM('modal-compra-msg','Informe a quantidade','error');return;}
+  if(!data){showMM('modal-compra-msg','Informe a data da compra','error');return;}
+  const unit=parseFloat(document.getElementById('compra-valor-unit').value)||null;
+  const desc=parseFloat(document.getElementById('compra-desconto').value)||0;
+  const total=parseFloat(document.getElementById('compra-total').value)||null;
+  try{
+    await api('cliente_compras',{method:'POST',body:JSON.stringify({
+      perfil_codigo:currentUser.perfil||'master',
+      cliente_id:compraClienteId,
+      produto_id:parseInt(prodId),
+      quantidade:qtd,
+      valor_unitario:unit,
+      desconto:desc||null,
+      total_pago:total,
+      data_compra:data,
+      observacoes:document.getElementById('compra-obs').value.trim()||null
+    })});
+    showMM('modal-compra-msg','Compra registrada com sucesso!','success');
+    setTimeout(()=>closeModal('modal-compra-cliente'),900);
+  }catch(e){showMM('modal-compra-msg','Erro: '+e.message,'error');}
+}
+
+// Fechar dropdown compra ao clicar fora
+document.addEventListener('click',e=>{
+  const drop=document.getElementById('compra-prod-dropdown');
+  const busca=document.getElementById('compra-prod-busca');
+  if(drop&&busca&&!busca.contains(e.target)&&!drop.contains(e.target))drop.style.display='none';
+});
+
 // ─── PAINEL: CLIENTES ────────────────────────────────────────────
 let editingClienteId=null;
 
@@ -2281,6 +2538,7 @@ async function carregarClientes(filtro=''){
       <td>${c.email||'-'}</td><td>${c.cidade||'-'}</td>
       <td><span class="badge ${c.ativo?'badge-ativo':'badge-inativo'}">${c.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
+        <button class="btn-sm" style="border-color:var(--success);color:var(--success);background:transparent" data-cid="${c.id}" data-cnome="${c.nome}" onclick="abrirHistoricoCompras(parseInt(this.dataset.cid),this.dataset.cnome)">🛒 Compra</button>
         ${c.ativo?'<button class="btn-sm btn-deact" onclick="toggleCliente('+c.id+',false)">Desativar</button>':'<button class="btn-sm btn-react" onclick="toggleCliente('+c.id+',true)">Reativar</button>'}
       </div></td></tr>`).join('');
   }catch(e){tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`;}
@@ -2315,6 +2573,7 @@ async function buscarCEP(){
     document.getElementById('cli-num').value='';
     document.getElementById('cli-num').focus();
     hint.className='field-hint ok';hint.textContent='✓ CEP encontrado';
+    calcularFreteEstimado(cep);
   }catch(e){hint.className='field-hint err';hint.textContent='Erro ao buscar CEP';}
 }
 
@@ -2342,6 +2601,7 @@ async function openModalCliente(mode,id){
       document.getElementById('cli-tel').value=c.telefone||'';
       document.getElementById('cli-email').value=c.email||'';
       document.getElementById('cli-cep').value=c.cep||'';
+      if(c.cep)calcularFreteEstimado(c.cep);
       document.getElementById('cli-end').value=c.endereco||'';
       document.getElementById('cli-num').value=c.numero||'';
       document.getElementById('cli-comp').value=c.complemento||'';
@@ -2520,9 +2780,129 @@ async function salvarFornecedor(){
   }catch(e){showMM('modal-forn-msg','Erro: '+e.message,'error');}
 }
 
+
+// ── Produto: gênero e tamanhos ───────────────────────────────────
+function onProdGeneroChange(){
+  const genero=document.getElementById('prod-genero').value;
+  const wrap=document.getElementById('prod-tamanhos-wrap');
+  const adulto=document.getElementById('prod-tamanhos-adulto');
+  const infantil=document.getElementById('prod-tamanhos-infantil');
+  if(!genero){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  if(genero==='infantil'){
+    adulto.style.display='none';
+    infantil.style.display='flex';
+  } else {
+    adulto.style.display='flex';
+    infantil.style.display='none';
+  }
+}
+
+function getProdTamanhos(){
+  const checks=document.querySelectorAll('.prod-tam-check:checked');
+  return Array.from(checks).map(c=>c.value);
+}
+
+function setProdTamanhos(tamanhos){
+  document.querySelectorAll('.prod-tam-check').forEach(c=>{
+    c.checked=tamanhos&&tamanhos.includes(c.value);
+  });
+}
+
+// ── Produto: múltiplas fotos ─────────────────────────────────────
+let prodFotosArray=[]; // array de base64
+
+function onProdFotosChange(event){
+  const files=Array.from(event.target.files);
+  const restante=10-prodFotosArray.length;
+  if(restante<=0){alert('Limite de 10 fotos atingido.');return;}
+  const selecionadas=files.slice(0,restante);
+  if(files.length>restante) alert('Limite de 10 fotos. Apenas as '+restante+' primeiras foram adicionadas.');
+  selecionadas.forEach(file=>{
+    if(file.size>2*1024*1024){alert(file.name+' é maior que 2MB e foi ignorado.');return;}
+    const reader=new FileReader();
+    reader.onload=e=>{
+      prodFotosArray.push(e.target.result);
+      renderProdFotosGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+  event.target.value='';
+}
+
+function renderProdFotosGrid(){
+  const grid=document.getElementById('prod-fotos-grid');
+  if(!grid)return;
+  grid.innerHTML=prodFotosArray.map((src,i)=>`
+    <div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:2px solid ${i===0?'var(--accent)':'var(--border)'}">
+      <img src="${src}" style="width:100%;height:100%;object-fit:cover">
+      ${i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(107,127,215,.8);font-size:9px;text-align:center;color:#fff;padding:2px">CAPA</div>':''}
+      <button onclick="removeProdFoto(${i})" style="position:absolute;top:2px;right:2px;background:rgba(224,85,85,.9);border:none;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:18px;padding:0">✕</button>
+    </div>`).join('');
+}
+
+function removeProdFoto(idx){
+  prodFotosArray.splice(idx,1);
+  renderProdFotosGrid();
+}
+
+// ── Galeria de fotos ─────────────────────────────────────────────
+let galeriaFotos=[];
+let galeriaIdx=0;
+
+function abrirGaleria(fotos,nome){
+  galeriaFotos=fotos||[];
+  if(!galeriaFotos.length)return;
+  galeriaIdx=0;
+  document.getElementById('galeria-prod-nome').textContent=nome||'Fotos do Produto';
+  renderGaleriaImg();
+  openModal('modal-galeria-produto');
+}
+
+function renderGaleriaImg(){
+  const img=document.getElementById('galeria-img-principal');
+  const counter=document.getElementById('galeria-counter');
+  const thumbs=document.getElementById('galeria-thumbs');
+  if(img)img.src=galeriaFotos[galeriaIdx]||'';
+  if(counter)counter.textContent=(galeriaIdx+1)+' / '+galeriaFotos.length;
+  if(thumbs)thumbs.innerHTML=galeriaFotos.map((src,i)=>`
+    <img src="${src}" onclick="galeriaIdx=${i};renderGaleriaImg()"
+      style="width:56px;height:56px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid ${i===galeriaIdx?'var(--accent)':'transparent'};opacity:${i===galeriaIdx?1:0.6};transition:all .15s">`).join('');
+}
+
+function galeiraNav(dir){
+  galeriaIdx=(galeriaIdx+dir+galeriaFotos.length)%galeriaFotos.length;
+  renderGaleriaImg();
+}
+
+function toggleZoomGaleria(img){
+  if(img.style.cursor==='zoom-out'){
+    img.style.maxHeight='420px';img.style.cursor='zoom-in';
+  } else {
+    img.style.maxHeight='none';img.style.cursor='zoom-out';
+  }
+}
+
 // ─── PAINEL: PRODUTOS ────────────────────────────────────────────
 let editingProdutoId=null;
 let prodImageBase64='';
+
+
+async function abrirGaleriaFromProd(id,nome){
+  try{
+    const data=await api('produtos?id=eq.'+id+'&select=imagens_base64,imagem_base64');
+    if(!data||!data.length)return;
+    const p=data[0];
+    let fotos=[];
+    if(p.imagens_base64&&p.imagens_base64.length){
+      fotos=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');
+    } else if(p.imagem_base64){
+      fotos=[p.imagem_base64];
+    }
+    if(!fotos.length){alert('Este produto não tem fotos cadastradas.');return;}
+    abrirGaleria(fotos,nome);
+  }catch(e){alert('Erro ao carregar fotos: '+e.message);}
+}
 
 function renderProdutos(){
   const tit=getLabel('produtos_titulo','Produtos');
@@ -2559,7 +2939,7 @@ async function carregarProdutos(filtro=''){
     const LINK='style="font-weight:500;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:all .15s" onmouseover="this.style.color=\'var(--accent)\';this.style.textDecorationColor=\'var(--accent)\'" onmouseout="this.style.color=\'var(--text)\';this.style.textDecorationColor=\'transparent\'" ';
     tbody.innerHTML=data.map(p=>`<tr>
       <td style="color:var(--text3)">${p.id}</td>
-      <td>${p.imagem_base64?'<img src="'+p.imagem_base64+'" style="width:36px;height:36px;border-radius:6px;object-fit:cover">':'<span style="font-size:22px">📦</span>'}</td>
+      <td><div data-pid="${p.id}" data-pnome="${p.nome}" onclick="abrirGaleriaFromProd(parseInt(this.dataset.pid),this.dataset.pnome)" title="Ver fotos" style="cursor:pointer;display:inline-block">${p.imagem_base64?'<img src="'+p.imagem_base64+'" style="width:36px;height:36px;border-radius:6px;object-fit:cover">':'<span style="font-size:22px">📦</span>'}</div></td>
       <td style="color:var(--text3);font-size:12px">${p.codigo||'-'}</td>
       <td><span ${LINK}onclick="openModalProduto('edit',${p.id})" title="Editar ${p.nome}">${p.nome}</span></td>
       <td>${p.categoria||'-'}</td>
@@ -2580,10 +2960,15 @@ function onProdImageChange(event){const file=event.target.files[0];if(!file)retu
 function removerImagemProd(){prodImageBase64='';document.getElementById('prod-img-preview').innerHTML='📦';document.getElementById('prod-img-file').value='';}
 
 async function openModalProduto(mode,id){
-  editingProdutoId=null;prodImageBase64='';
+  editingProdutoId=null;
+  prodFotosArray=[];
   document.getElementById('modal-prod-msg').style.display='none';
-  document.getElementById('prod-img-preview').innerHTML='📦';
   document.getElementById('prod-img-file').value='';
+  renderProdFotosGrid();
+  // Reset gênero e tamanhos
+  document.getElementById('prod-genero').value='';
+  onProdGeneroChange();
+  setProdTamanhos([]);
   const pf=currentUser.perfil||'master';
   const selForn=document.getElementById('prod-fornecedor');
   try{const forns=await api('fornecedores?select=id,nome&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc');selForn.innerHTML='<option value="">Nenhum / Sem vínculo</option>'+(forns||[]).map(f=>'<option value="'+f.id+'">'+f.nome+'</option>').join('');}catch(e){selForn.innerHTML='<option value="">Nenhum</option>';}
@@ -2591,19 +2976,34 @@ async function openModalProduto(mode,id){
   if(mode==='new'){
     document.getElementById('modal-prod-titulo').textContent=getLabel('produtos_novo','Novo Produto');
     campos.forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
-    document.getElementById('prod-unidade').value='un';document.getElementById('prod-fornecedor').value='';
+    document.getElementById('prod-unidade').value='un';
+    document.getElementById('prod-fornecedor').value='';
   } else {
     document.getElementById('modal-prod-titulo').textContent='Editar Produto';
     editingProdutoId=id;
     const data=await api('produtos?id=eq.'+id+'&select=*');
     if(!data||!data.length)return;const p=data[0];
-    document.getElementById('prod-codigo').value=p.codigo||'';document.getElementById('prod-nome').value=p.nome||'';
-    document.getElementById('prod-desc').value=p.descricao||'';document.getElementById('prod-categoria').value=p.categoria||'';
-    document.getElementById('prod-unidade').value=p.unidade||'un';document.getElementById('prod-custo').value=p.preco_custo!=null?p.preco_custo:'';
-    document.getElementById('prod-venda').value=p.preco_venda!=null?p.preco_venda:'';document.getElementById('prod-est-min').value=p.estoque_minimo!=null?p.estoque_minimo:'';
-    document.getElementById('prod-est-max').value=p.estoque_maximo!=null?p.estoque_maximo:'';document.getElementById('prod-obs').value=p.observacoes||'';
+    document.getElementById('prod-codigo').value=p.codigo||'';
+    document.getElementById('prod-nome').value=p.nome||'';
+    document.getElementById('prod-desc').value=p.descricao||'';
+    document.getElementById('prod-categoria').value=p.categoria||'';
+    document.getElementById('prod-unidade').value=p.unidade||'un';
+    document.getElementById('prod-custo').value=p.preco_custo!=null?p.preco_custo:'';
+    document.getElementById('prod-venda').value=p.preco_venda!=null?p.preco_venda:'';
+    document.getElementById('prod-est-min').value=p.estoque_minimo!=null?p.estoque_minimo:'';
+    document.getElementById('prod-est-max').value=p.estoque_maximo!=null?p.estoque_maximo:'';
+    document.getElementById('prod-obs').value=p.observacoes||'';
     document.getElementById('prod-fornecedor').value=p.fornecedor_id||'';
-    if(p.imagem_base64){prodImageBase64=p.imagem_base64;document.getElementById('prod-img-preview').innerHTML='<img src="'+p.imagem_base64+'" style="width:100%;height:100%;object-fit:cover">';}
+    // Gênero e tamanhos
+    if(p.genero){document.getElementById('prod-genero').value=p.genero;onProdGeneroChange();}
+    if(p.tamanhos)setProdTamanhos(Array.isArray(p.tamanhos)?p.tamanhos:JSON.parse(p.tamanhos||'[]'));
+    // Fotos
+    if(p.imagens_base64&&p.imagens_base64.length){
+      prodFotosArray=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');
+    } else if(p.imagem_base64){
+      prodFotosArray=[p.imagem_base64]; // migrar foto antiga
+    }
+    renderProdFotosGrid();
   }
   openModal('modal-produto');
 }
@@ -2612,13 +3012,26 @@ async function salvarProduto(){
   const nome=document.getElementById('prod-nome').value.trim();
   if(!nome){showMM('modal-prod-msg','Informe o nome do produto','error');return;}
   const fornId=document.getElementById('prod-fornecedor').value;
+  const tamanhos=getProdTamanhos();
+  const genero=document.getElementById('prod-genero').value||null;
+  const imagens=prodFotosArray.length?prodFotosArray:null;
+  const capaBg=imagens?imagens[0]:null; // primeira foto = capa
   const body={nome,perfil_codigo:currentUser.perfil||'master',
-    codigo:document.getElementById('prod-codigo').value.trim()||null,descricao:document.getElementById('prod-desc').value.trim()||null,
-    categoria:document.getElementById('prod-categoria').value.trim()||null,unidade:document.getElementById('prod-unidade').value||'un',
-    preco_custo:document.getElementById('prod-custo').value||null,preco_venda:document.getElementById('prod-venda').value||null,
-    estoque_minimo:document.getElementById('prod-est-min').value||0,estoque_maximo:document.getElementById('prod-est-max').value||null,
-    fornecedor_id:fornId?parseInt(fornId):null,imagem_base64:prodImageBase64||null,
-    observacoes:document.getElementById('prod-obs').value.trim()||null,alterado_em:new Date().toISOString()};
+    codigo:document.getElementById('prod-codigo').value.trim()||null,
+    descricao:document.getElementById('prod-desc').value.trim()||null,
+    categoria:document.getElementById('prod-categoria').value.trim()||null,
+    unidade:document.getElementById('prod-unidade').value||'un',
+    preco_custo:document.getElementById('prod-custo').value||null,
+    preco_venda:document.getElementById('prod-venda').value||null,
+    estoque_minimo:document.getElementById('prod-est-min').value||0,
+    estoque_maximo:document.getElementById('prod-est-max').value||null,
+    fornecedor_id:fornId?parseInt(fornId):null,
+    imagem_base64:capaBg, // capa = primeira foto
+    imagens_base64:imagens,
+    genero,
+    tamanhos:tamanhos.length?tamanhos:null,
+    observacoes:document.getElementById('prod-obs').value.trim()||null,
+    alterado_em:new Date().toISOString()};
   try{
     if(!editingProdutoId){await api('produtos',{method:'POST',body:JSON.stringify({...body,ativo:true})});showMM('modal-prod-msg','Produto cadastrado com sucesso!','success');}
     else{await api('produtos?id=eq.'+editingProdutoId,{method:'PATCH',body:JSON.stringify(body)});showMM('modal-prod-msg','Produto atualizado com sucesso!','success');}
