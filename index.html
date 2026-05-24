@@ -485,6 +485,22 @@
         <input type="hidden" id="compra-prod-id">
         <input type="hidden" id="compra-prod-valor-unit">
       </div>
+      <div class="mfield col-1" id="compra-genero-wrap" style="display:none">
+        <label>Gênero</label>
+        <select id="compra-genero" onchange="onCompraGeneroChange()">
+          <option value="">Não especificado</option>
+          <option value="masculino">Masculino</option>
+          <option value="feminino">Feminino</option>
+          <option value="infantil">Infantil</option>
+          <option value="unissex">Unissex</option>
+        </select>
+      </div>
+      <div class="mfield col-1" id="compra-tamanho-wrap" style="display:none">
+        <label>Tamanho</label>
+        <select id="compra-tamanho">
+          <option value="">Não especificado</option>
+        </select>
+      </div>
       <div class="mfield col-1"><label>Quantidade <span class="req">*</span></label><input type="number" id="compra-qtd" placeholder="1" min="1" step="1" value="1" oninput="calcularTotalCompra()"></div>
       <div class="mfield col-1"><label>Valor Unitário (R$)</label><input type="number" id="compra-valor-unit" placeholder="0,00" min="0" step="0.01" oninput="calcularTotalCompra()"></div>
       <div class="mfield col-1"><label>Desconto (R$)</label><input type="number" id="compra-desconto" placeholder="0,00" min="0" step="0.01" value="0" oninput="calcularTotalCompra()"></div>
@@ -748,6 +764,22 @@
         <label id="est-qtd-label">Quantidade <span class="req">*</span></label>
         <input type="number" id="est-quantidade" placeholder="0" min="0" step="0.001" oninput="onEstQtdChange()">
         <div class="field-hint" id="est-qtd-hint"></div>
+      </div>
+      <div class="mfield col-1" id="est-genero-wrap" style="display:none">
+        <label>Gênero</label>
+        <select id="est-genero" onchange="onEstGeneroChange()">
+          <option value="">Não especificado</option>
+          <option value="masculino">Masculino</option>
+          <option value="feminino">Feminino</option>
+          <option value="infantil">Infantil</option>
+          <option value="unissex">Unissex</option>
+        </select>
+      </div>
+      <div class="mfield col-1" id="est-tamanho-wrap" style="display:none">
+        <label>Tamanho</label>
+        <select id="est-tamanho">
+          <option value="">Não especificado</option>
+        </select>
       </div>
       <div class="mfield col-2">
         <label>Motivo / Descrição</label>
@@ -1461,7 +1493,7 @@ async function carregarUsuarios(){
       const ord={master_sistema:0,master_empresa:1,usuario:2};
       data.sort((a,b)=>(ord[a.nivel]??9)-(ord[b.nivel]??9)||a.id-b.id);
     } else if(currentUser.nivel==='master_empresa'){
-      data=await api('usuarios?select=*&perfil=eq.'+currentUser.perfil+'&nivel=eq.usuario&order=id.asc')||[];
+      data=await api('usuarios?select=*&perfil=eq.'+encodeURIComponent(currentUser.perfil)+'&order=id.asc')||[];
     }
     if(!data.length){
       tbody.innerHTML='<tr><td colspan="7" class="empty">Nenhum usuário encontrado.</td></tr>';return;
@@ -2437,6 +2469,21 @@ function selecionarProdutoCompra(id,nome,preco){
   document.getElementById('compra-prod-preco').textContent=preco?'R$ '+parseFloat(preco).toFixed(2).replace('.',','):'';
   document.getElementById('compra-prod-selecionado').style.display='flex';
   document.getElementById('compra-valor-unit').value=preco?parseFloat(preco).toFixed(2):'';
+  // Buscar gênero do produto para mostrar tamanhos
+  api('produtos?id=eq.'+id+'&select=genero').then(rows=>{
+    const genero=rows&&rows[0]?rows[0].genero||'':'';
+    const wrapG=document.getElementById('compra-genero-wrap');
+    const wrapT=document.getElementById('compra-tamanho-wrap');
+    if(genero){
+      if(wrapG)wrapG.style.display='block';
+      if(wrapT)wrapT.style.display='block';
+      document.getElementById('compra-genero').value=genero;
+      popularSelectTamanhos('compra-tamanho',genero,'');
+    } else {
+      if(wrapG)wrapG.style.display='none';
+      if(wrapT)wrapT.style.display='none';
+    }
+  }).catch(()=>{});
   calcularTotalCompra();
 }
 
@@ -2470,6 +2517,8 @@ async function salvarCompraCliente(){
   const desc=parseFloat(document.getElementById('compra-desconto').value)||0;
   const total=parseFloat(document.getElementById('compra-total').value)||null;
   try{
+    const compraGenero=document.getElementById('compra-genero')?.value||null;
+    const compraTamanho=document.getElementById('compra-tamanho')?.value||null;
     await api('cliente_compras',{method:'POST',body:JSON.stringify({
       perfil_codigo:currentUser.perfil||'master',
       cliente_id:compraClienteId,
@@ -2479,6 +2528,8 @@ async function salvarCompraCliente(){
       desconto:desc||null,
       total_pago:total,
       data_compra:data,
+      genero:compraGenero,
+      tamanho:compraTamanho,
       observacoes:document.getElementById('compra-obs').value.trim()||null
     })});
     showMM('modal-compra-msg','Compra registrada com sucesso!','success');
@@ -2492,6 +2543,42 @@ document.addEventListener('click',e=>{
   const busca=document.getElementById('compra-prod-busca');
   if(drop&&busca&&!busca.contains(e.target)&&!drop.contains(e.target))drop.style.display='none';
 });
+
+
+// ── Tamanhos dinâmicos por gênero ────────────────────────────────
+const TAMANHOS_ADULTO=['PP','P','M','G','GG','XGG','XGGG','34','36','38','40','42','44','46','48','50','Único'];
+const TAMANHOS_INFANTIL=['RN','P','M','G','1 ano','2 anos','4 anos','6 anos','8 anos','10 anos','12 anos','14 anos','16 anos'];
+
+function popularSelectTamanhos(selectId,genero,tamanhosSalvos){
+  const sel=document.getElementById(selectId);
+  if(!sel)return;
+  const lista=genero==='infantil'?TAMANHOS_INFANTIL:TAMANHOS_ADULTO;
+  sel.innerHTML='<option value="">Não especificado</option>'+lista.map(t=>'<option value="'+t+'"'+(tamanhosSalvos===t?' selected':'')+'>'+t+'</option>').join('');
+}
+
+function onEstProdutoGeneroChange(genero,tamanhosSalvos){
+  const wrapG=document.getElementById('est-genero-wrap');
+  const wrapT=document.getElementById('est-tamanho-wrap');
+  if(!genero){
+    if(wrapG)wrapG.style.display='none';
+    if(wrapT)wrapT.style.display='none';
+    return;
+  }
+  if(wrapG)wrapG.style.display='block';
+  if(wrapT)wrapT.style.display='block';
+  document.getElementById('est-genero').value=genero;
+  popularSelectTamanhos('est-tamanho',genero,tamanhosSalvos);
+}
+
+function onEstGeneroChange(){
+  const genero=document.getElementById('est-genero').value;
+  popularSelectTamanhos('est-tamanho',genero,'');
+}
+
+function onCompraGeneroChange(){
+  const genero=document.getElementById('compra-genero').value;
+  popularSelectTamanhos('compra-tamanho',genero,'');
+}
 
 // ─── PAINEL: CLIENTES ────────────────────────────────────────────
 let editingClienteId=null;
@@ -3261,11 +3348,14 @@ async function onEstProdutoChange(){
     const saldo=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
     document.getElementById('est-saldo-atual').textContent=saldo+' '+unidade;
     wrap.style.display='block';
-    const prodInfoMin=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo');
+    const prodInfoMin=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo,genero,tamanhos');
     const max=prodInfoMin&&prodInfoMin[0]&&prodInfoMin[0].estoque_maximo!=null?parseFloat(prodInfoMin[0].estoque_maximo):null;
     const min=prodInfoMin&&prodInfoMin[0]&&prodInfoMin[0].estoque_minimo!=null?parseFloat(prodInfoMin[0].estoque_minimo):null;
     document.getElementById('est-produto').dataset.max=max!=null?max:'';
     document.getElementById('est-produto').dataset.min=min!=null?min:'';
+    // Mostrar gênero/tamanho se produto tiver
+    const genero=prodInfoMin&&prodInfoMin[0]?prodInfoMin[0].genero||'':'';
+    onEstProdutoGeneroChange(genero,'');
     onEstQtdChange();
   }catch(e){}
 }
@@ -3322,7 +3412,9 @@ async function salvarMovimento(){
     else if(tipo==='transferencia')novoSaldo=saldoAtual-qtd;
     if(estoqueMax!=null&&(tipo==='entrada'||tipo==='ajuste')&&novoSaldo>estoqueMax){showMM('modal-est-msg','Quantidade excede o estoque máximo permitido ('+estoqueMax+'). Saldo atual: '+saldoAtual+'. Máximo que pode entrar: '+(estoqueMax-saldoAtual)+'.','error');return;}
     if(estoqueMin!=null&&(tipo==='saida'||tipo==='transferencia')&&novoSaldo<estoqueMin){showMM('modal-est-msg','Quantidade deixaria o estoque abaixo do mínimo permitido ('+estoqueMin+'). Saldo atual: '+saldoAtual+'. Máximo que pode sair: '+(saldoAtual-estoqueMin)+'.','error');return;}
-    await api('estoque_movimentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),tipo,quantidade:qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,motivo:document.getElementById('est-motivo').value.trim()||null,observacoes:document.getElementById('est-obs').value.trim()||null,criado_por:currentUser.usuario})});
+    const estGenero=document.getElementById('est-genero')?.value||null;
+    const estTamanho=document.getElementById('est-tamanho')?.value||null;
+    await api('estoque_movimentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),tipo,quantidade:qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,motivo:document.getElementById('est-motivo').value.trim()||null,observacoes:document.getElementById('est-obs').value.trim()||null,genero:estGenero,tamanho:estTamanho,criado_por:currentUser.usuario})});
     if(saldoId){await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});}
     else{await api('estoque_saldo',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),quantidade:novoSaldo})});}
     showMM('modal-est-msg','Movimentação registrada com sucesso!','success');
