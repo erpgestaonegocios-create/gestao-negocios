@@ -1445,7 +1445,7 @@ function renderUsuarios(){
     </div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>#</th><th>Usuário</th><th>Nome</th><th>Empresa</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead>
-      <tbody id="tbl-usuarios"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+      <tbody id="tbl-usuarios"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
     </table></div>`;
 }
 
@@ -1481,7 +1481,7 @@ function onFiltroPerfilChange(){
 async function carregarUsuarios(){
   const tbody=document.getElementById('tbl-usuarios');
   if(!tbody)return;
-  tbody.innerHTML='<tr><td colspan="7" class="loading">Carregando...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
   try{
     let data=[];
     if(currentUser.nivel==='master_sistema'){
@@ -3145,7 +3145,7 @@ function renderServicos(){
     </div>
     <div class="tbl-wrap"><table>
     <thead><tr><th>#</th><th>Código</th><th>Nome</th><th>Preço</th><th>Duração</th><th>Status</th><th>Ações</th></tr></thead>
-    <tbody id="tbl-servicos"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+    <tbody id="tbl-servicos"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
     </table></div>`;
 }
 
@@ -3154,7 +3154,7 @@ function atualizarDuracaoTotal(){const h=parseInt(document.getElementById('serv-
 
 async function carregarServicos(filtro=''){
   const tbody=document.getElementById('tbl-servicos');if(!tbody)return;
-  tbody.innerHTML='<tr><td colspan="7" class="loading">Carregando...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
   try{
     const pf=currentUser.perfil||'master';
     let q='servicos?select=*&order=nome.asc&perfil_codigo=eq.'+encodeURIComponent(pf);
@@ -3231,8 +3231,8 @@ function renderEstoque(){
     <button class="btn-search" onclick="filtrarEstoque()">Filtrar</button>
   </div>
   <div class="tbl-wrap"><table>
-    <thead><tr><th>Produto</th><th>Unidade</th><th>Saldo Atual</th><th>Mínimo</th><th>Máximo</th><th>Situação</th><th>Ações</th></tr></thead>
-    <tbody id="tbl-estoque"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+    <thead><tr><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Saldo Atual</th><th>Mínimo</th><th>Máximo</th><th>Situação</th><th>Ações</th></tr></thead>
+    <tbody id="tbl-estoque"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
   </table></div>
   <div style="margin-top:24px">
     <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
@@ -3250,7 +3250,7 @@ async function carregarEstoque(){
   const pf=currentUser.perfil||'master';
   try{
     const [produtos,saldos]=await Promise.all([
-      api('produtos?select=id,nome,unidade,estoque_minimo,estoque_maximo,ativo&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc'),
+      api('produtos?select=id,nome,unidade,genero,tamanhos,estoque_minimo,estoque_maximo,ativo&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc'),
       api('estoque_saldo?select=produto_id,quantidade&perfil_codigo=eq.'+encodeURIComponent(pf))
     ]);
     saldosCache={};(saldos||[]).forEach(s=>saldosCache[s.produto_id]=parseFloat(s.quantidade)||0);
@@ -3283,7 +3283,8 @@ function renderTabelaEstoque(lista){
     const saldoColor=min!=null&&p.saldo<min?'color:var(--danger);font-weight:700':'color:var(--text);font-weight:600';
     return `<tr>
       <td><span ${LINK}data-pid="${p.id}" onclick="selecionarProdutoHistorico(${p.id},'${p.nome.replace(/'/g,"\\'")}' )">${p.nome}</span></td>
-      <td><span class="badge" style="background:var(--surface2);color:var(--text2)">${p.unidade||'un'}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${p.genero?p.genero.charAt(0).toUpperCase()+p.genero.slice(1):'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${(p.tamanhos&&p.tamanhos.length)?p.tamanhos.join(', '):'—'}</td>
       <td style="${saldoColor};font-size:16px">${p.saldo}</td>
       <td style="color:var(--text3)">${min??'-'}</td><td style="color:var(--text3)">${max??'-'}</td>
       <td><span class="badge" style="${badgeStyle}">${situacao}</span></td>
