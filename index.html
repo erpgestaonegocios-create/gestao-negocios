@@ -1476,7 +1476,7 @@ async function salvarUsuario(){
   if(!usuario){showMM('modal-user-msg','Informe o usuário','error');return;}
   if(!senha){showMM('modal-user-msg','Informe a senha','error');return;}
   if(!perfil&&!isMasterEmpresa){showMM('modal-user-msg','Selecione o perfil','error');return;}
-  const body={nome,senha,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
+  const body={usuario,nome,senha,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
   try{
     if(!editingUserId){
       const novo=await api('usuarios',{method:'POST',body:JSON.stringify({...body,usuario,ativo:true})});
