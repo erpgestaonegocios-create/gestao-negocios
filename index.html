@@ -1004,7 +1004,16 @@ throw new Error(msg);
 // ─── HELPERS ─────────────────────────────────────────────────────
 function showMsg(el,txt,type){el.textContent=txt;el.className='msg '+type;el.style.display='block';}
 function showMM(id,txt,type){const el=document.getElementById(id);el.textContent=txt;el.className='modal-msg '+type;el.style.display='block';}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+  // Desbloquear gênero/tamanho do estoque ao fechar (podem ter sido bloqueados pelo Movimentar)
+  if(id==='modal-estoque-mov'){
+    const sg=document.getElementById('est-genero');
+    const st=document.getElementById('est-tamanho');
+    if(sg)sg.disabled=false;
+    if(st)st.disabled=false;
+  }
+}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function toggleCheck(id,item){const c=document.getElementById(id);c.checked=!c.checked;item.classList.toggle('selected',c.checked);}
 function nivelLabel(n){return n==='master_sistema'?'Master Sistema':n==='master_empresa'?'Master Empresa':'Usuário';}
@@ -3351,7 +3360,7 @@ function renderTabelaEstoque(lista){
       <td style="${saldoColor};font-size:16px">${p.saldo}</td>
       <td style="color:var(--text3)">${min??'-'}</td><td style="color:var(--text3)">${max??'-'}</td>
       <td><span class="badge" style="${badgeStyle}">${situacao}</span></td>
-      <td><div class="action-btns"><button class="btn-sm btn-edit" data-pid="${p.id}" onclick="openModalMovimento(this.dataset.pid)">Movimentar</button></div></td></tr>`;
+      <td><div class="action-btns"><button class="btn-sm btn-edit" data-pid="${p.id}" data-pnome="${p.nome}" data-pgenero="${p.genero||''}" data-ptamanho="${p.tamanho||''}" onclick="openModalMovimentoExistente(this.dataset)">Movimentar</button></div></td></tr>`;
   }).join('');
 }
 
@@ -3385,6 +3394,59 @@ async function carregarHistorico(){
       +movs.map(m=>{const dt=new Date(m.criado_em).toLocaleString('pt-BR');const sinal=m.tipo==='entrada'?'+':m.tipo==='saida'?'-':'';return `<tr><td style="font-size:12px;color:var(--text3)">${dt}</td><td style="font-weight:500;color:var(--text)">${m.produtos?.nome||'—'}</td><td><span style="color:${tipoColor[m.tipo]};font-weight:600">${tipoIcon[m.tipo]} ${tipoLabel[m.tipo]||m.tipo}</span></td><td style="color:${tipoColor[m.tipo]};font-weight:700">${sinal}${m.quantidade} ${m.produtos?.unidade||'un'}</td><td style="color:var(--text3)">${m.quantidade_anterior??'—'}</td><td style="color:var(--text3)">${m.quantidade_posterior??'—'}</td><td style="font-size:12px">${m.motivo||'—'}</td></tr>`;}).join('')
       +'</tbody></table></div>';
   }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+}
+
+
+// Movimentar produto com variação já conhecida (da tabela de estoque)
+async function openModalMovimentoExistente(dataset){
+  const pid=dataset.pid;
+  const nome=dataset.pnome||'';
+  const genero=dataset.pgenero||'';
+  const tamanho=dataset.ptamanho||'';
+
+  // Reset campos básicos
+  document.getElementById('modal-est-msg').style.display='none';
+  document.getElementById('est-quantidade').value='';
+  document.getElementById('est-motivo').value='';
+  document.getElementById('est-obs').value='';
+  document.getElementById('est-qtd-hint').textContent='';
+  document.querySelector('input[name="est-tipo"][value="entrada"]').checked=true;
+  onEstTipoChange();
+
+  // Preencher produto na busca
+  document.getElementById('est-produto').value=pid;
+  document.getElementById('est-produto-busca').value='';
+  document.getElementById('est-produto-nome').textContent=nome;
+  document.getElementById('est-produto-selecionado').style.display='flex';
+
+  // Preencher gênero e tamanho da variação existente — bloqueados para evitar erro
+  const selGenero=document.getElementById('est-genero');
+  const selTamanho=document.getElementById('est-tamanho');
+  selGenero.value=genero;
+  selGenero.disabled=true; // bloqueia pois é movimentação de variação existente
+  popularSelectTamanhos('est-tamanho',genero||'adulto',tamanho);
+  selTamanho.value=tamanho;
+  selTamanho.disabled=true; // bloqueia
+
+  // Adicionar aviso de que campos estão bloqueados
+  const wrap=document.getElementById('est-saldo-atual-wrap');
+  const pf=currentUser.perfil||'master';
+  let qSaldo='estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf);
+  if(genero)qSaldo+='&genero=eq.'+encodeURIComponent(genero); else qSaldo+='&genero=is.null';
+  if(tamanho)qSaldo+='&tamanho=eq.'+encodeURIComponent(tamanho); else qSaldo+='&tamanho=is.null';
+  const prodInfoMin=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo').catch(()=>[]);
+  const max=prodInfoMin&&prodInfoMin[0]&&prodInfoMin[0].estoque_maximo!=null?parseFloat(prodInfoMin[0].estoque_maximo):null;
+  const min=prodInfoMin&&prodInfoMin[0]&&prodInfoMin[0].estoque_minimo!=null?parseFloat(prodInfoMin[0].estoque_minimo):null;
+  document.getElementById('est-produto').dataset.max=max!=null?max:'';
+  document.getElementById('est-produto').dataset.min=min!=null?min:'';
+  try{
+    const rows=await api(qSaldo+'&select=quantidade');
+    const saldo=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
+    document.getElementById('est-saldo-atual').textContent=saldo;
+    wrap.style.display='block';
+  }catch(e){wrap.style.display='none';}
+
+  openModal('modal-estoque-mov');
 }
 
 async function openModalMovimento(produtoId){
@@ -3453,7 +3515,10 @@ function onEstQtdChange(){
   let erro=false;
   if(tipo==='entrada'){
     const novoSaldo=saldoAtual+qtd;
+    const minEntrada=document.getElementById('est-produto').dataset.min;
+    const estoqueMinEntrada=minEntrada!==''&&minEntrada!=null?parseFloat(minEntrada):null;
     if(estoqueMax!=null&&novoSaldo>estoqueMax){hint.textContent='⚠️ Excede o máximo ('+estoqueMax+'). Máximo que pode entrar: '+(estoqueMax-saldoAtual);hint.className='field-hint err';if(btn)btn.disabled=true;erro=true;}
+    else if(estoqueMinEntrada!=null&&novoSaldo<estoqueMinEntrada){hint.textContent='⚠️ Saldo após entrada ('+novoSaldo+') ficará abaixo do mínimo ('+estoqueMinEntrada+'). Adicione pelo menos '+(estoqueMinEntrada-saldoAtual)+' un.';hint.className='field-hint err';if(btn)btn.disabled=true;erro=true;}
     else{hint.textContent='Novo saldo: '+novoSaldo+(estoqueMax!=null?' (máx: '+estoqueMax+')':'');hint.className='field-hint ok';}
   } else if(tipo==='saida'){
     const novoSaldo=saldoAtual-qtd;
@@ -3473,6 +3538,8 @@ async function salvarMovimento(){
   const tipo=document.querySelector('input[name="est-tipo"]:checked')?.value;
   if(!pid){showMM('modal-est-msg','Selecione o produto','error');return;}
   if(!qtd||qtd<=0){showMM('modal-est-msg','Informe uma quantidade válida','error');return;}
+  const estTamanhoCheck=document.getElementById('est-tamanho')?.value;
+  if(!estTamanhoCheck){showMM('modal-est-msg','Selecione o tamanho','error');return;}
   const pf=currentUser.perfil||'master';
   const estGenero=document.getElementById('est-genero')?.value||null;
   const estTamanho=document.getElementById('est-tamanho')?.value||null;
@@ -3491,11 +3558,30 @@ async function salvarMovimento(){
     else if(tipo==='saida')novoSaldo=saldoAtual-qtd;
     else if(tipo==='ajuste')novoSaldo=qtd;
     else if(tipo==='transferencia')novoSaldo=saldoAtual-qtd;
+    // Validação de máximo: entrada/ajuste não pode ultrapassar o máximo
     if(estoqueMax!=null&&(tipo==='entrada'||tipo==='ajuste')&&novoSaldo>estoqueMax){
-      showMM('modal-est-msg','Excede o máximo ('+estoqueMax+'). Saldo desta variação: '+saldoAtual+'.','error');return;
+      showMM('modal-est-msg','Saldo após entrada ('+novoSaldo+') excede o máximo permitido ('+estoqueMax+'). Máximo que pode entrar: '+(estoqueMax-saldoAtual)+'.','error');return;
     }
-    if(estoqueMin!=null&&(tipo==='saida'||tipo==='transferencia')&&novoSaldo<estoqueMin){
-      showMM('modal-est-msg','Ficaria abaixo do mínimo ('+estoqueMin+'). Saldo desta variação: '+saldoAtual+'.','error');return;
+    // Validação de mínimo e máximo por tipo
+    if(tipo==='entrada'||tipo==='ajuste'){
+      if(estoqueMax!=null&&novoSaldo>estoqueMax){
+        showMM('modal-est-msg','Saldo resultante ('+novoSaldo+') excederia o máximo permitido ('+estoqueMax+'). Máximo que pode entrar: '+(estoqueMax-saldoAtual)+' unidade(s).','error');return;
+      }
+      if(tipo==='entrada'&&estoqueMin!=null&&novoSaldo<estoqueMin){
+        showMM('modal-est-msg','Saldo resultante ('+novoSaldo+') ficaria abaixo do mínimo ('+estoqueMin+'). A entrada mínima deve resultar em pelo menos '+estoqueMin+' unidade(s). Adicione pelo menos '+(estoqueMin-saldoAtual)+' unidade(s).','error');return;
+      }
+    }
+    if(tipo==='saida'||tipo==='transferencia'){
+      if(estoqueMin!=null&&novoSaldo<estoqueMin){
+        showMM('modal-est-msg','Saldo resultante ('+novoSaldo+') ficaria abaixo do mínimo ('+estoqueMin+'). Máximo que pode sair: '+(saldoAtual-estoqueMin)+' unidade(s).','error');return;
+      }
+      if(novoSaldo<0){
+        showMM('modal-est-msg','Quantidade insuficiente. Saldo atual desta variação: '+saldoAtual+' unidade(s).','error');return;
+      }
+    }
+    // Saldo não pode ficar negativo
+    if(novoSaldo<0){
+      showMM('modal-est-msg','Saldo insuficiente. Saldo atual desta variação: '+saldoAtual+'.','error');return;
     }
     await api('estoque_movimentos',{method:'POST',body:JSON.stringify({
       perfil_codigo:pf,produto_id:parseInt(pid),tipo,quantidade:qtd,
