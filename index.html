@@ -462,7 +462,19 @@
   </div>
 </div>
 
-<!-- MODAL HISTÓRICO COMPRAS -->
+<!-- MODAL HISTÓRICO DE COMPRAS (CONSULTA) -->
+<div class="modal-overlay" id="modal-historico-compras">
+  <div class="modal">
+    <div class="modal-title" id="hist-compras-titulo">Histórico de Compras</div>
+    <div class="modal-sub" id="hist-compras-sub"></div>
+    <div id="hist-compras-conteudo"><div class="loading">Carregando...</div></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-historico-compras')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR COMPRA -->
 <div class="modal-overlay" id="modal-compra-cliente">
   <div class="modal modal-sm">
     <div class="modal-title">Registrar Compra</div>
@@ -595,54 +607,7 @@
           <option value="outro">outro</option>
         </select>
       </div>
-      <div class="form-section">Gênero e Tamanhos</div>
-      <div class="mfield col-1">
-        <label>Gênero</label>
-        <select id="prod-genero" onchange="onProdGeneroChange()">
-          <option value="">Não aplicável</option>
-          <option value="masculino">Masculino</option>
-          <option value="feminino">Feminino</option>
-          <option value="infantil">Infantil</option>
-          <option value="unissex">Unissex</option>
-        </select>
-      </div>
-      <div class="mfield col-2" id="prod-tamanhos-wrap" style="display:none">
-        <label>Tamanhos Disponíveis</label>
-        <div id="prod-tamanhos-adulto" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="PP" class="prod-tam-check" style="accent-color:var(--accent)"> PP</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="P" class="prod-tam-check" style="accent-color:var(--accent)"> P</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="M" class="prod-tam-check" style="accent-color:var(--accent)"> M</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="G" class="prod-tam-check" style="accent-color:var(--accent)"> G</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="GG" class="prod-tam-check" style="accent-color:var(--accent)"> GG</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="XGG" class="prod-tam-check" style="accent-color:var(--accent)"> XGG</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="XGGG" class="prod-tam-check" style="accent-color:var(--accent)"> XGGG</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="34" class="prod-tam-check" style="accent-color:var(--accent)"> 34</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="36" class="prod-tam-check" style="accent-color:var(--accent)"> 36</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="38" class="prod-tam-check" style="accent-color:var(--accent)"> 38</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="40" class="prod-tam-check" style="accent-color:var(--accent)"> 40</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="42" class="prod-tam-check" style="accent-color:var(--accent)"> 42</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="44" class="prod-tam-check" style="accent-color:var(--accent)"> 44</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="46" class="prod-tam-check" style="accent-color:var(--accent)"> 46</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="48" class="prod-tam-check" style="accent-color:var(--accent)"> 48</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="50" class="prod-tam-check" style="accent-color:var(--accent)"> 50</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="Único" class="prod-tam-check" style="accent-color:var(--accent)"> Único</label>
-        </div>
-        <div id="prod-tamanhos-infantil" style="display:none;flex-wrap:wrap;gap:8px;margin-top:6px">
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="RN" class="prod-tam-check" style="accent-color:var(--accent)"> RN</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="P" class="prod-tam-check" style="accent-color:var(--accent)"> P</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="M" class="prod-tam-check" style="accent-color:var(--accent)"> M</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="G" class="prod-tam-check" style="accent-color:var(--accent)"> G</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="1" class="prod-tam-check" style="accent-color:var(--accent)"> 1 ano</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="2" class="prod-tam-check" style="accent-color:var(--accent)"> 2 anos</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="4" class="prod-tam-check" style="accent-color:var(--accent)"> 4 anos</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="6" class="prod-tam-check" style="accent-color:var(--accent)"> 6 anos</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="8" class="prod-tam-check" style="accent-color:var(--accent)"> 8 anos</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="10" class="prod-tam-check" style="accent-color:var(--accent)"> 10 anos</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="12" class="prod-tam-check" style="accent-color:var(--accent)"> 12 anos</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="14" class="prod-tam-check" style="accent-color:var(--accent)"> 14 anos</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="16" class="prod-tam-check" style="accent-color:var(--accent)"> 16 anos</label>
-        </div>
-      </div>
+
       <div class="form-section">Preços</div>
       <div class="mfield col-1"><label>Preço de Custo (R$)</label><input type="number" id="prod-custo" placeholder="0,00" min="0" step="0.01"></div>
       <div class="mfield col-1"><label>Preço de Venda (R$)</label><input type="number" id="prod-venda" placeholder="0,00" min="0" step="0.01"></div>
@@ -2431,6 +2396,44 @@ function calcularFreteEstimado(cep){
 // ── Histórico de compras do cliente ──────────────────────────────
 let compraClienteId=null;
 
+
+async function consultarHistoricoCompras(clienteId,clienteNome){
+  document.getElementById('hist-compras-titulo').textContent='Histórico de Compras';
+  document.getElementById('hist-compras-sub').textContent='Cliente: '+clienteNome;
+  document.getElementById('hist-compras-conteudo').innerHTML='<div class="loading">Carregando...</div>';
+  openModal('modal-historico-compras');
+  const pf=currentUser.perfil||'master';
+  try{
+    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,criado_em.desc');
+    const wrap=document.getElementById('hist-compras-conteudo');
+    if(!compras||!compras.length){
+      wrap.innerHTML='<div class="empty">Nenhuma compra registrada para este cliente.</div>';return;
+    }
+    const fmtV=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
+    const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'-';
+    // Totalizador
+    const totalGasto=compras.reduce((s,c)=>s+parseFloat(c.total_pago||0),0);
+    let html='<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">';
+    html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total de Compras</div><div style="font-size:22px;font-weight:700;color:var(--accent)">'+compras.length+'</div></div>';
+    html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total Gasto</div><div style="font-size:22px;font-weight:700;color:var(--success)">'+fmtV(totalGasto)+'</div></div>';
+    html+='</div>';
+    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
+    html+=compras.map(comp=>`<tr>
+      <td style="font-size:12px">${fmtD(comp.data_compra)}</td>
+      <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}${comp.produtos?.codigo?' <span style="color:var(--text3);font-size:11px">['+comp.produtos.codigo+']</span>':''}</td>
+      <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
+      <td style="text-align:center">${comp.quantidade}</td>
+      <td>${fmtV(comp.valor_unitario)}</td>
+      <td style="color:var(--warn)">${comp.desconto&&parseFloat(comp.desconto)>0?fmtV(comp.desconto):'—'}</td>
+      <td style="font-weight:700;color:var(--success)">${fmtV(comp.total_pago)}</td>
+      <td style="font-size:11px;color:var(--text3)">${comp.observacoes||'—'}</td>
+    </tr>`).join('');
+    html+='</tbody></table></div>';
+    wrap.innerHTML=html;
+  }catch(e){document.getElementById('hist-compras-conteudo').innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+}
+
 async function abrirHistoricoCompras(clienteId,clienteNome){
   compraClienteId=clienteId;
   document.getElementById('modal-compra-sub').textContent='Cliente: '+clienteNome;
@@ -2516,9 +2519,29 @@ async function salvarCompraCliente(){
   const unit=parseFloat(document.getElementById('compra-valor-unit').value)||null;
   const desc=parseFloat(document.getElementById('compra-desconto').value)||0;
   const total=parseFloat(document.getElementById('compra-total').value)||null;
+  const compraGenero=document.getElementById('compra-genero')?.value||null;
+  const compraTamanho=document.getElementById('compra-tamanho')?.value||null;
+  // Validar se tamanho existe no estoque
+  if(compraTamanho){
+    try{
+      const pf=currentUser.perfil||'master';
+      // Buscar movimentações de entrada para este produto e tamanho
+      const entradas=await api('estoque_movimentos?select=quantidade,tipo&perfil_codigo=eq.'+encodeURIComponent(pf)+'&produto_id=eq.'+prodId+'&tamanho=eq.'+encodeURIComponent(compraTamanho));
+      if(!entradas||!entradas.length){
+        showMM('modal-compra-msg','Tamanho '+compraTamanho+' não encontrado no estoque para este produto. Verifique as movimentações de entrada.','error');return;
+      }
+      // Calcular saldo por tamanho
+      let saldoTam=0;
+      (entradas||[]).forEach(m=>{
+        if(m.tipo==='entrada'||m.tipo==='ajuste')saldoTam+=parseFloat(m.quantidade||0);
+        else if(m.tipo==='saida'||m.tipo==='transferencia')saldoTam-=parseFloat(m.quantidade||0);
+      });
+      if(saldoTam<qtd){
+        showMM('modal-compra-msg','Estoque insuficiente para o tamanho '+compraTamanho+'. Disponível: '+saldoTam+' unidade(s).','error');return;
+      }
+    }catch(e){showMM('modal-compra-msg','Erro ao verificar estoque: '+e.message,'error');return;}
+  }
   try{
-    const compraGenero=document.getElementById('compra-genero')?.value||null;
-    const compraTamanho=document.getElementById('compra-tamanho')?.value||null;
     await api('cliente_compras',{method:'POST',body:JSON.stringify({
       perfil_codigo:currentUser.perfil||'master',
       cliente_id:compraClienteId,
@@ -2626,6 +2649,7 @@ async function carregarClientes(filtro=''){
       <td><span class="badge ${c.ativo?'badge-ativo':'badge-inativo'}">${c.ativo?'Ativo':'Inativo'}</span></td>
       <td><div class="action-btns">
         <button class="btn-sm" style="border-color:var(--success);color:var(--success);background:transparent" data-cid="${c.id}" data-cnome="${c.nome}" onclick="abrirHistoricoCompras(parseInt(this.dataset.cid),this.dataset.cnome)">🛒 Compra</button>
+        <button class="btn-sm" style="border-color:var(--accent);color:var(--accent);background:transparent" data-cid="${c.id}" data-cnome="${c.nome}" onclick="consultarHistoricoCompras(parseInt(this.dataset.cid),this.dataset.cnome)">📋 Histórico</button>
         ${c.ativo?'<button class="btn-sm btn-deact" onclick="toggleCliente('+c.id+',false)">Desativar</button>':'<button class="btn-sm btn-react" onclick="toggleCliente('+c.id+',true)">Reativar</button>'}
       </div></td></tr>`).join('');
   }catch(e){tbody.innerHTML=`<tr><td colspan="8" class="empty">Erro: ${e.message}</td></tr>`;}
@@ -2869,32 +2893,8 @@ async function salvarFornecedor(){
 
 
 // ── Produto: gênero e tamanhos ───────────────────────────────────
-function onProdGeneroChange(){
-  const genero=document.getElementById('prod-genero').value;
-  const wrap=document.getElementById('prod-tamanhos-wrap');
-  const adulto=document.getElementById('prod-tamanhos-adulto');
-  const infantil=document.getElementById('prod-tamanhos-infantil');
-  if(!genero){wrap.style.display='none';return;}
-  wrap.style.display='block';
-  if(genero==='infantil'){
-    adulto.style.display='none';
-    infantil.style.display='flex';
-  } else {
-    adulto.style.display='flex';
-    infantil.style.display='none';
-  }
-}
 
-function getProdTamanhos(){
-  const checks=document.querySelectorAll('.prod-tam-check:checked');
-  return Array.from(checks).map(c=>c.value);
-}
 
-function setProdTamanhos(tamanhos){
-  document.querySelectorAll('.prod-tam-check').forEach(c=>{
-    c.checked=tamanhos&&tamanhos.includes(c.value);
-  });
-}
 
 // ── Produto: múltiplas fotos ─────────────────────────────────────
 let prodFotosArray=[]; // array de base64
@@ -3052,10 +3052,7 @@ async function openModalProduto(mode,id){
   document.getElementById('modal-prod-msg').style.display='none';
   document.getElementById('prod-img-file').value='';
   renderProdFotosGrid();
-  // Reset gênero e tamanhos
-  document.getElementById('prod-genero').value='';
-  onProdGeneroChange();
-  setProdTamanhos([]);
+
   const pf=currentUser.perfil||'master';
   const selForn=document.getElementById('prod-fornecedor');
   try{const forns=await api('fornecedores?select=id,nome&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc');selForn.innerHTML='<option value="">Nenhum / Sem vínculo</option>'+(forns||[]).map(f=>'<option value="'+f.id+'">'+f.nome+'</option>').join('');}catch(e){selForn.innerHTML='<option value="">Nenhum</option>';}
@@ -3081,9 +3078,7 @@ async function openModalProduto(mode,id){
     document.getElementById('prod-est-max').value=p.estoque_maximo!=null?p.estoque_maximo:'';
     document.getElementById('prod-obs').value=p.observacoes||'';
     document.getElementById('prod-fornecedor').value=p.fornecedor_id||'';
-    // Gênero e tamanhos
-    if(p.genero){document.getElementById('prod-genero').value=p.genero;onProdGeneroChange();}
-    if(p.tamanhos)setProdTamanhos(Array.isArray(p.tamanhos)?p.tamanhos:JSON.parse(p.tamanhos||'[]'));
+
     // Fotos
     if(p.imagens_base64&&p.imagens_base64.length){
       prodFotosArray=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');
@@ -3099,8 +3094,6 @@ async function salvarProduto(){
   const nome=document.getElementById('prod-nome').value.trim();
   if(!nome){showMM('modal-prod-msg','Informe o nome do produto','error');return;}
   const fornId=document.getElementById('prod-fornecedor').value;
-  const tamanhos=getProdTamanhos();
-  const genero=document.getElementById('prod-genero').value||null;
   const imagens=prodFotosArray.length?prodFotosArray:null;
   const capaBg=imagens?imagens[0]:null; // primeira foto = capa
   const body={nome,perfil_codigo:currentUser.perfil||'master',
@@ -3115,8 +3108,7 @@ async function salvarProduto(){
     fornecedor_id:fornId?parseInt(fornId):null,
     imagem_base64:capaBg, // capa = primeira foto
     imagens_base64:imagens,
-    genero,
-    tamanhos:tamanhos.length?tamanhos:null,
+
     observacoes:document.getElementById('prod-obs').value.trim()||null,
     alterado_em:new Date().toISOString()};
   try{
@@ -3249,16 +3241,24 @@ function renderEstoque(){
 async function carregarEstoque(){
   const pf=currentUser.perfil||'master';
   try{
-    const [produtos,saldos]=await Promise.all([
-      api('produtos?select=id,nome,unidade,genero,tamanhos,estoque_minimo,estoque_maximo,ativo&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc'),
-      api('estoque_saldo?select=produto_id,quantidade&perfil_codigo=eq.'+encodeURIComponent(pf))
-    ]);
-    saldosCache={};(saldos||[]).forEach(s=>saldosCache[s.produto_id]=parseFloat(s.quantidade)||0);
-    produtosEstoqueCache=(produtos||[]).map(p=>({...p,saldo:saldosCache[p.id]??0}));
+    // Buscar apenas produtos que têm saldo registrado (já tiveram movimentação)
+    const saldos=await api('estoque_saldo?select=produto_id,quantidade,produtos(id,nome,unidade,estoque_minimo,estoque_maximo,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf));
+    saldosCache={};
+    produtosEstoqueCache=(saldos||[])
+      .filter(s=>s.produtos&&s.produtos.ativo!==false)
+      .map(s=>({
+        id:s.produtos.id,
+        nome:s.produtos.nome,
+        unidade:s.produtos.unidade,
+        estoque_minimo:s.produtos.estoque_minimo,
+        estoque_maximo:s.produtos.estoque_maximo,
+        saldo:parseFloat(s.quantidade)||0
+      }));
+    produtosEstoqueCache.sort((a,b)=>a.nome.localeCompare(b.nome));
     renderTabelaEstoque(produtosEstoqueCache);
     const selHist=document.getElementById('hist-filtro-produto');
-    if(selHist){selHist.innerHTML='<option value="">Todos os produtos</option>'+(produtos||[]).map(p=>'<option value="'+p.id+'">'+p.nome+'</option>').join('');}
-  }catch(e){const tbody=document.getElementById('tbl-estoque');if(tbody)tbody.innerHTML=`<tr><td colspan="7" class="empty">Erro: ${e.message}</td></tr>`;}
+    if(selHist){selHist.innerHTML='<option value="">Todos os produtos</option>'+produtosEstoqueCache.map(p=>'<option value="'+p.id+'">'+p.nome+'</option>').join('');}
+  }catch(e){const tbody=document.getElementById('tbl-estoque');if(tbody)tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 
 function renderTabelaEstoque(lista){
