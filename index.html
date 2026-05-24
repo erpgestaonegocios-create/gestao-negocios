@@ -1460,7 +1460,7 @@ async function openModalUsuario(mode,id){
     document.getElementById('m-nivel').value=u.nivel;
     document.getElementById('m-perfil').value=u.perfil||'';
     if(!isMasterEmpresa) empresaInput.value=u.empresa||'';
-    document.getElementById('m-usuario').disabled=true;
+    document.getElementById('m-usuario').disabled=false;
   }
   openModal('modal-usuario');
 }
