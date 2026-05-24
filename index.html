@@ -3477,7 +3477,7 @@ function renderTabelaEstoque(lista){
     else{situacao='✅ Normal';badgeStyle='background:rgba(76,175,125,.15);color:var(--success)';}
     const saldoColor=min!=null&&p.saldo<min?'color:var(--danger);font-weight:700':'color:var(--text);font-weight:600';
     return `<tr>
-      <td><span ${LINK}data-pid="${p.id}" onclick="selecionarProdutoHistorico(${p.id},'${p.nome.replace(/'/g,"\\'")}' )">${p.nome}</span></td>
+      <td><span ${LINK}data-pid="${p.id}" data-pnome="${p.nome}" data-pgenero="${p.genero||''}" data-ptamanho="${p.tamanho||''}" onclick="selecionarProdutoHistoricoVariacao(this.dataset)">${p.nome}${p.genero?' <small style=\"color:var(--text3)\">('+p.genero+(p.tamanho?' / '+p.tamanho:'')+' )</small>':''}</span></td>
       <td style="font-size:12px;color:var(--text2)">${p.genero?p.genero.charAt(0).toUpperCase()+p.genero.slice(1):'—'}</td>
       <td style="font-size:12px;color:var(--text2);font-weight:${p.tamanho?'600':'400'}">${p.tamanho||'—'}</td>
       <td style="${saldoColor};font-size:16px">${p.saldo}</td>
@@ -3499,6 +3499,30 @@ function filtrarEstoque(){
 }
 
 function selecionarProdutoHistoricoSelect(){const sel=document.getElementById('hist-filtro-produto');const opt=sel.options[sel.selectedIndex];const titulo=document.getElementById('hist-titulo');if(sel.value&&opt){if(titulo)titulo.textContent='📋 Histórico — '+opt.text;}else{if(titulo)titulo.textContent='📋 Histórico de Movimentações';}carregarHistorico();}
+function selecionarProdutoHistoricoVariacao(dataset){
+  const prodId=dataset.pid;
+  const prodNome=dataset.pnome||'';
+  const genero=dataset.pgenero||'';
+  const tamanho=dataset.ptamanho||'';
+  // Montar label completo
+  const varLabel=genero?(' — '+genero+(tamanho?' / '+tamanho:'')):'';
+  // Salvar filtros de variação para carregarHistorico usar
+  window._histGenero=genero||null;
+  window._histTamanho=tamanho||null;
+  const sel=document.getElementById('hist-filtro-produto');
+  if(sel)sel.value=prodId;
+  const titulo=document.getElementById('hist-titulo');
+  if(titulo)titulo.textContent='📋 Histórico — '+prodNome+varLabel;
+  carregarHistorico();
+  setTimeout(()=>{const wrap=document.getElementById('est-historico');if(wrap)wrap.scrollIntoView({behavior:'smooth',block:'start'});},100);
+}
+
+function selecionarProdutoHistorico(prodId,prodNome){
+  window._histGenero=null;
+  window._histTamanho=null;
+  selecionarProdutoHistoricoVariacao({pid:prodId,pnome:prodNome,pgenero:'',ptamanho:''});
+}
+
 function selecionarProdutoHistorico(prodId,prodNome){const sel=document.getElementById('hist-filtro-produto');if(sel)sel.value=prodId;const titulo=document.getElementById('hist-titulo');if(titulo)titulo.textContent='📋 Histórico — '+prodNome;carregarHistorico();setTimeout(()=>{const wrap=document.getElementById('est-historico');if(wrap)wrap.scrollIntoView({behavior:'smooth',block:'start'});},100);}
 
 async function carregarHistorico(){
@@ -3506,15 +3530,37 @@ async function carregarHistorico(){
   const pf=currentUser.perfil||'master';
   const prodFiltro=document.getElementById('hist-filtro-produto')?.value||'';
   try{
-    let q='estoque_movimentos?select=*,produtos(nome,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=criado_em.desc&limit=50';
-    if(prodFiltro)q+='&produto_id=eq.'+prodFiltro;
+    let q='estoque_movimentos?select=*,produtos(nome,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=criado_em.desc&limit=100';
+    if(prodFiltro){
+      q+='&produto_id=eq.'+prodFiltro;
+      // Filtrar por variação se veio de clique na tabela
+      const hg=window._histGenero;
+      const ht=window._histTamanho;
+      if(hg!==undefined&&hg!==null)q+='&genero=eq.'+encodeURIComponent(hg);
+      if(ht!==undefined&&ht!==null)q+='&tamanho=eq.'+encodeURIComponent(ht);
+    }
     const movs=await api(q);
     if(!movs||!movs.length){const msg=prodFiltro?'Nenhuma movimentação registrada para este produto.':'Clique no nome de um produto para ver o histórico.';wrap.innerHTML='<div class="empty" style="padding:20px;color:var(--text3)">'+msg+'</div>';return;}
     const tipoIcon={entrada:'📥',saida:'📤',ajuste:'⚖️',transferencia:'🔄'};
     const tipoLabel={entrada:'Entrada',saida:'Saída',ajuste:'Ajuste',transferencia:'Transferência'};
     const tipoColor={entrada:'var(--success)',saida:'var(--danger)',ajuste:'var(--warn)',transferencia:'var(--accent)'};
-    wrap.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Qtd</th><th>Saldo Anterior</th><th>Saldo Posterior</th><th>Motivo</th></tr></thead><tbody>'
-      +movs.map(m=>{const dt=new Date(m.criado_em).toLocaleString('pt-BR');const sinal=m.tipo==='entrada'?'+':m.tipo==='saida'?'-':'';return `<tr><td style="font-size:12px;color:var(--text3)">${dt}</td><td style="font-weight:500;color:var(--text)">${m.produtos?.nome||'—'}</td><td><span style="color:${tipoColor[m.tipo]};font-weight:600">${tipoIcon[m.tipo]} ${tipoLabel[m.tipo]||m.tipo}</span></td><td style="color:${tipoColor[m.tipo]};font-weight:700">${sinal}${m.quantidade} ${m.produtos?.unidade||'un'}</td><td style="color:var(--text3)">${m.quantidade_anterior??'—'}</td><td style="color:var(--text3)">${m.quantidade_posterior??'—'}</td><td style="font-size:12px">${m.motivo||'—'}</td></tr>`;}).join('')
+    const capG=g=>g?g.charAt(0).toUpperCase()+g.slice(1):'—';
+    wrap.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Tipo</th><th>Qtd</th><th>Saldo Ant.</th><th>Saldo Post.</th><th>Motivo</th></tr></thead><tbody>'
+      +movs.map(m=>{
+        const dt=new Date(m.criado_em).toLocaleString('pt-BR');
+        const sinal=m.tipo==='entrada'?'+':m.tipo==='saida'?'-':'';
+        return '<tr>'
+          +'<td style="font-size:12px;color:var(--text3)">'+dt+'</td>'
+          +'<td style="font-weight:500;color:var(--text)">'+(m.produtos?.nome||'—')+'</td>'
+          +'<td style="font-size:12px;color:var(--text2)">'+capG(m.genero)+'</td>'
+          +'<td style="font-size:12px;font-weight:'+(m.tamanho?'600':'400')+';color:var(--accent)">'+(m.tamanho||'—')+'</td>'
+          +'<td><span style="color:'+tipoColor[m.tipo]+';font-weight:600">'+tipoIcon[m.tipo]+' '+tipoLabel[m.tipo]+'</span></td>'
+          +'<td style="color:'+tipoColor[m.tipo]+';font-weight:700">'+sinal+m.quantidade+' '+(m.produtos?.unidade||'un')+'</td>'
+          +'<td style="color:var(--text3)">'+(m.quantidade_anterior??'—')+'</td>'
+          +'<td style="color:var(--text3)">'+(m.quantidade_posterior??'—')+'</td>'
+          +'<td style="font-size:12px">'+(m.motivo||'—')+'</td>'
+          +'</tr>';
+      }).join('')
       +'</tbody></table></div>';
   }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
