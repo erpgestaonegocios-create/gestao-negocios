@@ -1031,6 +1031,12 @@ let isMasterSistema=false;
 let isMasterEmpresa=false;
 let isUsuario=false;
 let funcPermitidas=new Set();
+
+function perfilTemFunc(func){
+  if(isMasterSistema)return true;
+  if(isMasterEmpresa&&(!currentUser?.perfil||currentUser.perfil==='master'))return true;
+  return funcPermitidas&&funcPermitidas.has(func);
+}
 let editingUserId=null, accessUserId=null, accessUserPerfil=null;
 // Caches carregados UMA VEZ no login e atualizados só após operações de escrita
 let perfisCache=[];   // [{id, codigo, descricao, ativo}]
@@ -4656,9 +4662,19 @@ function finAba(aba){
 async function carregarFinanceiro(){
   const pf=currentUser.perfil||'master';
   try{finCategoriasCache=await api('financeiro_categorias?select=*&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc')||[];}catch(e){finCategoriasCache=[];}
-  const mes=document.getElementById('fin-filtro-mes');if(mes&&!mes.value)mes.value=new Date().toISOString().slice(0,7);
+  const mes=document.getElementById('fin-filtro-mes');
+  if(!mes){
+    // DOM ainda não está pronto — aguardar e tentar novamente
+    setTimeout(()=>carregarFinanceiro(),200);return;
+  }
+  if(!mes.value)mes.value=new Date().toISOString().slice(0,7);
   const dtCx=document.getElementById('cx-filtro-data');if(dtCx&&!dtCx.value)dtCx.value=new Date().toISOString().slice(0,10);
-  await Promise.all([carregarDashboard(),carregarLancamentos()]);
+  try{
+    await Promise.all([carregarDashboard(),carregarLancamentos()]);
+  }catch(e){
+    const tbody=document.getElementById('tbl-lancamentos');
+    if(tbody)tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';
+  }
 }
 
 async function carregarDashboard(){
@@ -4674,6 +4690,7 @@ async function carregarDashboard(){
       const totalCompra=soma(compras);const totalVenda=soma(vendas);const lucro=totalVenda-totalCompra;
       const el=id=>document.getElementById(id);
       if(el('fin-total-compra'))el('fin-total-compra').textContent=fmt(totalCompra);
+      else console.warn('fin-total-compra não encontrado no DOM');
       if(el('fin-total-venda'))el('fin-total-venda').textContent=fmt(totalVenda);
       if(el('fin-lucro')){el('fin-lucro').textContent=fmt(lucro);el('fin-lucro').style.color=lucro>=0?'var(--success)':'var(--danger)';}
     } else {
