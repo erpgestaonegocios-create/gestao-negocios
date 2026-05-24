@@ -476,22 +476,19 @@
 
 <!-- MODAL REGISTRAR COMPRA -->
 <div class="modal-overlay" id="modal-compra-cliente">
-  <div class="modal modal-sm">
+  <div class="modal" style="max-width:720px">
     <div class="modal-title">Registrar Compra</div>
-    <div class="modal-sub" id="modal-compra-sub">Busque o produto e registre a compra</div>
+    <div class="modal-sub" id="modal-compra-sub">Adicione os produtos ao carrinho</div>
     <div class="form-grid">
       <div class="mfield col-2">
-        <label>Buscar Produto <span class="req">*</span></label>
+        <label>Buscar Produto</label>
         <div style="position:relative">
           <input type="text" id="compra-prod-busca" placeholder="🔍 Digite código ou nome do produto..." autocomplete="off"
             oninput="buscarProdutoCompra(this.value)" onfocus="buscarProdutoCompra(this.value)">
           <div id="compra-prod-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:180px;overflow-y:auto;z-index:999;margin-top:2px;box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
         </div>
         <div id="compra-prod-selecionado" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(107,127,215,.1);border:1px solid var(--accent);border-radius:6px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <span id="compra-prod-nome" style="color:var(--accent);font-weight:600"></span>
-            <span id="compra-prod-preco" style="color:var(--text3);margin-left:8px"></span>
-          </div>
+          <div><span id="compra-prod-nome" style="color:var(--accent);font-weight:600"></span><span id="compra-prod-preco" style="color:var(--text3);margin-left:8px"></span></div>
           <button onclick="limparProdutoCompra()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">✕</button>
         </div>
         <input type="hidden" id="compra-prod-id">
@@ -510,25 +507,58 @@
       </div>
       <div class="mfield col-1" id="compra-tamanho-wrap">
         <label>Tamanho</label>
-        <select id="compra-tamanho">
-          <option value="">Não especificado</option>
-        </select>
+        <select id="compra-tamanho"><option value="">Não especificado</option></select>
       </div>
-      <div class="mfield col-1"><label>Quantidade <span class="req">*</span></label><input type="number" id="compra-qtd" placeholder="1" min="1" step="1" value="1" oninput="calcularTotalCompra()"></div>
-      <div class="mfield col-1"><label>Valor Unitário (R$)</label><input type="number" id="compra-valor-unit" placeholder="0,00" min="0" step="0.01" oninput="calcularTotalCompra()"></div>
-      <div class="mfield col-1"><label>Desconto (R$)</label><input type="number" id="compra-desconto" placeholder="0,00" min="0" step="0.01" value="0" oninput="calcularTotalCompra()"></div>
       <div class="mfield col-1">
-        <label>Total Pago</label>
+        <label>Quantidade <span class="req">*</span></label>
+        <input type="number" id="compra-qtd" placeholder="1" min="1" step="1" value="1" oninput="calcularTotalCompra()">
+      </div>
+      <div class="mfield col-1">
+        <label>Valor Unitário (R$)</label>
+        <input type="number" id="compra-valor-unit" placeholder="0,00" min="0" step="0.01" oninput="calcularTotalCompra()">
+      </div>
+      <div class="mfield col-1">
+        <label>Desconto (R$)</label>
+        <input type="number" id="compra-desconto" placeholder="0,00" min="0" step="0.01" value="0" oninput="calcularTotalCompra()">
+      </div>
+      <div class="mfield col-1">
+        <label>Subtotal do Item</label>
         <div id="compra-total-display" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:16px;font-weight:700;color:var(--success)">R$ 0,00</div>
         <input type="hidden" id="compra-total">
       </div>
-      <div class="mfield col-1"><label>Data da Compra</label><input type="date" id="compra-data"></div>
-      <div class="mfield col-2"><label>Observações</label><textarea id="compra-obs" placeholder="Ex: Troca, presente, tamanho M..." style="min-height:50px"></textarea></div>
+      <div class="mfield col-2">
+        <label>Observação do Item</label>
+        <input type="text" id="compra-obs-item" placeholder="Ex: Troca, presente...">
+      </div>
+      <div class="mfield col-2">
+        <button class="btn-secondary" onclick="adicionarAoCarrinho()" style="width:100%;padding:11px;border-color:var(--success);color:var(--success);font-weight:600">🛒 Adicionar ao Carrinho</button>
+      </div>
+      <div class="mfield col-2" id="carrinho-wrap" style="display:none">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center">
+          <span>🛒 Carrinho</span>
+          <span id="carrinho-qtd-badge" style="background:var(--accent);color:#fff;border-radius:20px;padding:2px 10px;font-size:11px"></span>
+        </div>
+        <div id="carrinho-itens" style="margin-bottom:10px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--surface2);border-radius:8px;margin-bottom:12px">
+          <span style="font-size:14px;font-weight:600;color:var(--text)">Total da Compra</span>
+          <span id="carrinho-total" style="font-size:22px;font-weight:700;color:var(--success)">R$ 0,00</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="mfield" style="padding:0;margin:0">
+            <label>Data da Compra</label>
+            <input type="date" id="compra-data">
+          </div>
+          <div class="mfield" style="padding:0;margin:0">
+            <label>Observação Geral</label>
+            <input type="text" id="compra-obs" placeholder="Observações gerais...">
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-msg" id="modal-compra-msg"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-compra-cliente')">Cancelar</button>
-      <button class="btn-save" onclick="salvarCompraCliente()">Registrar Compra</button>
+      <button class="btn-save" id="btn-finalizar-compra" style="display:none" onclick="salvarCompraCliente()">✅ Finalizar Compra</button>
     </div>
   </div>
 </div>
@@ -2479,8 +2509,96 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
   }catch(e){document.getElementById('hist-compras-conteudo').innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
 
+
+// ── Carrinho de compras ──────────────────────────────────────────
+let carrinhoItens = []; // [{prodId, prodNome, genero, tamanho, qtd, valorUnit, desconto, total, obs}]
+
+function renderCarrinho(){
+  const wrap=document.getElementById('carrinho-wrap');
+  const listaEl=document.getElementById('carrinho-itens');
+  const totalEl=document.getElementById('carrinho-total');
+  const badge=document.getElementById('carrinho-qtd-badge');
+  const btnFin=document.getElementById('btn-finalizar-compra');
+  if(!wrap)return;
+  if(!carrinhoItens.length){
+    wrap.style.display='none';
+    if(btnFin)btnFin.style.display='none';
+    return;
+  }
+  wrap.style.display='block';
+  if(btnFin)btnFin.style.display='block';
+  if(badge)badge.textContent=carrinhoItens.length+' item(s)';
+  const totalGeral=carrinhoItens.reduce((s,i)=>s+i.total,0);
+  if(totalEl)totalEl.textContent='R$ '+totalGeral.toFixed(2).replace('.',',');
+  if(listaEl){
+    listaEl.innerHTML=carrinhoItens.map((item,idx)=>{
+      const g=item.genero?item.genero.charAt(0).toUpperCase()+item.genero.slice(1):'';
+      const t=item.tamanho?'/ '+item.tamanho:'';
+      const variacao=g||t?'<span style="color:var(--text3);font-size:11px"> '+g+' '+t+'</span>':'';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;gap:8px">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:600;font-size:13px;color:var(--text)">'+item.prodNome+variacao+'</div>'
+        +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+item.qtd+' x R$ '+item.valorUnit.toFixed(2).replace('.',',')+(item.desconto>0?' - desc R$ '+item.desconto.toFixed(2).replace('.',','):'')+(item.obs?' | '+item.obs:'')+'</div>'
+        +'</div>'
+        +'<div style="font-weight:700;color:var(--success);white-space:nowrap">R$ '+item.total.toFixed(2).replace('.',',')+'</div>'
+        +'<button data-idx="'+idx+'" onclick="removerDoCarrinho(parseInt(this.dataset.idx))" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0 4px">✕</button>'
+        +'</div>';
+    }).join('');
+  }
+}
+
+function removerDoCarrinho(idx){
+  carrinhoItens.splice(idx,1);
+  renderCarrinho();
+}
+
+async function adicionarAoCarrinho(){
+  const prodId=document.getElementById('compra-prod-id').value;
+  const prodNome=document.getElementById('compra-prod-nome')?.textContent||'';
+  const qtd=parseFloat(document.getElementById('compra-qtd').value)||0;
+  if(!prodId){showMM('modal-compra-msg','Selecione o produto antes de adicionar.','error');return;}
+  if(!qtd||qtd<=0){showMM('modal-compra-msg','Informe a quantidade.','error');return;}
+  const genero=document.getElementById('compra-genero')?.value||null;
+  const tamanho=document.getElementById('compra-tamanho')?.value||null;
+  const valorUnit=parseFloat(document.getElementById('compra-valor-unit').value)||0;
+  const desconto=parseFloat(document.getElementById('compra-desconto').value)||0;
+  const total=parseFloat(document.getElementById('compra-total').value)||0;
+  const obs=document.getElementById('compra-obs-item')?.value?.trim()||'';
+  // Validar estoque
+  const pf=currentUser.perfil||'master';
+  const todosRows=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho').catch(()=>[]);
+  const generoNorm=genero||null;
+  const tamanhoNorm=tamanho||null;
+  const reg=(todosRows||[]).find(r=>(r.genero||null)===generoNorm&&(r.tamanho||null)===tamanhoNorm);
+  const saldoDisp=reg?parseFloat(reg.quantidade||0):0;
+  // Descontar itens já no carrinho para este mesmo produto/variação
+  const jaNoCarrinho=carrinhoItens.filter(i=>i.prodId===prodId&&(i.genero||null)===generoNorm&&(i.tamanho||null)===tamanhoNorm).reduce((s,i)=>s+i.qtd,0);
+  const saldoReal=saldoDisp-jaNoCarrinho;
+  if(saldoReal<=0){
+    const varDesc=(genero||'')+(tamanho?' / '+tamanho:'');
+    showMM('modal-compra-msg','Sem estoque disponível'+(varDesc?' para '+varDesc:'')+'.','error');return;
+  }
+  if(qtd>saldoReal){
+    showMM('modal-compra-msg','Quantidade solicitada ('+qtd+') maior que o estoque disponível ('+saldoReal+').','error');return;
+  }
+  // Adicionar ao carrinho
+  carrinhoItens.push({prodId,prodNome,genero,tamanho,qtd,valorUnit,desconto,total,obs,saldoId:reg?.id||null});
+  renderCarrinho();
+  // Resetar campos do item
+  limparProdutoCompra();
+  document.getElementById('compra-qtd').value='1';
+  document.getElementById('compra-valor-unit').value='';
+  document.getElementById('compra-desconto').value='0';
+  document.getElementById('compra-total').value='';
+  document.getElementById('compra-total-display').textContent='R$ 0,00';
+  if(document.getElementById('compra-obs-item'))document.getElementById('compra-obs-item').value='';
+  showMM('modal-compra-msg','Item adicionado ao carrinho!','success');
+  setTimeout(()=>{const msg=document.getElementById('modal-compra-msg');if(msg)msg.style.display='none';},2000);
+}
+
 async function abrirHistoricoCompras(clienteId,clienteNome){
   compraClienteId=clienteId;
+  carrinhoItens=[];
   document.getElementById('modal-compra-sub').textContent='Cliente: '+clienteNome;
   document.getElementById('modal-compra-msg').style.display='none';
   limparProdutoCompra();
@@ -2492,7 +2610,242 @@ async function abrirHistoricoCompras(clienteId,clienteNome){
   document.getElementById('compra-total-display').textContent='R$ 0,00';
   document.getElementById('compra-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('compra-obs').value='';
-  // Popular tamanhos adultos por padrão
+  if(document.getElementById('compra-obs-item'))document.getElementById('compra-obs-item').value='';
+  renderCarrinho();
+  popularSelectTamanhos('compra-tamanho','adulto','');
+  openModal('modal-compra-cliente');
+}
+
+function buscarProdutoCompra(termo){
+  const dropdown=document.getElementById('compra-prod-dropdown');
+  if(!dropdown)return;
+  if(!termo||termo.length<1){dropdown.style.display='none';return;}
+  const pf=currentUser.perfil||'master';
+  const f=encodeURIComponent('%'+termo+'%');
+  api('produtos?select=id,nome,codigo,preco_venda&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&or=(nome.ilike.'+f+',codigo.ilike.'+f+')&limit=10')
+    .then(rows=>{
+      if(!rows||!rows.length){dropdown.innerHTML='<div style="padding:10px 14px;font-size:13px;color:var(--text3)">Nenhum produto encontrado</div>';dropdown.style.display='block';return;}
+      dropdown.innerHTML=rows.map(p=>'<div onclick="selecionarProdutoCompra('+p.id+',\''+p.nome.replace(/'/g,"\\'")+'\','+( p.preco_venda||0)+')" style="padding:9px 14px;font-size:13px;cursor:pointer;color:var(--text);display:flex;justify-content:space-between" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'"><span>'+(p.codigo?'['+p.codigo+'] ':'')+p.nome+'</span><span style="color:var(--success)">R$ '+(p.preco_venda?parseFloat(p.preco_venda).toFixed(2).replace('.',','):'—')+'</span></div>').join('');
+      dropdown.style.display='block';
+    }).catch(()=>{});
+}
+
+async function selecionarProdutoCompra(id,nome,preco){
+  document.getElementById('compra-prod-id').value=id;
+  document.getElementById('compra-prod-valor-unit').value=preco||0;
+  document.getElementById('compra-prod-busca').value='';
+  document.getElementById('compra-prod-dropdown').style.display='none';
+  document.getElementById('compra-prod-nome').textContent=nome;
+  document.getElementById('compra-prod-preco').textContent=preco?'R$ '+parseFloat(preco).toFixed(2).replace('.',','):'';
+  document.getElementById('compra-prod-selecionado').style.display='flex';
+  document.getElementById('compra-valor-unit').value=preco?parseFloat(preco).toFixed(2):'';
+  // Reset gênero/tamanho
+  document.getElementById('compra-genero').value='';
+  popularSelectTamanhos('compra-tamanho','adulto','');
+  // Carregar disponibilidade de estoque deste produto
+  await carregarEstoqueDisponivel(id);
+  calcularTotalCompra();
+}
+
+async function carregarEstoqueDisponivel(prodId){
+  const pf=currentUser.perfil||'master';
+  const infoBox=document.getElementById('compra-estoque-info');
+  const selGenero=document.getElementById('compra-genero');
+  const selTamanho=document.getElementById('compra-tamanho');
+  if(!infoBox)return;
+  try{
+    // Buscar todos os saldos deste produto com saldo > 0
+    const saldos=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&quantidade=gt.0&select=genero,tamanho,quantidade&order=genero.asc,tamanho.asc');
+    if(!saldos||!saldos.length){
+      infoBox.style.display='block';
+      infoBox.style.background='rgba(224,85,85,.08)';
+      infoBox.style.borderColor='var(--danger)';
+      infoBox.style.color='var(--danger)';
+      infoBox.textContent='⚠️ Este produto não tem estoque disponível no momento.';
+      // Bloquear gênero e tamanho
+      selGenero.disabled=true;selTamanho.disabled=true;
+      // Salvar saldos vazios para validação
+      window._compraEstoqueSaldos=[];
+      return;
+    }
+    // Montar texto com disponibilidades
+    const linhas=saldos.map(s=>{
+      const g=s.genero?s.genero.charAt(0).toUpperCase()+s.genero.slice(1):'';
+      const t=s.tamanho||'';
+      return (g?g+' ':'')+t+': '+s.quantidade+' un.';
+    });
+    infoBox.style.display='block';
+    infoBox.style.background='rgba(76,175,125,.08)';
+    infoBox.style.borderColor='var(--success)';
+    infoBox.style.color='var(--success)';
+    infoBox.innerHTML='✅ <strong>Estoque disponível:</strong> '+linhas.join(' &nbsp;|&nbsp; ');
+    // Salvar saldos para uso no select de gênero/tamanho
+    window._compraEstoqueSaldos=saldos;
+    selGenero.disabled=false;
+    // Popular gênero apenas com os disponíveis
+    popularCompraGenero(saldos);
+  }catch(e){
+    infoBox.style.display='block';
+    infoBox.textContent='Erro ao verificar estoque: '+e.message;
+  }
+}
+
+function popularCompraGenero(saldos){
+  const selGenero=document.getElementById('compra-genero');
+  // Gêneros únicos com estoque
+  const generos=[...new Set(saldos.map(s=>s.genero||''))];
+  selGenero.innerHTML='<option value="">Selecione o gênero...</option>';
+  const GENERO_LABEL={masculino:'Masculino',feminino:'Feminino',infantil:'Infantil',unissex:'Unissex','':'Sem gênero'};
+  generos.forEach(g=>{
+    const opt=document.createElement('option');
+    opt.value=g;
+    opt.textContent=GENERO_LABEL[g]||(g||'Sem gênero');
+    selGenero.appendChild(opt);
+  });
+}
+
+function limparProdutoCompra(){
+  document.getElementById('compra-prod-id').value='';
+  document.getElementById('compra-prod-busca').value='';
+  document.getElementById('compra-prod-dropdown').style.display='none';
+  document.getElementById('compra-prod-selecionado').style.display='none';
+  document.getElementById('compra-prod-nome').textContent='';
+  document.getElementById('compra-prod-preco').textContent='';
+  // Limpar info de estoque
+  const info=document.getElementById('compra-estoque-info');
+  if(info)info.style.display='none';
+  window._compraEstoqueSaldos=[];
+  // Restaurar selects
+  const sg=document.getElementById('compra-genero');
+  const st=document.getElementById('compra-tamanho');
+  if(sg){sg.disabled=false;sg.innerHTML='<option value="">Não especificado</option><option value="masculino">Masculino</option><option value="feminino">Feminino</option><option value="infantil">Infantil</option><option value="unissex">Unissex</option>';}
+  if(st){st.disabled=false;popularSelectTamanhos('compra-tamanho','adulto','');}
+}
+
+function calcularTotalCompra(){
+  const qtd=parseFloat(document.getElementById('compra-qtd').value)||0;
+  const unit=parseFloat(document.getElementById('compra-valor-unit').value)||0;
+  const desc=parseFloat(document.getElementById('compra-desconto').value)||0;
+  const total=Math.max(0,(qtd*unit)-desc);
+  document.getElementById('compra-total').value=total.toFixed(2);
+  document.getElementById('compra-total-display').textContent='R$ '+total.toFixed(2).replace('.',',');
+  document.getElementById('compra-total-display').style.color=total>0?'var(--success)':'var(--text3)';
+}
+
+async function salvarCompraCliente(){
+  if(!carrinhoItens.length){showMM('modal-compra-msg','Adicione pelo menos um produto ao carrinho.','error');return;}
+  const data=document.getElementById('compra-data').value;
+  if(!data){showMM('modal-compra-msg','Informe a data da compra.','error');return;}
+  const pf=currentUser.perfil||'master';
+  const obsGeral=document.getElementById('compra-obs')?.value?.trim()||null;
+  showMM('modal-compra-msg','Processando '+carrinhoItens.length+' item(s)...','success');
+  let erros=[];
+  let totalGeralVenda=0;
+  for(const item of carrinhoItens){
+    try{
+      // Buscar saldo atual desta variação
+      const todosRows=await api('estoque_saldo?produto_id=eq.'+item.prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho').catch(()=>[]);
+      const generoNorm=item.genero||null;
+      const tamanhoNorm=item.tamanho||null;
+      const reg=(todosRows||[]).find(r=>(r.genero||null)===generoNorm&&(r.tamanho||null)===tamanhoNorm);
+      const saldoAtual=reg?parseFloat(reg.quantidade||0):0;
+      const saldoId=reg?reg.id:null;
+      if(saldoAtual<item.qtd){erros.push(item.prodNome+': estoque insuficiente (disponível: '+saldoAtual+')');continue;}
+      const novoSaldo=saldoAtual-item.qtd;
+      // 1. Registrar compra
+      await api('cliente_compras',{method:'POST',body:JSON.stringify({
+        perfil_codigo:pf,cliente_id:compraClienteId,produto_id:parseInt(item.prodId),
+        quantidade:item.qtd,valor_unitario:item.valorUnit,desconto:item.desconto||null,
+        total_pago:item.total,data_compra:data,genero:item.genero,tamanho:item.tamanho,
+        observacoes:item.obs||obsGeral||null
+      })});
+      // 2. Registrar saída no estoque
+      await api('estoque_movimentos',{method:'POST',body:JSON.stringify({
+        perfil_codigo:pf,produto_id:parseInt(item.prodId),tipo:'saida',
+        quantidade:item.qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,
+        motivo:'Venda — Cliente ID '+compraClienteId+(item.obs?' | '+item.obs:''),
+        genero:item.genero,tamanho:item.tamanho,criado_por:currentUser.usuario
+      })});
+      // 3. Atualizar saldo
+      if(saldoId){await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});}
+      totalGeralVenda+=item.total;
+    }catch(e){erros.push(item.prodNome+': '+e.message);}
+  }
+  // 4. Lançamento financeiro único para toda a compra
+  if(totalGeralVenda>0){
+    const nomeProdutos=carrinhoItens.map(i=>i.prodNome).join(', ').slice(0,100);
+    await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({
+      perfil_codigo:pf,tipo:'receita',
+      descricao:'Venda: '+nomeProdutos+' ('+(carrinhoItens.length)+' item(s))',
+      valor:totalGeralVenda,data_vencimento:data,data_pagamento:data,status:'pago',
+      cliente_id:compraClienteId,
+      observacoes:'Venda registrada automaticamente pelo carrinho de compras'
+    })}).catch(()=>{});
+  }
+  if(erros.length){
+    showMM('modal-compra-msg','Concluído com erros: '+erros.join('; '),'error');
+  } else {
+    showMM('modal-compra-msg','Compra finalizada! '+carrinhoItens.length+' item(s) registrado(s).','success');
+    carrinhoItens=[];
+    setTimeout(()=>closeModal('modal-compra-cliente'),1500);
+  }
+}
+
+async function consultarHistoricoCompras(clienteId,clienteNome){
+  document.getElementById('hist-compras-titulo').textContent='Histórico de Compras';
+  document.getElementById('hist-compras-sub').textContent='Cliente: '+clienteNome;
+  document.getElementById('hist-compras-conteudo').innerHTML='<div class="loading">Carregando...</div>';
+  openModal('modal-historico-compras');
+  const pf=currentUser.perfil||'master';
+  try{
+    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,criado_em.desc');
+    const wrap=document.getElementById('hist-compras-conteudo');
+    if(!compras||!compras.length){
+      wrap.innerHTML='<div class="empty">Nenhuma compra registrada para este cliente.</div>';return;
+    }
+    const fmtV=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
+    const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'-';
+    // Totalizador
+    const totalGasto=compras.reduce((s,c)=>s+parseFloat(c.total_pago||0),0);
+    let html='<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">';
+    html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total de Compras</div><div style="font-size:22px;font-weight:700;color:var(--accent)">'+compras.length+'</div></div>';
+    html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total Gasto</div><div style="font-size:22px;font-weight:700;color:var(--success)">'+fmtV(totalGasto)+'</div></div>';
+    html+='</div>';
+    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
+    html+=compras.map(comp=>`<tr>
+      <td style="font-size:12px">${fmtD(comp.data_compra)}</td>
+      <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}${comp.produtos?.codigo?' <span style="color:var(--text3);font-size:11px">['+comp.produtos.codigo+']</span>':''}</td>
+      <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
+      <td style="text-align:center">${comp.quantidade}</td>
+      <td>${fmtV(comp.valor_unitario)}</td>
+      <td style="color:var(--warn)">${comp.desconto&&parseFloat(comp.desconto)>0?fmtV(comp.desconto):'—'}</td>
+      <td style="font-weight:700;color:var(--success)">${fmtV(comp.total_pago)}</td>
+      <td style="font-size:11px;color:var(--text3)">${comp.observacoes||'—'}</td>
+    </tr>`).join('');
+    html+='</tbody></table></div>';
+    wrap.innerHTML=html;
+  }catch(e){document.getElementById('hist-compras-conteudo').innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+}
+
+
+
+async function abrirHistoricoCompras(clienteId,clienteNome){
+  compraClienteId=clienteId;
+  carrinhoItens=[];
+  document.getElementById('modal-compra-sub').textContent='Cliente: '+clienteNome;
+  document.getElementById('modal-compra-msg').style.display='none';
+  limparProdutoCompra();
+  window._compraEstoqueSaldos=[];
+  document.getElementById('compra-qtd').value='1';
+  document.getElementById('compra-valor-unit').value='';
+  document.getElementById('compra-desconto').value='0';
+  document.getElementById('compra-total').value='';
+  document.getElementById('compra-total-display').textContent='R$ 0,00';
+  document.getElementById('compra-data').value=new Date().toISOString().slice(0,10);
+  document.getElementById('compra-obs').value='';
+  if(document.getElementById('compra-obs-item'))document.getElementById('compra-obs-item').value='';
+  renderCarrinho();
   popularSelectTamanhos('compra-tamanho','adulto','');
   openModal('modal-compra-cliente');
 }
