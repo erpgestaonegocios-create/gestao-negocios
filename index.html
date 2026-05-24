@@ -496,6 +496,7 @@
         </div>
         <input type="hidden" id="compra-prod-id">
         <input type="hidden" id="compra-prod-valor-unit">
+        <div id="compra-estoque-info" style="display:none;margin-top:8px;padding:10px 14px;background:rgba(76,175,125,.08);border:1px solid var(--success);border-radius:8px;font-size:12px;color:var(--success);line-height:1.6"></div>
       </div>
       <div class="mfield col-1" id="compra-genero-wrap">
         <label>Gênero</label>
@@ -2458,6 +2459,7 @@ async function abrirHistoricoCompras(clienteId,clienteNome){
   document.getElementById('modal-compra-sub').textContent='Cliente: '+clienteNome;
   document.getElementById('modal-compra-msg').style.display='none';
   limparProdutoCompra();
+  window._compraEstoqueSaldos=[];
   document.getElementById('compra-qtd').value='1';
   document.getElementById('compra-valor-unit').value='';
   document.getElementById('compra-desconto').value='0';
@@ -2484,7 +2486,7 @@ function buscarProdutoCompra(termo){
     }).catch(()=>{});
 }
 
-function selecionarProdutoCompra(id,nome,preco){
+async function selecionarProdutoCompra(id,nome,preco){
   document.getElementById('compra-prod-id').value=id;
   document.getElementById('compra-prod-valor-unit').value=preco||0;
   document.getElementById('compra-prod-busca').value='';
@@ -2493,10 +2495,69 @@ function selecionarProdutoCompra(id,nome,preco){
   document.getElementById('compra-prod-preco').textContent=preco?'R$ '+parseFloat(preco).toFixed(2).replace('.',','):'';
   document.getElementById('compra-prod-selecionado').style.display='flex';
   document.getElementById('compra-valor-unit').value=preco?parseFloat(preco).toFixed(2):'';
-  // Atualizar tamanhos conforme gênero já selecionado
-  const generoAtualCompra=document.getElementById('compra-genero')?.value||'adulto';
-  popularSelectTamanhos('compra-tamanho',generoAtualCompra,'');
+  // Reset gênero/tamanho
+  document.getElementById('compra-genero').value='';
+  popularSelectTamanhos('compra-tamanho','adulto','');
+  // Carregar disponibilidade de estoque deste produto
+  await carregarEstoqueDisponivel(id);
   calcularTotalCompra();
+}
+
+async function carregarEstoqueDisponivel(prodId){
+  const pf=currentUser.perfil||'master';
+  const infoBox=document.getElementById('compra-estoque-info');
+  const selGenero=document.getElementById('compra-genero');
+  const selTamanho=document.getElementById('compra-tamanho');
+  if(!infoBox)return;
+  try{
+    // Buscar todos os saldos deste produto com saldo > 0
+    const saldos=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&quantidade=gt.0&select=genero,tamanho,quantidade&order=genero.asc,tamanho.asc');
+    if(!saldos||!saldos.length){
+      infoBox.style.display='block';
+      infoBox.style.background='rgba(224,85,85,.08)';
+      infoBox.style.borderColor='var(--danger)';
+      infoBox.style.color='var(--danger)';
+      infoBox.textContent='⚠️ Este produto não tem estoque disponível no momento.';
+      // Bloquear gênero e tamanho
+      selGenero.disabled=true;selTamanho.disabled=true;
+      // Salvar saldos vazios para validação
+      window._compraEstoqueSaldos=[];
+      return;
+    }
+    // Montar texto com disponibilidades
+    const linhas=saldos.map(s=>{
+      const g=s.genero?s.genero.charAt(0).toUpperCase()+s.genero.slice(1):'';
+      const t=s.tamanho||'';
+      return (g?g+' ':'')+t+': '+s.quantidade+' un.';
+    });
+    infoBox.style.display='block';
+    infoBox.style.background='rgba(76,175,125,.08)';
+    infoBox.style.borderColor='var(--success)';
+    infoBox.style.color='var(--success)';
+    infoBox.innerHTML='✅ <strong>Estoque disponível:</strong> '+linhas.join(' &nbsp;|&nbsp; ');
+    // Salvar saldos para uso no select de gênero/tamanho
+    window._compraEstoqueSaldos=saldos;
+    selGenero.disabled=false;
+    // Popular gênero apenas com os disponíveis
+    popularCompraGenero(saldos);
+  }catch(e){
+    infoBox.style.display='block';
+    infoBox.textContent='Erro ao verificar estoque: '+e.message;
+  }
+}
+
+function popularCompraGenero(saldos){
+  const selGenero=document.getElementById('compra-genero');
+  // Gêneros únicos com estoque
+  const generos=[...new Set(saldos.map(s=>s.genero||''))];
+  selGenero.innerHTML='<option value="">Selecione o gênero...</option>';
+  const GENERO_LABEL={masculino:'Masculino',feminino:'Feminino',infantil:'Infantil',unissex:'Unissex','':'Sem gênero'};
+  generos.forEach(g=>{
+    const opt=document.createElement('option');
+    opt.value=g;
+    opt.textContent=GENERO_LABEL[g]||(g||'Sem gênero');
+    selGenero.appendChild(opt);
+  });
 }
 
 function limparProdutoCompra(){
@@ -2506,6 +2567,15 @@ function limparProdutoCompra(){
   document.getElementById('compra-prod-selecionado').style.display='none';
   document.getElementById('compra-prod-nome').textContent='';
   document.getElementById('compra-prod-preco').textContent='';
+  // Limpar info de estoque
+  const info=document.getElementById('compra-estoque-info');
+  if(info)info.style.display='none';
+  window._compraEstoqueSaldos=[];
+  // Restaurar selects
+  const sg=document.getElementById('compra-genero');
+  const st=document.getElementById('compra-tamanho');
+  if(sg){sg.disabled=false;sg.innerHTML='<option value="">Não especificado</option><option value="masculino">Masculino</option><option value="feminino">Feminino</option><option value="infantil">Infantil</option><option value="unissex">Unissex</option>';}
+  if(st){st.disabled=false;popularSelectTamanhos('compra-tamanho','adulto','');}
 }
 
 function calcularTotalCompra(){
@@ -2530,29 +2600,34 @@ async function salvarCompraCliente(){
   const total=parseFloat(document.getElementById('compra-total').value)||null;
   const compraGenero=document.getElementById('compra-genero')?.value||null;
   const compraTamanho=document.getElementById('compra-tamanho')?.value||null;
-  // Validar se tamanho existe no estoque
-  if(compraTamanho){
-    try{
-      const pf=currentUser.perfil||'master';
-      // Buscar movimentações de entrada para este produto e tamanho
-      const entradas=await api('estoque_movimentos?select=quantidade,tipo&perfil_codigo=eq.'+encodeURIComponent(pf)+'&produto_id=eq.'+prodId+'&tamanho=eq.'+encodeURIComponent(compraTamanho));
-      if(!entradas||!entradas.length){
-        showMM('modal-compra-msg','Tamanho '+compraTamanho+' não encontrado no estoque para este produto. Verifique as movimentações de entrada.','error');return;
-      }
-      // Calcular saldo por tamanho
-      let saldoTam=0;
-      (entradas||[]).forEach(m=>{
-        if(m.tipo==='entrada'||m.tipo==='ajuste')saldoTam+=parseFloat(m.quantidade||0);
-        else if(m.tipo==='saida'||m.tipo==='transferencia')saldoTam-=parseFloat(m.quantidade||0);
-      });
-      if(saldoTam<qtd){
-        showMM('modal-compra-msg','Estoque insuficiente para o tamanho '+compraTamanho+'. Disponível: '+saldoTam+' unidade(s).','error');return;
-      }
-    }catch(e){showMM('modal-compra-msg','Erro ao verificar estoque: '+e.message,'error');return;}
-  }
+  const pf=currentUser.perfil||'master';
+
+  // ── Validar estoque desta variação ───────────────────────────────
+  let qSaldo='estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf);
+  if(compraGenero)qSaldo+='&genero=eq.'+encodeURIComponent(compraGenero); else qSaldo+='&genero=is.null';
+  if(compraTamanho)qSaldo+='&tamanho=eq.'+encodeURIComponent(compraTamanho); else qSaldo+='&tamanho=is.null';
+
+  let saldoAtual=0, saldoId=null;
   try{
+    const rows=await api(qSaldo+'&select=id,quantidade');
+    saldoAtual=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
+    saldoId=rows&&rows.length?rows[0].id:null;
+  }catch(e){showMM('modal-compra-msg','Erro ao verificar estoque: '+e.message,'error');return;}
+
+  if(saldoAtual<=0){
+    const varDesc=(compraGenero?compraGenero:'')+(compraTamanho?' / '+compraTamanho:'');
+    showMM('modal-compra-msg','Produto sem estoque disponível'+(varDesc?' para '+varDesc:'')+'.','error');return;
+  }
+  if(qtd>saldoAtual){
+    showMM('modal-compra-msg','Quantidade solicitada ('+qtd+') maior que o estoque disponível ('+saldoAtual+').','error');return;
+  }
+
+  const novoSaldo=saldoAtual-qtd;
+
+  try{
+    // 1. Registrar a compra
     await api('cliente_compras',{method:'POST',body:JSON.stringify({
-      perfil_codigo:currentUser.perfil||'master',
+      perfil_codigo:pf,
       cliente_id:compraClienteId,
       produto_id:parseInt(prodId),
       quantidade:qtd,
@@ -2564,8 +2639,32 @@ async function salvarCompraCliente(){
       tamanho:compraTamanho,
       observacoes:document.getElementById('compra-obs').value.trim()||null
     })});
-    showMM('modal-compra-msg','Compra registrada com sucesso!','success');
-    setTimeout(()=>closeModal('modal-compra-cliente'),900);
+
+    // 2. Registrar saída no estoque
+    await api('estoque_movimentos',{method:'POST',body:JSON.stringify({
+      perfil_codigo:pf,
+      produto_id:parseInt(prodId),
+      tipo:'saida',
+      quantidade:qtd,
+      quantidade_anterior:saldoAtual,
+      quantidade_posterior:novoSaldo,
+      motivo:'Venda — Cliente ID '+compraClienteId,
+      genero:compraGenero,
+      tamanho:compraTamanho,
+      criado_por:currentUser.usuario
+    })});
+
+    // 3. Atualizar saldo no estoque
+    if(saldoId){
+      await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({
+        quantidade:novoSaldo,atualizado_em:new Date().toISOString()
+      })});
+    }
+
+    showMM('modal-compra-msg','Compra registrada e estoque atualizado!','success');
+    // Atualizar info de estoque no modal
+    await carregarEstoqueDisponivel(prodId);
+    setTimeout(()=>closeModal('modal-compra-cliente'),1200);
   }catch(e){showMM('modal-compra-msg','Erro: '+e.message,'error');}
 }
 
@@ -2616,7 +2715,25 @@ function onEstTamanhoChange(){
 
 function onCompraGeneroChange(){
   const genero=document.getElementById('compra-genero').value;
-  popularSelectTamanhos('compra-tamanho',genero,'');
+  const saldos=window._compraEstoqueSaldos||[];
+  if(saldos.length){
+    const selTam=document.getElementById('compra-tamanho');
+    const tamanhosDisp=saldos.filter(s=>(s.genero||'')===(genero||'')&&parseFloat(s.quantidade||0)>0);
+    selTam.innerHTML='<option value="">Selecione o tamanho...</option>';
+    if(!tamanhosDisp.length){
+      selTam.innerHTML='<option value="" disabled>Sem estoque neste gênero</option>';
+      return;
+    }
+    tamanhosDisp.forEach(s=>{
+      const opt=document.createElement('option');
+      opt.value=s.tamanho||'';
+      opt.textContent=(s.tamanho||'Sem tamanho')+' ('+s.quantidade+' disponíveis)';
+      selTam.appendChild(opt);
+    });
+    selTam.disabled=false;
+  } else {
+    popularSelectTamanhos('compra-tamanho',genero||'adulto','');
+  }
 }
 
 // ─── PAINEL: CLIENTES ────────────────────────────────────────────
