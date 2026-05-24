@@ -2385,7 +2385,14 @@ async function salvarCliente(){
     if(!editingClienteId){await api('clientes',{method:'POST',body:JSON.stringify({...body,ativo:true})});showMM('modal-cli-msg','Cliente cadastrado com sucesso!','success');}
     else{await api('clientes?id=eq.'+editingClienteId,{method:'PATCH',body:JSON.stringify(body)});showMM('modal-cli-msg','Cliente atualizado com sucesso!','success');}
     setTimeout(()=>{closeModal('modal-cliente');carregarClientes(document.getElementById('cli-busca')?.value||'');},900);
-  }catch(e){showMM('modal-cli-msg','Erro: '+e.message,'error');}
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('clientes_cpf_key')||msg.includes('cpf')||msg.includes('duplicate')){
+      showMM('modal-cli-msg','Este CPF já está cadastrado para outro cliente.','error');
+    } else {
+      showMM('modal-cli-msg','Erro: '+msg,'error');
+    }
+  }
 }
 
 // ─── PAINEL: FORNECEDORES ────────────────────────────────────────
