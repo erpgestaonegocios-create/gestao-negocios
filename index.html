@@ -696,7 +696,17 @@
     <div class="form-grid">
       <div class="mfield col-2">
         <label>Produto <span class="req">*</span></label>
-        <select id="est-produto" onchange="onEstProdutoChange()"><option value="">Selecione o produto...</option></select>
+        <div style="position:relative">
+          <input type="text" id="est-produto-busca" placeholder="🔍 Digite código ou nome do produto..." autocomplete="off"
+            oninput="buscarProdutoEstoque(this.value)" onfocus="buscarProdutoEstoque(this.value)"
+            style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+          <div id="est-produto-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:200px;overflow-y:auto;z-index:999;margin-top:2px;box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
+        </div>
+        <div id="est-produto-selecionado" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(107,127,215,.1);border:1px solid var(--accent);border-radius:6px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
+          <span id="est-produto-nome" style="color:var(--accent);font-weight:600"></span>
+          <button onclick="limparProdutoEstoque()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px">✕</button>
+        </div>
+        <input type="hidden" id="est-produto">
       </div>
       <div class="mfield col-2" id="est-saldo-atual-wrap" style="display:none">
         <div style="padding:10px 14px;background:var(--surface2);border-radius:6px;display:flex;justify-content:space-between;align-items:center">
@@ -742,7 +752,7 @@
       </div>
       <div class="mfield col-1" id="est-tamanho-wrap">
         <label>Tamanho</label>
-        <select id="est-tamanho">
+        <select id="est-tamanho" onchange="onEstTamanhoChange()">
           <option value="">Não especificado</option>
         </select>
       </div>
@@ -2584,8 +2594,15 @@ function onEstProdutoGeneroChange(genero,tamanhosSalvos){
 }
 
 function onEstGeneroChange(){
-  const genero=document.getElementById('est-genero').value;
+  const genero=document.getElementById('est-genero').value||'adulto';
   popularSelectTamanhos('est-tamanho',genero,'');
+  // Atualizar saldo para esta variação
+  if(document.getElementById('est-produto').value) onEstProdutoChange();
+}
+
+function onEstTamanhoChange(){
+  // Atualizar saldo ao mudar tamanho
+  if(document.getElementById('est-produto').value) onEstProdutoChange();
 }
 
 function onCompraGeneroChange(){
@@ -3194,6 +3211,55 @@ async function salvarServico(){
   }catch(e){showMM('modal-serv-msg','Erro: '+e.message,'error');}
 }
 
+
+// ── Busca de produto no modal de estoque ─────────────────────────
+function buscarProdutoEstoque(termo){
+  const dropdown=document.getElementById('est-produto-dropdown');
+  if(!dropdown)return;
+  if(!termo||termo.length<1){dropdown.style.display='none';return;}
+  const pf=currentUser.perfil||'master';
+  const f=encodeURIComponent('%'+termo+'%');
+  api('produtos?select=id,nome,codigo,unidade&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&or=(nome.ilike.'+f+',codigo.ilike.'+f+')&limit=10')
+    .then(rows=>{
+      if(!rows||!rows.length){
+        dropdown.innerHTML='<div style="padding:10px 14px;font-size:13px;color:var(--text3)">Nenhum produto encontrado</div>';
+        dropdown.style.display='block';return;
+      }
+      dropdown.innerHTML=rows.map(p=>'<div data-pid="'+p.id+'" data-pnome="'+p.nome+'" data-punidade="'+(p.unidade||'un')+'" onclick="selecionarProdutoEstoque(parseInt(this.dataset.pid),this.dataset.pnome,this.dataset.punidade)" style="padding:9px 14px;font-size:13px;cursor:pointer;color:var(--text);display:flex;justify-content:space-between;gap:8px" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'"><span>'+(p.codigo?'['+p.codigo+'] ':'')+p.nome+'</span><span style="color:var(--text3);font-size:11px">'+p.unidade+'</span></div>').join('');
+      dropdown.style.display='block';
+    }).catch(()=>{});
+}
+
+async function selecionarProdutoEstoque(id,nome,unidade){
+  document.getElementById('est-produto').value=id;
+  document.getElementById('est-produto-busca').value='';
+  document.getElementById('est-produto-dropdown').style.display='none';
+  document.getElementById('est-produto-nome').textContent=nome;
+  document.getElementById('est-produto-selecionado').style.display='flex';
+  document.getElementById('est-qtd-label').innerHTML='Quantidade ('+unidade+') <span class="req">*</span>';
+  // Buscar saldo total do produto (todos os tamanhos)
+  await onEstProdutoChange();
+}
+
+function limparProdutoEstoque(){
+  document.getElementById('est-produto').value='';
+  document.getElementById('est-produto-busca').value='';
+  document.getElementById('est-produto-dropdown').style.display='none';
+  document.getElementById('est-produto-selecionado').style.display='none';
+  document.getElementById('est-produto-nome').textContent='';
+  document.getElementById('est-saldo-atual-wrap').style.display='none';
+  document.getElementById('est-qtd-hint').textContent='';
+  document.getElementById('est-produto').dataset.max='';
+  document.getElementById('est-produto').dataset.min='';
+}
+
+// Fechar dropdown ao clicar fora
+document.addEventListener('click',e=>{
+  const drop=document.getElementById('est-produto-dropdown');
+  const busca=document.getElementById('est-produto-busca');
+  if(drop&&busca&&!busca.contains(e.target)&&!drop.contains(e.target))drop.style.display='none';
+});
+
 // ─── PAINEL: ESTOQUE ─────────────────────────────────────────────
 let produtosEstoqueCache=[];
 let saldosCache={};
@@ -3231,23 +3297,30 @@ function renderEstoque(){
 async function carregarEstoque(){
   const pf=currentUser.perfil||'master';
   try{
-    // Buscar apenas produtos que têm saldo registrado (já tiveram movimentação)
-    const saldos=await api('estoque_saldo?select=produto_id,quantidade,produtos(id,nome,unidade,estoque_minimo,estoque_maximo,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf));
+    // Buscar saldos por variação (produto+genero+tamanho)
+    const saldos=await api('estoque_saldo?select=id,produto_id,quantidade,genero,tamanho,produtos(id,nome,unidade,estoque_minimo,estoque_maximo,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=produto_id.asc');
     saldosCache={};
     produtosEstoqueCache=(saldos||[])
       .filter(s=>s.produtos&&s.produtos.ativo!==false)
       .map(s=>({
+        saldo_id:s.id,
         id:s.produtos.id,
         nome:s.produtos.nome,
         unidade:s.produtos.unidade,
         estoque_minimo:s.produtos.estoque_minimo,
         estoque_maximo:s.produtos.estoque_maximo,
-        saldo:parseFloat(s.quantidade)||0
+        saldo:parseFloat(s.quantidade)||0,
+        genero:s.genero||null,
+        tamanho:s.tamanho||null
       }));
-    produtosEstoqueCache.sort((a,b)=>a.nome.localeCompare(b.nome));
+    produtosEstoqueCache.sort((a,b)=>a.nome.localeCompare(b.nome)||(a.genero||'').localeCompare(b.genero||'')||(a.tamanho||'').localeCompare(b.tamanho||''));
     renderTabelaEstoque(produtosEstoqueCache);
+    // Popular select do histórico com produtos únicos
     const selHist=document.getElementById('hist-filtro-produto');
-    if(selHist){selHist.innerHTML='<option value="">Todos os produtos</option>'+produtosEstoqueCache.map(p=>'<option value="'+p.id+'">'+p.nome+'</option>').join('');}
+    if(selHist){
+      const prods=[...new Map(produtosEstoqueCache.map(p=>[p.id,p])).values()];
+      selHist.innerHTML='<option value="">Todos os produtos</option>'+prods.map(p=>'<option value="'+p.id+'">'+p.nome+'</option>').join('');
+    }
   }catch(e){const tbody=document.getElementById('tbl-estoque');if(tbody)tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 
@@ -3274,7 +3347,7 @@ function renderTabelaEstoque(lista){
     return `<tr>
       <td><span ${LINK}data-pid="${p.id}" onclick="selecionarProdutoHistorico(${p.id},'${p.nome.replace(/'/g,"\\'")}' )">${p.nome}</span></td>
       <td style="font-size:12px;color:var(--text2)">${p.genero?p.genero.charAt(0).toUpperCase()+p.genero.slice(1):'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${(p.tamanhos&&p.tamanhos.length)?p.tamanhos.join(', '):'—'}</td>
+      <td style="font-size:12px;color:var(--text2);font-weight:${p.tamanho?'600':'400'}">${p.tamanho||'—'}</td>
       <td style="${saldoColor};font-size:16px">${p.saldo}</td>
       <td style="color:var(--text3)">${min??'-'}</td><td style="color:var(--text3)">${max??'-'}</td>
       <td><span class="badge" style="${badgeStyle}">${situacao}</span></td>
@@ -3323,32 +3396,42 @@ async function openModalMovimento(produtoId){
   const pf=currentUser.perfil||'master';
   const sel=document.getElementById('est-produto');
   try{const prods=await api('produtos?select=id,nome,unidade&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc');sel.innerHTML='<option value="">Selecione o produto...</option>'+(prods||[]).map(p=>'<option value="'+p.id+'" data-unidade="'+p.unidade+'">'+p.nome+'</option>').join('');}catch(e){sel.innerHTML='<option value="">Erro ao carregar</option>';}
-  if(produtoId){sel.value=produtoId;await onEstProdutoChange();}else{sel.value='';}
-  // Popular tamanhos adultos por padrão
+  // Reset busca produto
+  document.getElementById('est-produto-busca').value='';
+  document.getElementById('est-produto-selecionado').style.display='none';
+  document.getElementById('est-produto-nome').textContent='';
+  if(produtoId){
+    // Preencher via busca
+    document.getElementById('est-produto').value=produtoId;
+    await onEstProdutoChange();
+  }
+  // Reset gênero e popular tamanhos adultos
+  document.getElementById('est-genero').value='';
   popularSelectTamanhos('est-tamanho','adulto','');
   openModal('modal-estoque-mov');
 }
 
 async function onEstProdutoChange(){
-  const sel=document.getElementById('est-produto');const pid=sel.value;
+  const pid=document.getElementById('est-produto').value;
   const wrap=document.getElementById('est-saldo-atual-wrap');
   if(!pid){wrap.style.display='none';return;}
-  const opt=sel.options[sel.selectedIndex];const unidade=opt?.getAttribute('data-unidade')||'un';
-  document.getElementById('est-qtd-label').innerHTML='Quantidade ('+unidade+') <span class="req">*</span>';
   try{
     const pf=currentUser.perfil||'master';
-    const rows=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade');
+    const genero=document.getElementById('est-genero')?.value||null;
+    const tamanho=document.getElementById('est-tamanho')?.value||null;
+    // Buscar saldo desta variação específica (produto+genero+tamanho)
+    let q='estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf);
+    if(genero)q+='&genero=eq.'+encodeURIComponent(genero); else q+='&genero=is.null';
+    if(tamanho)q+='&tamanho=eq.'+encodeURIComponent(tamanho); else q+='&tamanho=is.null';
+    const rows=await api(q+'&select=quantidade');
     const saldo=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
-    document.getElementById('est-saldo-atual').textContent=saldo+' '+unidade;
+    document.getElementById('est-saldo-atual').textContent=saldo;
     wrap.style.display='block';
     const prodInfoMin=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo');
     const max=prodInfoMin&&prodInfoMin[0]&&prodInfoMin[0].estoque_maximo!=null?parseFloat(prodInfoMin[0].estoque_maximo):null;
     const min=prodInfoMin&&prodInfoMin[0]&&prodInfoMin[0].estoque_minimo!=null?parseFloat(prodInfoMin[0].estoque_minimo):null;
     document.getElementById('est-produto').dataset.max=max!=null?max:'';
     document.getElementById('est-produto').dataset.min=min!=null?min:'';
-    // Atualizar tamanhos conforme gênero selecionado
-    const generoAtual=document.getElementById('est-genero')?.value||'adulto';
-    popularSelectTamanhos('est-tamanho',generoAtual,'');
     onEstQtdChange();
   }catch(e){}
 }
@@ -3391,8 +3474,13 @@ async function salvarMovimento(){
   if(!pid){showMM('modal-est-msg','Selecione o produto','error');return;}
   if(!qtd||qtd<=0){showMM('modal-est-msg','Informe uma quantidade válida','error');return;}
   const pf=currentUser.perfil||'master';
+  const estGenero=document.getElementById('est-genero')?.value||null;
+  const estTamanho=document.getElementById('est-tamanho')?.value||null;
   try{
-    const rows=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade');
+    let qSaldo='estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf);
+    if(estGenero)qSaldo+='&genero=eq.'+encodeURIComponent(estGenero);else qSaldo+='&genero=is.null';
+    if(estTamanho)qSaldo+='&tamanho=eq.'+encodeURIComponent(estTamanho);else qSaldo+='&tamanho=is.null';
+    const rows=await api(qSaldo+'&select=id,quantidade');
     const saldoAtual=rows&&rows.length?parseFloat(rows[0].quantidade)||0:0;
     const saldoId=rows&&rows.length?rows[0].id:null;
     const prodData=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo,nome');
@@ -3403,13 +3491,27 @@ async function salvarMovimento(){
     else if(tipo==='saida')novoSaldo=saldoAtual-qtd;
     else if(tipo==='ajuste')novoSaldo=qtd;
     else if(tipo==='transferencia')novoSaldo=saldoAtual-qtd;
-    if(estoqueMax!=null&&(tipo==='entrada'||tipo==='ajuste')&&novoSaldo>estoqueMax){showMM('modal-est-msg','Quantidade excede o estoque máximo permitido ('+estoqueMax+'). Saldo atual: '+saldoAtual+'. Máximo que pode entrar: '+(estoqueMax-saldoAtual)+'.','error');return;}
-    if(estoqueMin!=null&&(tipo==='saida'||tipo==='transferencia')&&novoSaldo<estoqueMin){showMM('modal-est-msg','Quantidade deixaria o estoque abaixo do mínimo permitido ('+estoqueMin+'). Saldo atual: '+saldoAtual+'. Máximo que pode sair: '+(saldoAtual-estoqueMin)+'.','error');return;}
-    const estGenero=document.getElementById('est-genero')?.value||null;
-    const estTamanho=document.getElementById('est-tamanho')?.value||null;
-    await api('estoque_movimentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),tipo,quantidade:qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,motivo:document.getElementById('est-motivo').value.trim()||null,observacoes:document.getElementById('est-obs').value.trim()||null,genero:estGenero,tamanho:estTamanho,criado_por:currentUser.usuario})});
-    if(saldoId){await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});}
-    else{await api('estoque_saldo',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),quantidade:novoSaldo})});}
+    if(estoqueMax!=null&&(tipo==='entrada'||tipo==='ajuste')&&novoSaldo>estoqueMax){
+      showMM('modal-est-msg','Excede o máximo ('+estoqueMax+'). Saldo desta variação: '+saldoAtual+'.','error');return;
+    }
+    if(estoqueMin!=null&&(tipo==='saida'||tipo==='transferencia')&&novoSaldo<estoqueMin){
+      showMM('modal-est-msg','Ficaria abaixo do mínimo ('+estoqueMin+'). Saldo desta variação: '+saldoAtual+'.','error');return;
+    }
+    await api('estoque_movimentos',{method:'POST',body:JSON.stringify({
+      perfil_codigo:pf,produto_id:parseInt(pid),tipo,quantidade:qtd,
+      quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,
+      motivo:document.getElementById('est-motivo').value.trim()||null,
+      observacoes:document.getElementById('est-obs').value.trim()||null,
+      genero:estGenero,tamanho:estTamanho,criado_por:currentUser.usuario
+    })});
+    if(saldoId){
+      await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});
+    } else {
+      await api('estoque_saldo',{method:'POST',body:JSON.stringify({
+        perfil_codigo:pf,produto_id:parseInt(pid),quantidade:novoSaldo,
+        genero:estGenero||null,tamanho:estTamanho||null
+      })});
+    }
     showMM('modal-est-msg','Movimentação registrada com sucesso!','success');
     setTimeout(()=>{closeModal('modal-estoque-mov');carregarEstoque();},900);
   }catch(e){showMM('modal-est-msg','Erro: '+e.message,'error');}
