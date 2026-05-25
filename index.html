@@ -3280,16 +3280,8 @@ async function gerarDadosRelatorio(){
     const temAg=perfilTemFunc('agendamentos');
     wrap.innerHTML=''
       +'<div style="font-size:12px;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Relatório — '+nomePeriodo+'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'
-      +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
-      +'<span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Financeiro</span>'
-      +'<button onclick="gerarPDFFinanceiro()" style="font-size:11px;padding:3px 10px;background:transparent;border:1px solid #a78bfa;color:#a78bfa;border-radius:4px;cursor:pointer">PDF</button>'
-      +'</div>'
-      +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Receitas pagas</span><span style="color:var(--success);font-weight:700">'+fmtV(recPago)+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text2)">Despesas pagas</span><span style="color:var(--danger);font-weight:700">'+fmtV(despPago)+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:13px;font-weight:700;color:var(--text)">Resultado</span><span style="font-weight:700;color:'+(recPago-despPago>=0?'var(--success)':'var(--danger)')+'">'+fmtV(recPago-despPago)+'</span></div>'
-      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">'
+      +''
       +(temAg
         ?'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
@@ -3327,6 +3319,44 @@ async function gerarDadosRelatorio(){
   }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
 
+
+function salvarMensagensWpp(){
+  const textareas=document.querySelectorAll('#rel-conteudo textarea');
+  let count=0;
+  textareas.forEach(ta=>{if(ta.id)localStorage.setItem(ta.id,ta.value);count++;});
+  const msg=document.getElementById('wpp-save-msg');
+  if(msg){msg.textContent='✅ '+count+' modelo(s) salvo(s)!';msg.style.display='block';msg.style.color='var(--success)';setTimeout(()=>msg.style.display='none',2000);}
+}
+
+function openModalNovoModelo(){
+  const titulo=document.getElementById('novo-modelo-titulo');if(titulo)titulo.value='';
+  const texto=document.getElementById('novo-modelo-texto');if(texto)texto.value='';
+  const msg=document.getElementById('modal-novo-modelo-msg');if(msg)msg.style.display='none';
+  openModal('modal-novo-modelo-wpp');
+}
+
+function salvarNovoModelo(){
+  const titulo=document.getElementById('novo-modelo-titulo')?.value?.trim();
+  const texto=document.getElementById('novo-modelo-texto')?.value?.trim();
+  if(!titulo){showMM('modal-novo-modelo-msg','Informe o título','error');return;}
+  if(!texto){showMM('modal-novo-modelo-msg','Informe a mensagem','error');return;}
+  const id='wpp_custom_'+Date.now();
+  localStorage.setItem(id,texto);
+  const lista=JSON.parse(localStorage.getItem('wpp_custom_ids')||'[]');
+  lista.push({id,titulo});
+  localStorage.setItem('wpp_custom_ids',JSON.stringify(lista));
+  showMM('modal-novo-modelo-msg','Modelo salvo!','success');
+  setTimeout(()=>{closeModal('modal-novo-modelo-wpp');carregarWhatsApp();},800);
+}
+
+function excluirModeloCustom(id){
+  if(!confirm('Excluir este modelo?'))return;
+  localStorage.removeItem(id);
+  const lista=JSON.parse(localStorage.getItem('wpp_custom_ids')||'[]').filter(x=>x.id!==id);
+  localStorage.setItem('wpp_custom_ids',JSON.stringify(lista));
+  carregarWhatsApp();
+}
+
 function carregarWhatsApp(){
   const wrap=document.getElementById('rel-conteudo');
   const empresa=empresaConfig?.nome_empresa||perfilNome(currentUser.perfil)||'nossa empresa';
@@ -3359,7 +3389,25 @@ function carregarWhatsApp(){
       +'<textarea id="'+m.id+'" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;line-height:1.6;resize:vertical;min-height:80px;font-family:inherit;outline:none">'+saved+'</textarea>'
       +'</div>';
   });
-  html+='<button class="btn-primary" onclick="salvarMensagensWpp()" style="margin-top:8px">Salvar Modelos</button>';
+  // Modelos customizados
+  const customIds=JSON.parse(localStorage.getItem('wpp_custom_ids')||'[]');
+  if(customIds.length){
+    html+='<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px">Modelos personalizados</div>';
+    customIds.forEach(m=>{
+      const saved=localStorage.getItem(m.id)||'';
+      html+='<div style="background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:16px;margin-bottom:14px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +'<div style="font-size:12px;font-weight:600;color:var(--accent)">'+m.titulo+'</div>'
+        +'<button data-mid="'+m.id+'" onclick="excluirModeloCustom(this.dataset.mid)" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;padding:0">✕ Excluir</button>'
+        +'</div>'
+        +'<textarea id="'+m.id+'" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;line-height:1.6;resize:vertical;min-height:80px;font-family:inherit;outline:none">'+saved+'</textarea>'
+        +'</div>';
+    });
+  }
+  html+='<div style="margin-top:16px;display:flex;gap:10px;align-items:center">'
+    +'<button class="btn-primary" onclick="salvarMensagensWpp()">💾 Salvar Alterações</button>'
+    +'<button class="btn-new" onclick="openModalNovoModelo()">+ Novo Modelo</button>'
+    +'</div>';
   html+='<div id="wpp-save-msg" style="margin-top:10px;font-size:12px;display:none"></div>';
   wrap.innerHTML=html;
 }
@@ -3367,16 +3415,12 @@ function carregarWhatsApp(){
 function carregarAnaliseIA(){
   const wrap=document.getElementById('rel-conteudo');
   const apiKey=localStorage.getItem('anthropic_api_key')||'';
+  const keyAviso=apiKey?'':'<div style="margin-bottom:12px;padding:10px 14px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px;font-size:12px;color:var(--danger)">🔑 API Key não configurada. Acesse <strong>Configurações → API Anthropic</strong> para cadastrar. <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--danger);text-decoration:underline;cursor:pointer;font-size:12px;padding:0\'>Configurar agora</button></div>';
   wrap.innerHTML=''
     +'<div style="margin-bottom:16px;padding:14px 18px;background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;font-size:13px;color:var(--text2)">'
     +'<strong style="color:var(--accent)">Análise Estratégica por IA</strong><br>'
     +'A IA analisa os dados da sua empresa e gera insights. Você também pode fazer perguntas específicas abaixo.</div>'
-    +(apiKey?'':'<div style="margin-bottom:16px;padding:12px 16px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px">'
-    +'<div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:6px">🔑 API Key da Anthropic necessária</div>'
-    +'<div style="display:flex;gap:8px"><input type="password" id="ia-api-key-input" placeholder="sk-ant-..." style="flex:1;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none">'
-    +'<button onclick="salvarApiKeyIA()" class="btn-new" style="white-space:nowrap">Salvar Chave</button></div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:6px">Obtenha em console.anthropic.com. Salva apenas neste navegador.</div>'
-    +'</div>')
+    +keyAviso
     +'<button class="btn-primary" onclick="executarAnaliseIA()" id="btn-exec-ia" style="margin-bottom:20px">📊 Gerar Análise Completa Agora</button>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">'
     +'<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">💬 Ou faça uma pergunta específica:</div>'
@@ -3385,6 +3429,18 @@ function carregarAnaliseIA(){
     +'<button onclick="executarPerguntaIA()" class="btn-new" style="white-space:nowrap;align-self:flex-end">Perguntar</button>'
     +'</div></div>'
     +'<div id="ia-resultado" style="margin-top:4px"></div>';
+}
+
+
+function abrirConfiguracaoIA(){
+  const key=localStorage.getItem('anthropic_api_key')||'';
+  const novo=prompt('Cole sua API Key da Anthropic (começa com sk-ant-):\n\nA chave fica salva apenas neste navegador e nunca é enviada para terceiros.',key);
+  if(novo===null)return; // cancelou
+  if(!novo.trim()){alert('Chave não pode ser vazia.');return;}
+  if(!novo.trim().startsWith('sk-ant-')){alert('Chave inválida. Deve começar com sk-ant-');return;}
+  localStorage.setItem('anthropic_api_key',novo.trim());
+  alert('✅ Chave salva com sucesso!');
+  carregarAnaliseIA(); // recarregar tela
 }
 
 function salvarApiKeyIA(){
@@ -3673,7 +3729,7 @@ function renderEstoque(){
   return '<div class="panel-header"><span class="panel-title">Controle de Estoque</span>'
     +'<button class="btn-new" onclick="openModalMovimento()">+ Nova Movimentação</button></div>'
     +'<div id="estoque-alertas"></div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Produtos cadastrados</div><div id="est-count-total" style="font-size:28px;font-weight:700;color:var(--text)">—</div></div>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Abaixo do mínimo</div><div id="est-count-critico" style="font-size:28px;font-weight:700;color:var(--danger)">—</div></div>'
     +'</div>'
@@ -4957,5 +5013,28 @@ async function gerarComprovante(id){
 }
 
 </script>
+
+<!-- MODAL NOVO MODELO WHATSAPP -->
+<div class="modal-overlay" id="modal-novo-modelo-wpp">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">Novo Modelo de Mensagem</div>
+    <div class="form-grid">
+      <div class="mfield col-2">
+        <label>Título do modelo <span class="req">*</span></label>
+        <input type="text" id="novo-modelo-titulo" placeholder="Ex: Promoção de fim de semana">
+      </div>
+      <div class="mfield col-2">
+        <label>Mensagem <span class="req">*</span></label>
+        <textarea id="novo-modelo-texto" placeholder="Digite a mensagem... Use {nome}, {data}, {valor} como variáveis." style="min-height:120px"></textarea>
+      </div>
+    </div>
+    <div class="modal-msg" id="modal-novo-modelo-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-novo-modelo-wpp')">Cancelar</button>
+      <button class="btn-save" onclick="salvarNovoModelo()">Salvar Modelo</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
