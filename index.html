@@ -3575,7 +3575,7 @@ function renderModalWppDestinatarios(categoria){
   let lista=[];
   if(categoria==='aniversariantes')lista=window._wppAniversariantes||[];
   else if(categoria==='reposicao')lista=window._wppReposicao||[];
-  else lista=window._wppTodosClientes||[];
+  else lista=window._wppTodosClientes||[]; // lista livre = todos os clientes sem restrição
   renderListaDestinatarios(lista,categoria);
 }
 
