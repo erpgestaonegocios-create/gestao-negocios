@@ -3623,10 +3623,15 @@ async function enviarMsgCliente(dataset){
   let empresa='nossa empresa';
   try{
     const pf=currentUser.perfil||'';
-    const cfgE=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=nome_empresa&limit=1');
-    if(cfgE&&cfgE.length&&cfgE[0].nome_empresa)empresa=cfgE[0].nome_empresa;
-  }catch(e){console.error('Erro ao buscar empresa:',e);}
-  console.log('[WPP] empresa resolvida:',empresa,'| perfil:',currentUser.perfil);
+    console.log('[WPP DEBUG] perfil:',pf,'| nivel:',currentUser.nivel,'| usuario:',currentUser.usuario);
+    // Buscar todos os registros de empresa_config para debug
+    const cfgTodos=await api('empresa_config?select=perfil_codigo,nome_empresa');
+    console.log('[WPP DEBUG] empresa_config registros:',JSON.stringify(cfgTodos));
+    const cfgE=(cfgTodos||[]).filter(r=>r.perfil_codigo===pf);
+    console.log('[WPP DEBUG] match por perfil:',JSON.stringify(cfgE));
+    if(cfgE.length&&cfgE[0].nome_empresa)empresa=cfgE[0].nome_empresa;
+  }catch(e){console.error('[WPP] Erro ao buscar empresa:',e);}
+  console.log('[WPP] empresa final:',empresa);
   let msg=wppTextoModelo
     .replace(/{nome}/g,nome)
     .replace(/{data}/g,hoje)
