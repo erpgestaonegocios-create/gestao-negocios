@@ -3448,9 +3448,12 @@ function salvarApiKeyIA(){
 
 // ── Chamada à API Google Gemini ───────────────────────────────────
 async function chamarGemini(prompt, maxTokens=1500){
-  const apiKey=localStorage.getItem('gemini_api_key')||'';
+  const apiKey=(localStorage.getItem('gemini_api_key')||'').trim();
   if(!apiKey)throw new Error('API Key do Gemini não configurada. Clique em "Configurar agora".');
-  const url='https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key='+apiKey;
+  console.log('[Gemini] Chave (primeiros 8 chars):', apiKey.substring(0,8)+'...');
+  console.log('[Gemini] Tamanho da chave:', apiKey.length);
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key='+apiKey;
+  console.log('[Gemini] URL (sem chave):', url.replace(apiKey,'***'));
   const response=await fetch(url,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -3468,7 +3471,8 @@ async function chamarGemini(prompt, maxTokens=1500){
       throw new Error('⏳ Cota gratuita atingida. Aguarde 1 minuto e tente novamente.');
     }
     if(code===400||status==='INVALID_ARGUMENT'){
-      throw new Error('❌ Chave inválida. Clique em "Trocar chave" e cole a chave novamente.');
+      console.error('[Gemini] Erro 400 detalhes:', JSON.stringify(data.error));
+      throw new Error('❌ Chave inválida ('+status+'). Verifique o console (F12) para detalhes.');
     }
     throw new Error('Erro Google ('+code+'): '+msg);
   }
