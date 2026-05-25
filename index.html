@@ -1782,7 +1782,7 @@ function renderAcessos(){
     <div class="panel-header">
       <span class="panel-title">Gestão de Acessos</span>
       <div class="panel-actions">
-        <button class="btn-secondary" onclick="openModal('modal-perfil')">+ Novo Perfil</button>
+        <button class="btn-secondary" onclick="abrirModalNovoPerfil()">+ Novo Perfil</button>
         <button class="btn-secondary" onclick="openModalFunc()">+ Nova Funcionalidade</button>
       </div>
     </div>
@@ -1840,6 +1840,17 @@ async function toggleFuncPerfil(perfil,func,adicionar,labelFunc){
   }catch(e){alert('Erro: '+e.message);}
 }
 
+function abrirModalNovoPerfil(){
+  // Limpar campos antes de abrir
+  const nome=document.getElementById('p-nome');
+  const codigo=document.getElementById('p-codigo');
+  const msg=document.getElementById('modal-perfil-msg');
+  if(nome)nome.value='';
+  if(codigo)codigo.value='';
+  if(msg)msg.style.display='none';
+  openModal('modal-perfil');
+}
+
 async function salvarPerfil(){
   const nome=document.getElementById('p-nome').value.trim();
   const codigo=document.getElementById('p-codigo').value.trim();
@@ -1847,8 +1858,7 @@ async function salvarPerfil(){
   if(!codigo){showMM('modal-perfil-msg','Informe o código','error');return;}
   try{
     await api('perfis',{method:'POST',body:JSON.stringify({codigo,descricao:nome,ativo:true})});
-    // Criar registro em empresa_config automaticamente
-    await api('empresa_config',{method:'POST',body:JSON.stringify({perfil_codigo:codigo,nome_empresa:nome,codigo_acesso:codigo})}).catch(()=>{});
+
     showMM('modal-perfil-msg','Perfil criado com sucesso!','success');
     await carregarPerfisCache(); // Atualiza cache após criar
     setTimeout(()=>{
