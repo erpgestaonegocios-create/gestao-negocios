@@ -3450,7 +3450,7 @@ function salvarApiKeyIA(){
 async function chamarGemini(prompt, maxTokens=1500){
   const apiKey=localStorage.getItem('gemini_api_key')||'';
   if(!apiKey)throw new Error('API Key do Gemini não configurada. Clique em "Configurar agora".');
-  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key='+apiKey;
+  const url='https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key='+apiKey;
   const response=await fetch(url,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
