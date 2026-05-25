@@ -1766,7 +1766,7 @@ async function excluirPerfil(codigo, nome){
     await carregarFuncCache();
     // Recarregar a tela de acessos via showPanel
     const elAcessos=document.getElementById('panel-acessos');
-    if(elAcessos){elAcessos.innerHTML=renderAcessos();carregarAcessos();}
+    if(elAcessos){elAcessos.innerHTML=renderAcessos();onShowAcessos();}
     // Mostrar mensagem de sucesso
     const wrap=document.getElementById('panel-acessos');
     const msg=document.createElement('div');
@@ -3825,16 +3825,18 @@ async function excluirUsuario(id, nome){
 async function openModalAcessos(userId, perfil, nomeUsuario){
   document.getElementById('modal-access-titulo').textContent='Acessos — '+nomeUsuario;
   document.getElementById('modal-access-sub').textContent='Perfil: '+perfilNome(perfil);
-  const lista=document.getElementById('acessos-lista');
+  const lista=document.getElementById('access-checkboxes');
   if(lista)lista.innerHTML='<div class="loading">Carregando...</div>';
   openModal('modal-acessos');
   try{
+    // Garantir caches carregados
+    if(!funcCache.length)await carregarFuncCache();
     // Funcionalidades disponíveis no perfil
-    const funcsNoPerfil=funcCache.filter(f=>f.perfil_codigo===perfil).map(f=>f.funcionalidade);
+    const funcsNoPerfil=funcCache.filter(f=>f.perfil_codigo===perfil&&f.ativo!==false).map(f=>f.funcionalidade);
     // Acessos atuais do usuário
     const acessosUsuario=await api('usuario_acessos?usuario_id=eq.'+userId+'&ativo=eq.true&select=funcionalidade')||[];
     const acessosSet=new Set(acessosUsuario.map(a=>a.funcionalidade));
-    // Labels
+    // Labels via labelsCache ou padrão
     const labelsFunc={clientes:'Clientes',fornecedores:'Fornecedores',produtos:'Produtos',servicos:'Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
     if(!funcsNoPerfil.length){
       if(lista)lista.innerHTML='<div class="empty">Nenhuma funcionalidade disponível para este perfil.</div>';
@@ -3843,7 +3845,7 @@ async function openModalAcessos(userId, perfil, nomeUsuario){
     if(lista)lista.innerHTML=funcsNoPerfil.map(func=>'<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer">'
       +'<input type="checkbox" data-func="'+func+'" data-uid="'+userId+'" '+(acessosSet.has(func)?'checked':'')
       +' onchange="toggleAcessoUsuario(this)" style="width:16px;height:16px;accent-color:var(--accent)">'
-      +'<span style="font-size:13px;color:var(--text)">'+( labelsFunc[func]||func)+'</span>'
+      +'<span style="font-size:13px;color:var(--text)">'+(labelsFunc[func]||func)+'</span>'
       +'</label>').join('');
   }catch(e){if(lista)lista.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
 }
