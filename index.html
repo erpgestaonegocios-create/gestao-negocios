@@ -3611,6 +3611,7 @@ function filtrarClientesWpp(termo){
 }
 
 async function enviarMsgCliente(dataset){
+  console.log('[WPP] enviarMsgCliente chamada, dataset:',JSON.stringify({cid:dataset.cid,cnome:dataset.cnome,ctel:dataset.ctel}));
   const id=parseInt(dataset.cid);
   const nome=dataset.cnome||'';
   const tel=dataset.ctel||'';
@@ -3619,7 +3620,6 @@ async function enviarMsgCliente(dataset){
   const categoria=window._wppCategoriaAtual;
   const anoAtual=new Date().getFullYear();
   const hoje=new Date().toLocaleDateString('pt-BR');
-  console.log('[WPP] enviarMsgCliente chamada, nome:',dataset.cnome,'tel:',dataset.ctel);
   // Buscar nome da empresa do banco pelo perfil do usuário
   let empresa='nossa empresa';
   try{
