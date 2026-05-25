@@ -3445,13 +3445,16 @@ function carregarAnaliseIA(){
 
 
 function abrirConfiguracaoIA(){
-  const key=localStorage.getItem('gemini_api_key')||'';
-  const novo=prompt('Cole sua API Key do Google Gemini (começa com AIza):\n\nObtida gratuitamente em aistudio.google.com/apikey\nA chave fica salva apenas neste navegador.',key);
+  const keyAtual=localStorage.getItem('gemini_api_key')||'';
+  const msg=keyAtual
+    ?'Chave atual: '+keyAtual.substring(0,8)+'... ('+keyAtual.length+' chars)\n\nCole a nova chave abaixo (ou deixe em branco para manter a atual):'
+    :'Cole sua API Key do Google Gemini:\n\nObtida em aistudio.google.com/apikey';
+  const novo=prompt(msg, keyAtual);
   if(novo===null)return;
-  if(!novo.trim()){alert('Chave não pode ser vazia.');return;}
-  if(novo.trim().length < 20){alert('Chave muito curta. Verifique e tente novamente.');return;}
-  localStorage.setItem('gemini_api_key',novo.trim());
-  alert('✅ Chave Gemini salva com sucesso!');
+  const chave=novo.trim();
+  if(!chave){alert('Chave não pode ser vazia.');return;}
+  localStorage.setItem('gemini_api_key', chave);
+  alert('✅ Chave salva! ('+chave.length+' chars)\nPrimeiros 8: '+chave.substring(0,8));
   carregarAnaliseIA();
 }
 
