@@ -2730,6 +2730,33 @@ function popularCompraGenero(saldos){
   });
 }
 
+function onCompraGeneroChange(){
+  const genero=document.getElementById('compra-genero')?.value||'';
+  const saldos=window._compraEstoqueSaldos||[];
+  if(!saldos.length){
+    // Sem dados de estoque carregados — usar lista padrão de tamanhos
+    popularSelectTamanhos('compra-tamanho',genero||'adulto','');
+    return;
+  }
+  // Filtrar tamanhos disponíveis para este gênero, descontando o carrinho
+  const selTam=document.getElementById('compra-tamanho');
+  if(!selTam)return;
+  const prodId=document.getElementById('compra-prod-id')?.value||'';
+  const tamanhosDisp=saldos.filter(s=>(s.genero||'')===(genero||'')&&parseFloat(s.quantidade||0)>0);
+  if(!tamanhosDisp.length){
+    selTam.innerHTML='<option value="" disabled>Sem estoque neste gênero</option>';
+    return;
+  }
+  selTam.innerHTML='<option value="">Selecione o tamanho...</option>';
+  tamanhosDisp.forEach(s=>{
+    const opt=document.createElement('option');
+    opt.value=s.tamanho||'';
+    opt.textContent=(s.tamanho||'Sem tamanho')+' ('+s.quantidade+' disponíveis)';
+    selTam.appendChild(opt);
+  });
+  selTam.disabled=false;
+}
+
 function limparProdutoCompra(){
   document.getElementById('compra-prod-id').value='';
   document.getElementById('compra-prod-busca').value='';
