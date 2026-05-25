@@ -3450,7 +3450,7 @@ function salvarApiKeyIA(){
 async function chamarGemini(prompt, maxTokens=1500){
   const apiKey=localStorage.getItem('gemini_api_key')||'';
   if(!apiKey)throw new Error('API Key do Gemini não configurada. Clique em "Configurar agora".');
-  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey;
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key='+apiKey;
   const response=await fetch(url,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -3461,14 +3461,16 @@ async function chamarGemini(prompt, maxTokens=1500){
   });
   const data=await response.json();
   if(data.error){
-    const msg=data.error.message||'Erro na API Gemini';
-    if(msg.includes('API key not valid')||msg.includes('API_KEY_INVALID')||msg.includes('not found')){
-      throw new Error('Chave inválida ou expirada. Clique em "Trocar chave" para reconfigurar.');
+    const msg=data.error.message||'Erro desconhecido';
+    const code=data.error.code||'';
+    const status=data.error.status||'';
+    if(status==='RESOURCE_EXHAUSTED'||msg.includes('quota')){
+      throw new Error('⏳ Cota gratuita atingida. Aguarde 1 minuto e tente novamente.');
     }
-    if(msg.includes('quota')||msg.includes('RESOURCE_EXHAUSTED')){
-      throw new Error('Cota gratuita atingida. Aguarde alguns minutos e tente novamente.');
+    if(code===400||status==='INVALID_ARGUMENT'){
+      throw new Error('❌ Chave inválida. Clique em "Trocar chave" e cole a chave novamente.');
     }
-    throw new Error(msg);
+    throw new Error('Erro Google ('+code+'): '+msg);
   }
   return data.candidates?.[0]?.content?.parts?.[0]?.text||'Sem resposta.';
 }
