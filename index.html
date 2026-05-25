@@ -3437,24 +3437,13 @@ async function gerarDadosRelatorio(){
 
 // ── WhatsApp enviar mensagem ──────────────────────────────────────
 function enviarWhatsApp(modeloId){
-  const texto=document.getElementById(modeloId)?.value?.trim();
-  if(!texto){alert('Mensagem vazia.');return;}
-  // Substituir variáveis com valores padrão para o usuário editar
-  const msg=texto
-    .replace(/{nome}/g,'[Nome do cliente]')
-    .replace(/{data}/g,new Date().toLocaleDateString('pt-BR'))
-    .replace(/{valor}/g,'[Valor]')
-    .replace(/{vencimento}/g,'[Data]')
-    .replace(/{descricao}/g,'[Descrição]')
-    .replace(/{hora}/g,'[Hora]')
-    .replace(/{servico}/g,'[Serviço]')
-    .replace(/{empresa}/g,empresaConfig?.nome_empresa||'nossa empresa');
-  const tel=prompt('Informe o número do WhatsApp com DDD (somente números):\nEx: 31999999999','');
-  if(!tel)return;
-  const numero=tel.replace(/\D/g,'');
-  if(numero.length<10){alert('Número inválido. Informe DDD + número.');return;}
-  const url='https://wa.me/55'+numero+'?text='+encodeURIComponent(msg);
-  window.open(url,'_blank');
+  const modelo=document.getElementById(modeloId);
+  if(!modelo){alert('Modelo não encontrado.');return;}
+  wppModeloAtual=modeloId;
+  wppTextoModelo=modelo.value;
+  wppClientesSelecionados=new Set();
+  wppClientesEnviados=new Set();
+  abrirModalWppDestinatarios();
 }
 
 // ── Badge de alertas no menu ──────────────────────────────────────
@@ -3531,15 +3520,7 @@ let wppTextoModelo='';
 let wppClientesSelecionados=new Set();
 let wppClientesEnviados=new Set();
 
-function enviarWhatsApp(modeloId){
-  const modelo=document.getElementById(modeloId);
-  if(!modelo){alert('Modelo não encontrado.');return;}
-  wppModeloAtual=modeloId;
-  wppTextoModelo=modelo.value; // salva o texto agora enquanto o textarea está visível
-  wppClientesSelecionados=new Set();
-  wppClientesEnviados=new Set();
-  abrirModalWppDestinatarios();
-}
+
 
 async function abrirModalWppDestinatarios(){
   const modal=document.getElementById('modal-wpp-destinatarios');
