@@ -3424,10 +3424,10 @@ function carregarWhatsApp(){
 
 function carregarAnaliseIA(){
   const wrap=document.getElementById('rel-conteudo');
-  const apiKey=localStorage.getItem('gemini_api_key')||'';
+  const apiKey=localStorage.getItem('groq_api_key')||'';
   const keyAviso=apiKey
-    ?'<div style="margin-bottom:12px;padding:8px 14px;background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:8px;font-size:12px;color:var(--success);display:flex;justify-content:space-between;align-items:center">✅ API Key configurada <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--text3);text-decoration:underline;cursor:pointer;font-size:11px;padding:0\'>Trocar chave</button></div>'
-    :'<div style="margin-bottom:12px;padding:10px 14px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px;font-size:12px;color:var(--danger);display:flex;justify-content:space-between;align-items:center">🔑 API Key do Gemini não configurada. <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--danger);text-decoration:underline;cursor:pointer;font-size:12px;padding:0;font-weight:600\'>Configurar agora →</button></div>';
+    ?'<div style="margin-bottom:12px;padding:8px 14px;background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:8px;font-size:12px;color:var(--success);display:flex;justify-content:space-between;align-items:center">✅ API Key Groq configurada <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--text3);text-decoration:underline;cursor:pointer;font-size:11px;padding:0\'>Trocar chave</button></div>'
+    :'<div style="margin-bottom:12px;padding:10px 14px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px;font-size:12px;color:var(--danger);display:flex;justify-content:space-between;align-items:center">🔑 API Key do Groq não configurada. <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--danger);text-decoration:underline;cursor:pointer;font-size:12px;padding:0;font-weight:600\'>Configurar agora →</button></div>';
   wrap.innerHTML=''
     +'<div style="margin-bottom:16px;padding:14px 18px;background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;font-size:13px;color:var(--text2)">'
     +'<strong style="color:var(--accent)">Análise Estratégica por IA</strong><br>'
@@ -3445,16 +3445,16 @@ function carregarAnaliseIA(){
 
 
 function abrirConfiguracaoIA(){
-  const keyAtual=localStorage.getItem('gemini_api_key')||'';
+  const keyAtual=localStorage.getItem('groq_api_key')||'';
   const msg=keyAtual
-    ?'Chave atual: '+keyAtual.substring(0,8)+'... ('+keyAtual.length+' chars)\n\nCole a nova chave abaixo (ou deixe em branco para manter a atual):'
-    :'Cole sua API Key do Google Gemini:\n\nObtida em aistudio.google.com/apikey';
-  const novo=prompt(msg, keyAtual);
+    ?'Chave atual: '+keyAtual.substring(0,8)+'... ('+keyAtual.length+' chars)\n\nCole a nova chave abaixo:'
+    :'Cole sua API Key do Groq (começa com gsk_):\n\nObtida gratuitamente em console.groq.com';
+  const novo=prompt(msg,'');
   if(novo===null)return;
   const chave=novo.trim();
   if(!chave){alert('Chave não pode ser vazia.');return;}
-  localStorage.setItem('gemini_api_key', chave);
-  alert('✅ Chave salva! ('+chave.length+' chars)\nPrimeiros 8: '+chave.substring(0,8));
+  localStorage.setItem('groq_api_key', chave);
+  alert('✅ Chave Groq salva! ('+chave.length+' chars)\nPrimeiros 8: '+chave.substring(0,8));
   carregarAnaliseIA();
 }
 
@@ -3469,43 +3469,36 @@ function salvarApiKeyIA(){
 
 // ── Chamada à API Google Gemini ───────────────────────────────────
 async function chamarGemini(prompt, maxTokens=1500){
-  const apiKey=(localStorage.getItem('gemini_api_key')||'').trim();
-  if(!apiKey)throw new Error('API Key do Gemini não configurada. Clique em "Configurar agora".');
-  // Tentar modelos em ordem até um funcionar
-  const modelos=[
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey,
-    'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key='+apiKey,
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key='+apiKey,
-    'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key='+apiKey,
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key='+apiKey,
-  ];
-  let lastError='';
-  for(const url of modelos){
-    const modelName=url.match(/models\/([^:]+)/)?.[1]||'?';
-    try{
-      const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens,temperature:0.7}})});
-      const data=await response.json();
-      if(data.error){
-        const msg=data.error.message||'';
-        const status=data.error.status||'';
-        if(msg.includes('expired')||msg.includes('renew'))throw new Error('🔑 Chave expirada. Clique em "Trocar chave" e gere uma nova em aistudio.google.com/apikey');
-        if(status==='PERMISSION_DENIED'||status==='UNAUTHENTICATED')throw new Error('🔑 Chave inválida. Clique em "Trocar chave"');
-        lastError=modelName+': '+msg;
-        console.warn('[Gemini] '+modelName+' falhou:',msg);
-        continue;
-      }
-      const texto=data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if(texto){console.log('[Gemini] Sucesso com modelo:',modelName);return texto;}
-      lastError=modelName+': resposta vazia';
-    }catch(e){
-      if(e.message.includes('🔑'))throw e;
-      lastError=modelName+': '+e.message;
-    }
+  const apiKey=(localStorage.getItem('groq_api_key')||'').trim();
+  if(!apiKey)throw new Error('API Key do Groq não configurada. Clique em "Configurar agora".');
+  const url='https://api.groq.com/openai/v1/chat/completions';
+  const response=await fetch(url,{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+apiKey
+    },
+    body:JSON.stringify({
+      model:'llama3-8b-8192',
+      messages:[{role:'user',content:prompt}],
+      max_tokens:maxTokens,
+      temperature:0.7
+    })
+  });
+  const data=await response.json();
+  if(data.error){
+    const msg=data.error.message||'Erro na API Groq';
+    if(msg.includes('invalid_api_key')||msg.includes('401'))
+      throw new Error('🔑 Chave inválida. Clique em "Trocar chave".');
+    if(msg.includes('rate_limit')||msg.includes('429'))
+      throw new Error('⏳ Limite de requisições atingido. Aguarde 1 minuto.');
+    throw new Error('Erro Groq: '+msg);
   }
-  throw new Error('Nenhum modelo disponível. Último erro: '+lastError);
-  return ''; // nunca chega aqui
+  const texto=data.choices?.[0]?.message?.content;
+  if(!texto)throw new Error('Resposta vazia do Groq.');
+  return texto;
 }
+
 
 async function executarPerguntaIA(){
   const pergunta=document.getElementById('ia-pergunta-livre')?.value?.trim();
