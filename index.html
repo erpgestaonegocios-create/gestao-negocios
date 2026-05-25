@@ -3619,6 +3619,7 @@ async function enviarMsgCliente(dataset){
   const categoria=window._wppCategoriaAtual;
   const anoAtual=new Date().getFullYear();
   const hoje=new Date().toLocaleDateString('pt-BR');
+  console.log('[WPP] enviarMsgCliente chamada, nome:',dataset.cnome,'tel:',dataset.ctel);
   // Buscar nome da empresa do banco pelo perfil do usuário
   let empresa='nossa empresa';
   try{
