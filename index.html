@@ -3414,8 +3414,8 @@ function carregarWhatsApp(){
 
 function carregarAnaliseIA(){
   const wrap=document.getElementById('rel-conteudo');
-  const apiKey=localStorage.getItem('anthropic_api_key')||'';
-  const keyAviso=apiKey?'':'<div style="margin-bottom:12px;padding:10px 14px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px;font-size:12px;color:var(--danger)">🔑 API Key não configurada. Acesse <strong>Configurações → API Anthropic</strong> para cadastrar. <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--danger);text-decoration:underline;cursor:pointer;font-size:12px;padding:0\'>Configurar agora</button></div>';
+  const apiKey=localStorage.getItem('gemini_api_key')||'';
+  const keyAviso=apiKey?'':'<div style="margin-bottom:12px;padding:10px 14px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px;font-size:12px;color:var(--danger)">🔑 API Key do Gemini não configurada. para cadastrar. <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--danger);text-decoration:underline;cursor:pointer;font-size:12px;padding:0\'>Configurar agora</button></div>';
   wrap.innerHTML=''
     +'<div style="margin-bottom:16px;padding:14px 18px;background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;font-size:13px;color:var(--text2)">'
     +'<strong style="color:var(--accent)">Análise Estratégica por IA</strong><br>'
@@ -3433,14 +3433,14 @@ function carregarAnaliseIA(){
 
 
 function abrirConfiguracaoIA(){
-  const key=localStorage.getItem('anthropic_api_key')||'';
-  const novo=prompt('Cole sua API Key da Anthropic (começa com sk-ant-):\n\nA chave fica salva apenas neste navegador e nunca é enviada para terceiros.',key);
-  if(novo===null)return; // cancelou
+  const key=localStorage.getItem('gemini_api_key')||'';
+  const novo=prompt('Cole sua API Key do Google Gemini (começa com AIza):\n\nObtida gratuitamente em aistudio.google.com/apikey\nA chave fica salva apenas neste navegador.',key);
+  if(novo===null)return;
   if(!novo.trim()){alert('Chave não pode ser vazia.');return;}
-  if(!novo.trim().startsWith('sk-ant-')){alert('Chave inválida. Deve começar com sk-ant-');return;}
-  localStorage.setItem('anthropic_api_key',novo.trim());
-  alert('✅ Chave salva com sucesso!');
-  carregarAnaliseIA(); // recarregar tela
+  if(!novo.trim().startsWith('AIza')){alert('Chave inválida. Deve começar com AIza');return;}
+  localStorage.setItem('gemini_api_key',novo.trim());
+  alert('✅ Chave Gemini salva com sucesso!');
+  carregarAnaliseIA();
 }
 
 function salvarApiKeyIA(){
@@ -3449,6 +3449,25 @@ function salvarApiKeyIA(){
   localStorage.setItem('anthropic_api_key',key);
   alert('Chave salva com sucesso!');
   carregarAnaliseIA();
+}
+
+
+// ── Chamada à API Google Gemini ───────────────────────────────────
+async function chamarGemini(prompt, maxTokens=1500){
+  const apiKey=localStorage.getItem('gemini_api_key')||'';
+  if(!apiKey)throw new Error('API Key do Gemini não configurada. Clique em "Configurar agora".');
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey;
+  const response=await fetch(url,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      contents:[{parts:[{text:prompt}]}],
+      generationConfig:{maxOutputTokens:maxTokens,temperature:0.7}
+    })
+  });
+  const data=await response.json();
+  if(data.error)throw new Error(data.error.message||'Erro na API Gemini');
+  return data.candidates?.[0]?.content?.parts?.[0]?.text||'Sem resposta.';
 }
 
 async function executarPerguntaIA(){
@@ -3480,17 +3499,12 @@ async function executarPerguntaIA(){
       +'\nVendas: '+((compras||[]).length)+' | Total: R$ '+totalVendas.toFixed(2)
       +'\nTop produtos: '+topVendas
       +'\nEstoque crítico: '+estCrit.length+' | Clientes ativos: '+((clientes||[]).length);
-    const prompt='Contexto:\n'+contexto+'\n\nPergunta: '+pergunta+'\n\nResponda em português de forma direta e objetiva.';
-    const _apiKey=localStorage.getItem('anthropic_api_key')||'';
-    if(!_apiKey){resultado.innerHTML='<div class="empty">Configure a API Key da Anthropic.</div>';return;}
-    const response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error){resultado.innerHTML='<div class="empty">Erro: '+data.error.message+'</div>';return;}
-    const texto=data.content?.map(b=>b.text||'').join('')||'Sem resposta.';
+    const prompt='Contexto do negócio:\n'+contexto+'\n\nPergunta: '+pergunta+'\n\nResponda em português de forma direta e objetiva.';
+    const texto=await chamarGemini(prompt, 1000);
     resultado.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">'
       +'<div style="font-size:11px;color:var(--text3);margin-bottom:12px">💬 '+pergunta+'</div>'
       +'<div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap">'+texto+'</div></div>';
-  }catch(e){resultado.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+  }catch(e){resultado.innerHTML='<div class="empty" style="color:var(--danger)">'+e.message+'</div>';}
 }
 
 async function executarAnaliseIA(){
@@ -3498,18 +3512,18 @@ async function executarAnaliseIA(){
   const resultado=document.getElementById('ia-resultado');
   const pf=currentUser.perfil||'master';
   if(btn){btn.disabled=true;btn.textContent='Analisando...';}
-  resultado.innerHTML='<div class="loading">Coletando dados...</div>';
+  resultado.innerHTML='<div class="loading">Coletando dados da empresa...</div>';
   try{
     const mes=new Date().toISOString().slice(0,7);
     const [ano,m]=mes.split('-').map(Number);
-    const fim=mes+'-'+String(new Date(ano,m,0).getDate()).padStart(2,'0');
-    const ini=mes+'-01';
-    const [lancamentos,agendamentos,estoque,clientes,fornecedores]=await Promise.all([
-      api('financeiro_lancamentos?select=tipo,status,valor,data_vencimento&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+ini+'&data_vencimento=lte.'+fim),
-      api('agendamentos?select=status,data_hora,servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+ini+'T00:00&data_hora=lte.'+fim+'T23:59'),
-      api('estoque_saldo?select=quantidade,genero,tamanho,produtos(nome,estoque_minimo,estoque_maximo,preco_venda,preco_custo)&perfil_codigo=eq.'+encodeURIComponent(pf)),
-      api('clientes?select=id,criado_em&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
-      api('fornecedores?select=id&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+    const fimMes=mes+'-'+String(new Date(ano,m,0).getDate()).padStart(2,'0');
+    const iniMes=mes+'-01';
+    const [lancamentos,agendamentos,estoque,clientes,compras]=await Promise.all([
+      api('financeiro_lancamentos?select=tipo,status,valor,data_vencimento&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+iniMes+'&data_vencimento=lte.'+fimMes),
+      api('agendamentos?select=status&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+iniMes+'T00:00&data_hora=lte.'+fimMes+'T23:59'),
+      api('estoque_saldo?select=quantidade,genero,tamanho,produtos(nome,estoque_minimo,preco_venda)&perfil_codigo=eq.'+encodeURIComponent(pf)),
+      api('clientes?select=id&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+      api('cliente_compras?select=quantidade,total_pago,produtos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_compra=gte.'+iniMes+'&data_compra=lte.'+fimMes),
     ]);
     const soma=(arr,fn)=>(arr||[]).reduce((s,x)=>s+(fn(x)||0),0);
     const recPago=soma(lancamentos,l=>l.tipo==='receita'&&l.status==='pago'?parseFloat(l.valor):0);
@@ -3517,24 +3531,26 @@ async function executarAnaliseIA(){
     const agPorStatus={};(agendamentos||[]).forEach(a=>{agPorStatus[a.status]=(agPorStatus[a.status]||0)+1;});
     const estCrit=(estoque||[]).filter(e=>e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo));
     const valorEstoque=soma(estoque,e=>parseFloat(e.quantidade||0)*parseFloat(e.produtos?.preco_venda||0));
-    const prompt='Você é um consultor de gestão empresarial. Analise os dados abaixo e gere insights em português.\n\n'
-      +'Empresa: '+(empresaConfig?.nome_empresa||perfilNome(pf)||'empresa')+' | Mês: '+mes+'\n'
+    const totalVendas=soma(compras,x=>parseFloat(x.total_pago||0));
+    const vendasPorProd={};(compras||[]).forEach(x=>{const n=x.produtos?.nome||'?';vendasPorProd[n]=(vendasPorProd[n]||0)+parseFloat(x.total_pago||0);});
+    const topVendas=Object.entries(vendasPorProd).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,v])=>n+' R$ '+v.toFixed(2)).join(', ');
+    const empresa=empresaConfig?.nome_empresa||perfilNome(pf)||'empresa';
+    const prompt='Você é um consultor de gestão empresarial. Analise os dados abaixo e gere um relatório em português.\n\n'
+      +'Empresa: '+empresa+' | Mês: '+mes+'\n'
       +'Financeiro: Receitas R$ '+recPago.toFixed(2)+' | Despesas R$ '+despPago.toFixed(2)+' | Resultado R$ '+(recPago-despPago).toFixed(2)+'\n'
-      +'Agendamentos: '+(agendamentos||[]).length+' total | Realizados: '+(agPorStatus.realizado||0)+' | Cancelados: '+(agPorStatus.cancelado||0)+'\n'
+      +'Vendas: '+(compras||[]).length+' vendas | Total R$ '+totalVendas.toFixed(2)+(topVendas?' | Top: '+topVendas:'')+'\n'
+      +(agendamentos?.length?'Agendamentos: '+(agendamentos.length)+' | Realizados: '+(agPorStatus.realizado||0)+' | Cancelados: '+(agPorStatus.cancelado||0)+'\n':'')+
       +'Estoque: '+(estoque||[]).length+' variações | Críticos: '+estCrit.length+' | Valor: R$ '+valorEstoque.toFixed(2)+'\n'
-      +'Clientes: '+((clientes||[]).length)+' ativos | Fornecedores: '+((fornecedores||[]).length)+'\n\n'
-      +'Gere: 1) Diagnóstico geral (2-3 parágrafos) 2) Pontos de atenção (até 4) 3) Sugestões concretas (até 4) 4) Observação positiva. Use emojis e linguagem profissional.';
-    const _apiKey=localStorage.getItem('anthropic_api_key')||'';
-    if(!_apiKey){resultado.innerHTML='<div class="empty">Configure a API Key da Anthropic antes de usar esta função.</div>';if(btn){btn.disabled=false;btn.textContent='Gerar Análise Agora';}return;}
-    const response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error){resultado.innerHTML='<div class="empty">Erro da API: '+data.error.message+'</div>';if(btn){btn.disabled=false;btn.textContent='Gerar Análise Agora';}return;}
-    const texto=data.content?.map(b=>b.text||'').join('')||'Sem resposta.';
+      +'Clientes ativos: '+((clientes||[]).length)+'\n\n'
+      +'Gere: 1) Diagnóstico geral (2-3 parágrafos) 2) Pontos de atenção (até 4 tópicos) 3) Sugestões concretas (até 4 tópicos) 4) Uma observação positiva. Use emojis e linguagem clara.';
+    const texto=await chamarGemini(prompt, 2000);
     resultado.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px">'
-      +'<div style="font-size:11px;color:var(--text3);margin-bottom:16px">Análise gerada em '+new Date().toLocaleString('pt-BR')+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-bottom:16px">Análise gerada em '+new Date().toLocaleString('pt-BR')+' via Google Gemini</div>'
       +'<div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap">'+texto+'</div></div>'
       +'<button class="btn-secondary" onclick="executarAnaliseIA()" style="margin-top:12px">Gerar nova análise</button>';
-  }catch(e){resultado.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+  }catch(e){
+    resultado.innerHTML='<div class="empty" style="color:var(--danger)">'+e.message+'</div>';
+  }
   if(btn){btn.disabled=false;btn.textContent='Gerar Análise Agora';}
 }
 
