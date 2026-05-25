@@ -1386,7 +1386,7 @@ async function construirInterface(){
     });
   });
 
-  if(primeiroMenu)showPanel(primeiroMenu);
+  if(primeiroMenu){showPanel(primeiroMenu);setTimeout(()=>contarAlertas(),2000);}
   else contentArea.innerHTML=`<div class="placeholder-box"><div class="placeholder-icon">🔒</div><div class="placeholder-title">Sem acessos configurados</div><div class="placeholder-desc">Nenhum menu foi liberado para o seu usuário ainda.</div></div>`;
 }
 
@@ -3084,34 +3084,63 @@ async function carregarAlertas(){
   const wrap=document.getElementById('rel-conteudo');
   if(!wrap)return;
   const pf=currentUser.perfil||'master';
-  const empresa=empresaConfig?.nome_empresa||perfilNome(pf)||'Empresa';
   const hoje=new Date();
   const hojeStr=hoje.toISOString().slice(0,10);
-  const amanha=new Date(hoje);amanha.setDate(amanha.getDate()+1);
-  const amanhaStr=amanha.toISOString().slice(0,10);
-  const seteDias=new Date(hoje);seteDias.setDate(seteDias.getDate()+7);
-  const seteDiasStr=seteDias.toISOString().slice(0,10);
-  wrap.innerHTML='<div class="loading">Carregando alertas...</div>';
+  const mesAtual=hoje.getMonth()+1;
+  const diaAtual=hoje.getDate();
+  const mesStr=hoje.toISOString().slice(0,7);
+  const iniMes=mesStr+'-01';
+  const fimMes=mesStr+'-'+String(new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate()).padStart(2,'0');
+  wrap.innerHTML='<div class="loading">Verificando alertas...</div>';
   const temAg=perfilTemFunc('agendamentos');
   try{
-    const [agAmanha,agHoje,contasVenc,estoqueMin,clientes]=await Promise.all([
-      temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+amanhaStr+'T00:00:00&data_hora=lte.'+amanhaStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
+    const [agAmanha,agHoje,contasVenc,estoqueRows,clientes,comprasRows,lancamentos]=await Promise.all([
+      temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+new Date(hoje.getTime()+86400000).toISOString().slice(0,10)+'T00:00:00&data_hora=lte.'+new Date(hoje.getTime()+86400000).toISOString().slice(0,10)+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
       temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+hojeStr+'T00:00:00&data_hora=lte.'+hojeStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
-      temAg?api('financeiro_lancamentos?select=*,clientes(nome,id)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=in.(pendente,vencido)&data_vencimento=lte.'+seteDiasStr+'&order=data_vencimento.asc'):Promise.resolve([]),
-      api('estoque_saldo?select=quantidade,produto_id,genero,tamanho,produtos(nome,estoque_minimo,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)),
+      temAg?api('financeiro_lancamentos?select=*,clientes(nome,id)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=in.(pendente,vencido)&data_vencimento=lte.'+new Date(hoje.getTime()+7*86400000).toISOString().slice(0,10)+'&order=data_vencimento.asc'):Promise.resolve([]),
+      api('estoque_saldo?select=quantidade,produto_id,genero,tamanho,produtos(nome,estoque_minimo,estoque_maximo,unidade,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)),
       api('clientes?select=nome,data_nascimento,telefone&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+      api('cliente_compras?select=cliente_id,data_compra,total_pago&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc'),
+      api('financeiro_lancamentos?select=tipo,status,valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+iniMes+'&data_vencimento=lte.'+fimMes),
     ]);
-    const mesAtual=hoje.getMonth()+1;const diaAtual=hoje.getDate();
-    const aniversariantesHoje=(clientes||[]).filter(cl=>{
+
+    // ── Calcular dados ────────────────────────────────────────────
+    const estoque=(estoqueRows||[]).filter(e=>e.produtos?.ativo!==false);
+    const criticos=estoque.filter(e=>e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo));
+    const zerados=estoque.filter(e=>parseFloat(e.quantidade||0)===0);
+    const semMov30=estoque.filter(e=>{
+      const pid=e.produto_id;
+      const temVenda=(comprasRows||[]).some(c=>{
+        const dias=(new Date()-new Date(c.data_compra+'T12:00'))/(1000*60*60*24);
+        return String(c.cliente_id)!==String(pid)&&dias<=30;
+      });
+      return false; // simplificado — encalhe via estoque zerado já cobre
+    });
+    const aniversariantes=(clientes||[]).filter(cl=>{
       if(!cl.data_nascimento)return false;
       const d=new Date(cl.data_nascimento+'T12:00');
       return d.getMonth()+1===mesAtual&&d.getDate()===diaAtual;
     });
-    const criticos=(estoqueMin||[]).filter(e=>e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo));
+    const soma=(arr,fn)=>(arr||[]).reduce((s,x)=>s+(fn(x)||0),0);
+    const recMes=soma(lancamentos,l=>l.tipo==='receita'&&l.status==='pago'?parseFloat(l.valor):0);
+    const despMes=soma(lancamentos,l=>l.tipo==='despesa'&&l.status==='pago'?parseFloat(l.valor):0);
+    const lucroMes=recMes-despMes;
+    // Vendas hoje
+    const vendasHoje=(comprasRows||[]).filter(c=>c.data_compra===hojeStr);
+    // Novos clientes esta semana
+    const semanaAtras=new Date(hoje.getTime()-7*86400000).toISOString().slice(0,10);
+    // Produtos encalhados: saldo > 0 mas sem venda no mês
+    const produtosComVendaMes=new Set((comprasRows||[]).filter(c=>c.data_compra>=iniMes&&c.data_compra<=fimMes).map(c=>String(c.cliente_id)));
+    const encalhados=estoque.filter(e=>parseFloat(e.quantidade||0)>0&&!produtosComVendaMes.has(String(e.produto_id)));
+
     let html='';
-    const fmtHora=s=>{const d=new Date(s);return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});};
+    let totalAlertas=0;
+
+    // ── Bloco agendamentos (só se tiver) ─────────────────────────
     if(temAg){
+      const fmtHora=s=>{const d=new Date(s);return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});};
       if(agHoje&&agHoje.length){
+        totalAlertas+=agHoje.length;
         html+='<div style="background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;padding:16px;margin-bottom:12px">';
         html+='<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">📅 Agendamentos de Hoje ('+agHoje.length+')</div>';
         agHoje.forEach(a=>{html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+fmtHora(a.data_hora)+' — '+(a.clientes?.nome||'—')+' / '+(a.servicos?.nome||'—')+'</span><span style="color:var(--text3)">'+a.status+'</span></div>';});
@@ -3119,13 +3148,14 @@ async function carregarAlertas(){
       }
       if(agAmanha&&agAmanha.length){
         html+='<div style="background:rgba(212,168,67,.08);border:1px solid var(--warn);border-radius:10px;padding:16px;margin-bottom:12px">';
-        html+='<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">📅 Agendamentos de Amanhã ('+agAmanha.length+')</div>';
-        agAmanha.forEach(a=>{html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+fmtHora(a.data_hora)+' — '+(a.clientes?.nome||'—')+' / '+(a.servicos?.nome||'—')+'</span></div>';});
+        html+='<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">📅 Agendamentos Amanhã ('+agAmanha.length+')</div>';
+        agAmanha.forEach(a=>{html+='<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">'+fmtHora(a.data_hora)+' — '+(a.clientes?.nome||'—')+'</div>';});
         html+='</div>';
       }
       if(contasVenc&&contasVenc.length){
-        const vencidas=(contasVenc||[]).filter(l=>l.status==='vencido');
-        const vencendo=(contasVenc||[]).filter(l=>l.status==='pendente');
+        totalAlertas+=contasVenc.length;
+        const vencidas=contasVenc.filter(l=>l.status==='vencido');
+        const vencendo=contasVenc.filter(l=>l.status==='pendente');
         if(vencidas.length){
           html+='<div style="background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:10px;padding:16px;margin-bottom:12px">';
           html+='<div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px">🔴 Contas Vencidas ('+vencidas.length+')</div>';
@@ -3135,35 +3165,87 @@ async function carregarAlertas(){
         if(vencendo.length){
           html+='<div style="background:rgba(212,168,67,.08);border:1px solid var(--warn);border-radius:10px;padding:16px;margin-bottom:12px">';
           html+='<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">⚠️ Vencendo em 7 dias ('+vencendo.length+')</div>';
-          vencendo.forEach(l=>{const venc=l.data_vencimento?new Date(l.data_vencimento+'T12:00').toLocaleDateString('pt-BR'):'-';html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+(l.descricao||'—')+' — '+venc+'</span><span style="color:var(--warn);font-weight:600">'+fmt(l.valor)+'</span></div>';});
+          vencendo.forEach(l=>{html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+(l.descricao||'—')+'</span><span style="color:var(--warn);font-weight:600">'+fmt(l.valor)+'</span></div>';});
           html+='</div>';
         }
       }
     }
+
+    // ── Estoque crítico ──────────────────────────────────────────
     if(criticos.length){
+      totalAlertas+=criticos.length;
       html+='<div style="background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:10px;padding:16px;margin-bottom:12px">';
-      html+='<div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px">📦 Estoque Crítico ('+criticos.length+')</div>';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px">📦 Estoque Crítico — Abaixo do Mínimo ('+criticos.length+')</div>';
       criticos.forEach(e=>{
         const g=e.genero?e.genero.charAt(0).toUpperCase()+e.genero.slice(1):'';
         const t=e.tamanho?' / '+e.tamanho:'';
         html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">'
           +'<span>'+(e.produtos?.nome||'—')+(g?' <span style="color:var(--text3)">'+g+t+'</span>':'')+'</span>'
-          +'<span style="color:var(--danger);font-weight:600">'+e.quantidade+' / mín: '+e.produtos.estoque_minimo+' '+(e.produtos?.unidade||'un')+'</span>'
+          +'<span style="color:var(--danger);font-weight:600">'+e.quantidade+' / mín: '+e.produtos.estoque_minimo+'</span>'
           +'</div>';
       });
       html+='</div>';
     } else {
-      html+='<div style="background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:13px;color:var(--success)">✅ Todos os produtos estão acima do estoque mínimo.</div>';
+      html+='<div style="background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:13px;color:var(--success)">✅ Todos os produtos estão acima do estoque mínimo.</div>';
     }
-    if(aniversariantesHoje.length){
-      html+='<div style="background:rgba(212,168,67,.08);border:1px solid var(--warn);border-radius:10px;padding:16px;margin-bottom:12px">';
-      html+='<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">🎂 Aniversariantes Hoje ('+aniversariantesHoje.length+')</div>';
-      aniversariantesHoje.forEach(cl=>{html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+cl.nome+'</span><span style="color:var(--text3)">'+(cl.telefone||'Sem telefone')+'</span></div>';});
+
+    // ── Estoque zerado ───────────────────────────────────────────
+    if(zerados.length){
+      totalAlertas+=1;
+      html+='<div style="background:rgba(224,85,85,.06);border:1px solid var(--danger);border-radius:10px;padding:16px;margin-bottom:12px">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px">❌ Produtos com Estoque Zerado ('+zerados.length+')</div>';
+      const prods=[...new Map(zerados.map(e=>[e.produto_id,e])).values()];
+      prods.slice(0,5).forEach(e=>{html+='<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)">'+(e.produtos?.nome||'—')+'</div>';});
+      if(prods.length>5)html+='<div style="font-size:12px;color:var(--text3);padding-top:4px">...e mais '+(prods.length-5)+' produto(s)</div>';
       html+='</div>';
     }
+
+    // ── Produtos encalhados (sem venda no mês) ───────────────────
+    if(encalhados.length){
+      totalAlertas+=1;
+      const prodsEnc=[...new Map(encalhados.map(e=>[e.produto_id,e])).values()];
+      html+='<div style="background:rgba(212,168,67,.06);border:1px solid var(--warn);border-radius:10px;padding:16px;margin-bottom:12px">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">📦 Possível Encalhe — Sem Venda este Mês ('+prodsEnc.length+')</div>';
+      prodsEnc.slice(0,5).forEach(e=>{html+='<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)">'+(e.produtos?.nome||'—')+'<span style="color:var(--text3);font-size:11px;margin-left:8px">Saldo: '+e.quantidade+'</span></div>';});
+      if(prodsEnc.length>5)html+='<div style="font-size:12px;color:var(--text3);padding-top:4px">...e mais '+(prodsEnc.length-5)+' produto(s)</div>';
+      html+='</div>';
+    }
+
+    // ── Vendas hoje ──────────────────────────────────────────────
+    if(!vendasHoje.length&&!temAg){
+      totalAlertas+=1;
+      html+='<div style="background:rgba(212,168,67,.06);border:1px solid var(--warn);border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:13px;color:var(--warn)">⚠️ Nenhuma venda registrada hoje ainda.</div>';
+    } else if(vendasHoje.length&&!temAg){
+      const totalHoje=vendasHoje.reduce((s,v)=>s+parseFloat(v.total_pago||0),0);
+      html+='<div style="background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:13px;color:var(--success)">🛒 Vendas hoje: <strong>'+vendasHoje.length+'</strong> | Total: <strong>'+fmt(totalHoje)+'</strong></div>';
+    }
+
+    // ── Lucro do mês ─────────────────────────────────────────────
+    if(!temAg&&lucroMes<0){
+      totalAlertas+=1;
+      html+='<div style="background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:4px">📉 Atenção: Lucro Negativo no Mês</div>';
+      html+='<div style="font-size:13px;color:var(--text2)">Receitas: '+fmt(recMes)+' | Despesas: '+fmt(despMes)+' | Resultado: <span style="color:var(--danger);font-weight:700">'+fmt(lucroMes)+'</span></div>';
+      html+='</div>';
+    } else if(!temAg&&lucroMes>=0){
+      html+='<div style="background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:13px;color:var(--success)">📈 Lucro do mês: <strong>'+fmt(lucroMes)+'</strong></div>';
+    }
+
+    // ── Aniversariantes ──────────────────────────────────────────
+    if(aniversariantes.length){
+      totalAlertas+=aniversariantes.length;
+      html+='<div style="background:rgba(212,168,67,.08);border:1px solid var(--warn);border-radius:10px;padding:16px;margin-bottom:12px">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">🎂 Aniversariantes Hoje ('+aniversariantes.length+')</div>';
+      aniversariantes.forEach(cl=>{html+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+cl.nome+'</span><span style="color:var(--text3)">'+(cl.telefone||'Sem telefone')+'</span></div>';});
+      html+='</div>';
+    }
+
     if(!html)html='<div style="color:var(--text3);text-align:center;padding:40px">✅ Nenhum alerta no momento.</div>';
     wrap.innerHTML=html;
-  }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+    // Atualizar badges
+    atualizarBadgeAlertas(totalAlertas);
+    atualizarBadgeMenuRel(totalAlertas);
+  }catch(e){wrap.innerHTML='<div class="empty">Erro ao carregar alertas: '+e.message+'</div>';}
 }
 
 async function carregarRelatoriosDados(){
@@ -3330,6 +3412,97 @@ async function gerarDadosRelatorio(){
 }
 
 
+
+// ── WhatsApp enviar mensagem ──────────────────────────────────────
+function enviarWhatsApp(modeloId){
+  const texto=document.getElementById(modeloId)?.value?.trim();
+  if(!texto){alert('Mensagem vazia.');return;}
+  // Substituir variáveis com valores padrão para o usuário editar
+  const msg=texto
+    .replace(/{nome}/g,'[Nome do cliente]')
+    .replace(/{data}/g,new Date().toLocaleDateString('pt-BR'))
+    .replace(/{valor}/g,'[Valor]')
+    .replace(/{vencimento}/g,'[Data]')
+    .replace(/{descricao}/g,'[Descrição]')
+    .replace(/{hora}/g,'[Hora]')
+    .replace(/{servico}/g,'[Serviço]')
+    .replace(/{empresa}/g,empresaConfig?.nome_empresa||'nossa empresa');
+  const tel=prompt('Informe o número do WhatsApp com DDD (somente números):\nEx: 31999999999','');
+  if(!tel)return;
+  const numero=tel.replace(/\D/g,'');
+  if(numero.length<10){alert('Número inválido. Informe DDD + número.');return;}
+  const url='https://wa.me/55'+numero+'?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+}
+
+// ── Badge de alertas no menu ──────────────────────────────────────
+async function contarAlertas(){
+  const pf=currentUser.perfil||'master';
+  const hoje=new Date();
+  const hojeStr=hoje.toISOString().slice(0,10);
+  const mesAtual=hoje.getMonth()+1;
+  const diaAtual=hoje.getDate();
+  try{
+    const [estoque,clientes,compras,lancamentos]=await Promise.all([
+      api('estoque_saldo?select=quantidade,produto_id,produtos(nome,estoque_minimo,estoque_maximo,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)),
+      api('clientes?select=nome,data_nascimento,telefone&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+      api('cliente_compras?select=cliente_id,data_compra&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc'),
+      api('financeiro_lancamentos?select=tipo,status,valor&perfil_codigo=eq.'+encodeURIComponent(pf)),
+    ]);
+    let total=0;
+    // Estoque crítico
+    const criticos=(estoque||[]).filter(e=>e.produtos?.ativo!==false&&e.produtos?.estoque_minimo!=null&&parseFloat(e.quantidade||0)<parseFloat(e.produtos.estoque_minimo));
+    if(criticos.length)total+=criticos.length;
+    // Estoque zerado
+    const zerados=(estoque||[]).filter(e=>e.produtos?.ativo!==false&&parseFloat(e.quantidade||0)===0);
+    if(zerados.length)total+=1;
+    // Sem movimentação (saldo = estoque mas nunca vendeu) - simplificado: sem vendas hoje
+    // Aniversariantes
+    const aniversariantes=(clientes||[]).filter(cl=>{
+      if(!cl.data_nascimento)return false;
+      const d=new Date(cl.data_nascimento+'T12:00');
+      return d.getMonth()+1===mesAtual&&d.getDate()===diaAtual;
+    });
+    if(aniversariantes.length)total+=aniversariantes.length;
+    // Lucro negativo
+    const soma=(arr,fn)=>(arr||[]).reduce((s,x)=>s+(fn(x)||0),0);
+    const rec=soma(lancamentos,l=>l.tipo==='receita'&&l.status==='pago'?parseFloat(l.valor):0);
+    const desp=soma(lancamentos,l=>l.tipo==='despesa'&&l.status==='pago'?parseFloat(l.valor):0);
+    if(rec-desp<0)total+=1;
+    // Atualizar badge no menu
+    atualizarBadgeAlertas(total);
+  }catch(e){}
+}
+
+function atualizarBadgeAlertas(count){
+  const btn=document.getElementById('rel-aba-alertas');
+  if(!btn)return;
+  // Remover badge anterior
+  const old=btn.querySelector('.alerta-badge');if(old)old.remove();
+  if(count>0){
+    const badge=document.createElement('span');
+    badge.className='alerta-badge';
+    badge.textContent=count>99?'99+':count;
+    badge.style.cssText='background:var(--danger);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle';
+    btn.appendChild(badge);
+  }
+}
+
+// Badge no menu lateral (Relatórios)
+function atualizarBadgeMenuRel(count){
+  const menuEl=document.getElementById('menu-relatorios');
+  if(!menuEl)return;
+  const old=menuEl.querySelector('.alerta-badge-menu');if(old)old.remove();
+  if(count>0){
+    const badge=document.createElement('span');
+    badge.className='alerta-badge-menu';
+    badge.textContent=count>99?'99+':count;
+    badge.style.cssText='background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto';
+    menuEl.style.display='flex';menuEl.style.alignItems='center';
+    menuEl.appendChild(badge);
+  }
+}
+
 function salvarMensagensWpp(){
   const textareas=document.querySelectorAll('#rel-conteudo textarea');
   let count=0;
@@ -3395,7 +3568,10 @@ function carregarWhatsApp(){
   modelos.forEach(m=>{
     const saved=localStorage.getItem('wpp_'+m.id)||m.msg;
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">'
-      +'<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">'+m.titulo+'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div style="font-size:12px;font-weight:600;color:var(--text2)">'+m.titulo+'</div>'
+      +'<button onclick="enviarWhatsApp(\''+m.id+'\')" style="background:#25D366;border:none;color:#fff;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-weight:600">📲 Enviar</button>'
+      +'</div>'
       +'<textarea id="'+m.id+'" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;line-height:1.6;resize:vertical;min-height:80px;font-family:inherit;outline:none">'+saved+'</textarea>'
       +'</div>';
   });
