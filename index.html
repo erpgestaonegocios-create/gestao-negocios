@@ -1502,6 +1502,10 @@ function renderUsuarios(){
 }
 
 async function onShowUsuarios(){
+  // Limpar combo de empresa ao entrar na tela
+  const selEmp=document.getElementById('filtro-empresa-usuarios');
+  if(selEmp){selEmp.innerHTML='<option value="">Todas as empresas</option>';selEmp.style.display='none';}
+
   if(currentUser.nivel==='master_sistema'){
     // Popula o combo com o perfisCache (já carregado no login)
     await popularSelectPerfis('filtro-perfil-usuarios','Selecione o perfil...');
@@ -1532,8 +1536,9 @@ async function onFiltroPerfilChange(){
   // Carregar empresas (masters) deste perfil
   if(selEmp){
     try{
-      const masters=await api('usuarios?perfil=eq.'+encodeURIComponent(perfil)+'&nivel=eq.master_empresa&ativo=eq.true&select=empresa&order=empresa.asc');
-      const empresas=[...new Set((masters||[]).map(m=>m.empresa).filter(Boolean))];
+      // Buscar empresas únicas de TODOS os usuários do perfil (não só masters)
+      const todosUsr=await api('usuarios?perfil=eq.'+encodeURIComponent(perfil)+'&select=empresa&order=empresa.asc');
+      const empresas=[...new Set((todosUsr||[]).map(u=>u.empresa).filter(Boolean))];
       if(empresas.length>0){
         selEmp.innerHTML='<option value="">Todas as empresas</option>'+empresas.map(e=>'<option value="'+e+'">'+e+'</option>').join('');
         selEmp.style.display='block';
@@ -1686,8 +1691,11 @@ async function openModalUsuario(mode,id){
     document.getElementById('m-senha').value=u.senha;
     document.getElementById('m-nivel').value=u.nivel;
     document.getElementById('m-perfil').value=u.perfil||'';
+    // Bloquear perfil no modo edição — não deve ser alterado
+    const mPerfilEdit=document.getElementById('m-perfil');
+    if(mPerfilEdit)mPerfilEdit.disabled=true;
     if(!isMasterEmpresa) empresaInput.value=u.empresa||'';
-    document.getElementById('m-usuario').disabled=false;
+    document.getElementById('m-usuario').disabled=true; // usuário também não muda
   }
   openModal('modal-usuario');
 }
@@ -1722,7 +1730,18 @@ async function salvarUsuario(){
       }
       showMM('modal-user-msg','Usuário criado com sucesso!','success');
     } else {
+      // Buscar empresa antiga ANTES do PATCH
+      let empresaAntigaEdit='';
+      if(nivel==='master_empresa'){
+        const uAnt=await api('usuarios?id=eq.'+editingUserId+'&select=empresa').catch(()=>[]);
+        empresaAntigaEdit=uAnt&&uAnt[0]?uAnt[0].empresa||'':'';
+      }
       await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(body)});
+      // Se mudou o nome da empresa no master, propagar para todos os usuários do perfil
+      if(nivel==='master_empresa'&&empresaAntigaEdit&&empresaAntigaEdit!==empresa&&perfil){
+        await api('usuarios?empresa=eq.'+encodeURIComponent(empresaAntigaEdit)+'&perfil=eq.'+encodeURIComponent(perfil),
+          {method:'PATCH',body:JSON.stringify({empresa})}).catch(()=>{});
+      }
       showMM('modal-user-msg','Usuário atualizado com sucesso!','success');
     }
     // Se for master_empresa, atualizar/criar empresa_config automaticamente
@@ -1740,6 +1759,7 @@ async function salvarUsuario(){
         empresaConfig.nome_empresa=empresa;
         empresaConfig.codigo_acesso=codigoAcesso;
       }
+
     }
     setTimeout(()=>{closeModal('modal-usuario');recarregarUsuarios();},900);
   }catch(e){showMM('modal-user-msg','Erro: '+e.message,'error');}
@@ -5232,8 +5252,7 @@ async function salvarMovimento(){
 
 // ─── MÓDULO: AGENDAMENTOS ─────────────────────────────────────────
 let editingAgendamentoId=null;
-let agVistaAtual='lista';let agCalMes=new Date().getMonth();let agCalAno=new Date().getFullYear();let agTodosCache=[];
-const AG_STATUS={agendado:{label:'Agendado',icon:'🕐',cls:'badge-empresa'},confirmado:{label:'Confirmado',icon:'✅',cls:'badge-ativo'},realizado:{label:'Realizado',icon:'🏁',cls:'badge-master'},cancelado:{label:'Cancelado',icon:'❌',cls:'badge-inativo'}};
+let agVistaAtual='lista';let agCalMes=new Date().getMonth();let agCalAno=new Date().getFullYear();let agTodosCache=[];const AG_STATUS={agendado:{label:'Agendado',icon:'🕐',cls:'badge-empresa'},confirmado:{label:'Confirmado',icon:'✅',cls:'badge-ativo'},realizado:{label:'Realizado',icon:'🏁',cls:'badge-master'},cancelado:{label:'Cancelado',icon:'❌',cls:'badge-inativo'}};
 
 async function carregarAgendamentos(filtro=''){
   const tbody=document.getElementById('tbl-agendamentos');if(!tbody)return;
