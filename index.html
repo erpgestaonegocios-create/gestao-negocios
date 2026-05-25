@@ -3760,20 +3760,20 @@ function carregarWhatsApp(){
   const empresa=empresaConfig?.nome_empresa||perfilNome(currentUser.perfil)||'nossa empresa';
   const temAg=perfilTemFunc('agendamentos');
   const modelosBase=[
-    {id:'msg_aniversario',titulo:'🎂 Feliz Aniversário',msg:'Olá {nome}! Hoje, dia {data}, toda a equipe da '+empresa+' deseja a você um feliz aniversário! Parabéns! 🎉'},
+    {id:'msg_aniversario',titulo:'🎂 Feliz Aniversário',msg:'Olá {nome}! Hoje, dia {data}, toda a equipe da {empresa} deseja a você um feliz aniversário! Parabéns! 🎉'},
   ];
   const modelosCobranca=temAg?[
     {id:'msg_cobranca_vencendo',titulo:'Cobrança — Vencimento Próximo',msg:'Olá {nome}! Seu pagamento de {descricao} no valor de {valor} vence em {vencimento}.\n\nQualquer dúvida, entre em contato. Obrigado!'},
     {id:'msg_cobranca_vencida',titulo:'Cobrança — Pagamento Vencido',msg:'Olá {nome}! O pagamento de {descricao} no valor de {valor} venceu em {vencimento}.\n\nPor gentileza, entre em contato para regularizarmos.'},
   ]:[];
   const modelosAg=temAg?[
-    {id:'msg_agendamento_amanha',titulo:'Confirmação de Agendamento (amanhã)',msg:'Olá {nome}! Passando para confirmar seu agendamento amanhã na '+empresa+'.\n\nHorário: {hora}\nServiço: {servico}\n\nPor favor, confirme sua presença respondendo esta mensagem. Até amanhã!'},
-    {id:'msg_agendamento_hoje',titulo:'Lembrete de Agendamento (hoje)',msg:'Olá {nome}! Lembrando que você tem um agendamento hoje na '+empresa+'.\n\nHorário: {hora}\nServiço: {servico}\n\nTe aguardamos!'},
+    {id:'msg_agendamento_amanha',titulo:'Confirmação de Agendamento (amanhã)',msg:'Olá {nome}! Passando para confirmar seu agendamento amanhã na {empresa}.\n\nHorário: {hora}\nServiço: {servico}\n\nPor favor, confirme sua presença respondendo esta mensagem. Até amanhã!'},
+    {id:'msg_agendamento_hoje',titulo:'Lembrete de Agendamento (hoje)',msg:'Olá {nome}! Lembrando que você tem um agendamento hoje na {empresa}.\n\nHorário: {hora}\nServiço: {servico}\n\nTe aguardamos!'},
   ]:[];
   const modelosLoja=!temAg?[
-    {id:'msg_produto_novo',titulo:'🆕 Novo Produto Disponível',msg:'Olá {nome}! 🎉 Chegou novidade na '+empresa+'!\n\nTemos um novo produto esperando por você. Venha conferir!'},
-    {id:'msg_promocao',titulo:'🔥 Promoção Especial',msg:'Olá {nome}! 🔥 Promoção imperdível na '+empresa+'!\n\nNão perca essa oportunidade. Entre em contato e saiba mais!'},
-    {id:'msg_reposicao',titulo:'✅ Produto Reposto em Estoque',msg:'Olá {nome}! ✅ Boa notícia! O produto que você estava esperando voltou ao estoque na '+empresa+'.\n\nProduto: {descricao}\n\nGaranta o seu agora!'},
+    {id:'msg_produto_novo',titulo:'🆕 Novo Produto Disponível',msg:'Olá {nome}! 🎉 Chegou novidade na {empresa}!\n\nTemos um novo produto esperando por você. Venha conferir!'},
+    {id:'msg_promocao',titulo:'🔥 Promoção Especial',msg:'Olá {nome}! 🔥 Promoção imperdível na {empresa}!\n\nNão perca essa oportunidade. Entre em contato e saiba mais!'},
+    {id:'msg_reposicao',titulo:'✅ Produto Reposto em Estoque',msg:'Olá {nome}! ✅ Boa notícia! O produto que você estava esperando voltou ao estoque na {empresa}.\n\nProduto: {descricao}\n\nGaranta o seu agora!'},
   ]:[];
   const modelos=[...modelosAg,...modelosBase,...modelosCobranca,...modelosLoja];
   let html='<div style="margin-bottom:16px;padding:14px 18px;background:rgba(37,211,102,.07);border:1px solid #25D366;border-radius:10px;font-size:13px;color:var(--text2)">'
