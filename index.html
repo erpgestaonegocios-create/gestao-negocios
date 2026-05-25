@@ -1527,7 +1527,7 @@ function onFiltroPerfilChange(){
 async function carregarUsuarios(){
   const tbody=document.getElementById('tbl-usuarios');
   if(!tbody)return;
-  tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="7" class="loading">Carregando...</td></tr>';
   try{
     let data=[];
     if(currentUser.nivel==='master_sistema'){
@@ -3743,9 +3743,10 @@ function renderFinanceiro(){
     +'<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
     +'<select id="fin-filtro-tipo" onchange="carregarLancamentos()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none"><option value="">Receitas e Despesas</option><option value="receita">📈 Receitas</option><option value="despesa">📉 Despesas</option></select>'
     +'<select id="fin-filtro-status" onchange="carregarLancamentos()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none"><option value="">Todos os status</option><option value="pendente">⏳ Pendente</option><option value="pago">✅ Pago</option><option value="vencido">🔴 Vencido</option></select>'
-    +'<input type="month" id="fin-filtro-mes" onchange="carregarLancamentos()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none">'
+    +'<input type="month" id="fin-filtro-mes" onchange="onFinFiltroMesChange()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none">'
+    +'<input type="date" id="fin-filtro-dia" oninput="onFinFiltroDiaChange()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none" title="Filtrar por dia específico">'
     +'</div>'
-    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>'
     +'<tbody id="tbl-lancamentos"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div></div>'
     +(temAg?'<div id="fin-vista-caixa" style="display:none">'
     +'<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">'
@@ -3835,7 +3836,7 @@ async function carregarClientes(filtro=''){
       +'<button class="btn-sm" style="border-color:var(--accent);color:var(--accent);background:transparent" data-cid="'+cl.id+'" data-cnome="'+cl.nome+'" onclick="consultarHistoricoCompras(parseInt(this.dataset.cid),this.dataset.cnome)">📋 Histórico</button>'
       +(cl.ativo?'<button class="btn-sm btn-deact" onclick="toggleCliente('+cl.id+',false)">Desativar</button>':'<button class="btn-sm btn-react" onclick="toggleCliente('+cl.id+',true)">Reativar</button>')
       +'</div></td></tr>').join('');
-  }catch(e){tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';}
+  }catch(e){tbody.innerHTML='<tr><td colspan="7" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 function buscarClientes(){carregarClientes(document.getElementById('cli-busca')?.value?.trim()||'');}
 function limparBuscaCli(){const el=document.getElementById('cli-busca');if(el)el.value='';carregarClientes();}
@@ -3937,7 +3938,7 @@ async function carregarFornecedores(filtro=''){
       +'<td>'+(f.telefone||'-')+'</td><td>'+(f.cidade||'-')+'</td>'
       +'<td><span class="badge '+(f.ativo?'badge-ativo':'badge-inativo')+'">'+(f.ativo?'Ativo':'Inativo')+'</span></td>'
       +'<td><div class="action-btns">'+(f.ativo?'<button class="btn-sm btn-deact" onclick="toggleFornecedor('+f.id+',false)">Desativar</button>':'<button class="btn-sm btn-react" onclick="toggleFornecedor('+f.id+',true)">Reativar</button>')+'</div></td></tr>').join('');
-  }catch(e){tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';}
+  }catch(e){tbody.innerHTML='<tr><td colspan="7" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 function buscarFornecedores(){carregarFornecedores(document.getElementById('forn-busca')?.value?.trim()||'');}
 function limparBuscaForn(){const el=document.getElementById('forn-busca');if(el)el.value='';carregarFornecedores();}
@@ -4329,7 +4330,7 @@ async function carregarEstoque(){
     renderTabelaEstoque(produtosEstoqueCache);
     const selHist=document.getElementById('hist-filtro-produto');
     if(selHist){const prods=[...new Map(produtosEstoqueCache.map(p=>[p.id,p])).values()];selHist.innerHTML='<option value="">Todos os produtos</option>'+prods.map(p=>'<option value="'+p.id+'">'+p.nome+'</option>').join('');}
-  }catch(e){const tbody=document.getElementById('tbl-estoque');if(tbody)tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';}
+  }catch(e){const tbody=document.getElementById('tbl-estoque');if(tbody)tbody.innerHTML='<tr><td colspan="7" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 
 function renderTabelaEstoque(lista){
@@ -4572,7 +4573,7 @@ async function carregarAgendamentos(filtro=''){
         +(a.status!=='cancelado'?'<button class="btn-sm btn-deact" onclick="alterarStatusAg('+a.id+',\'cancelado\')">Cancelar</button>':'')
         +'</div></td></tr>';
     }).join('');
-  }catch(e){tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';}
+  }catch(e){tbody.innerHTML='<tr><td colspan="7" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 function buscarAgendamentos(){carregarAgendamentos(document.getElementById('ag-busca')?.value?.trim()||'');}
 function limparBuscaAg(){const el=document.getElementById('ag-busca');if(el)el.value='';const es=document.getElementById('ag-filtro-status');if(es)es.value='';carregarAgendamentos();}
@@ -4700,7 +4701,7 @@ async function carregarFinanceiro(){
     await Promise.all([carregarDashboard(),carregarLancamentos()]);
   }catch(e){
     const tbody=document.getElementById('tbl-lancamentos');
-    if(tbody)tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';
+    if(tbody)tbody.innerHTML='<tr><td colspan="7" class="empty">Erro: '+e.message+'</td></tr>';
   }
 }
 
@@ -4739,19 +4740,35 @@ async function carregarDashboard(){
   }catch(e){}
 }
 
+
+function onFinFiltroMesChange(){
+  // Ao selecionar mês, limpa o filtro de dia
+  const dia=document.getElementById('fin-filtro-dia');
+  if(dia)dia.value='';
+  carregarLancamentos();
+}
+function onFinFiltroDiaChange(){
+  // Ao selecionar dia, limpa o filtro de mês
+  const mes=document.getElementById('fin-filtro-mes');
+  if(mes)mes.value='';
+  carregarLancamentos();
+}
+
 async function carregarLancamentos(){
   const tbody=document.getElementById('tbl-lancamentos');if(!tbody)return;
-  tbody.innerHTML='<tr><td colspan="8" class="loading">Carregando...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="7" class="loading">Carregando...</td></tr>';
   const pf=currentUser.perfil||'master';
   try{
     const tipo=document.getElementById('fin-filtro-tipo')?.value||'';
     const status=document.getElementById('fin-filtro-status')?.value||'';
     const mes=document.getElementById('fin-filtro-mes')?.value||'';
-    let q='financeiro_lancamentos?select=*,financeiro_categorias(nome),clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_vencimento.asc';
+    const dia=document.getElementById('fin-filtro-dia')?.value||'';
+    let q='financeiro_lancamentos?select=*,clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_vencimento.asc';
     if(tipo)q+='&tipo=eq.'+tipo;if(status)q+='&status=eq.'+status;
-    if(mes){const [ano,m]=mes.split('-').map(Number);const ultDia=new Date(ano,m,0).getDate();q+='&data_vencimento=gte.'+mes+'-01&data_vencimento=lte.'+mes+'-'+String(ultDia).padStart(2,'0');}
+    if(dia){q+='&data_vencimento=eq.'+dia;}
+    else if(mes){const [ano,m]=mes.split('-').map(Number);const ultDia=new Date(ano,m,0).getDate();q+='&data_vencimento=gte.'+mes+'-01&data_vencimento=lte.'+mes+'-'+String(ultDia).padStart(2,'0');}
     const data=await api(q);
-    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">Nenhum lançamento.</td></tr>';return;}
+    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="7" class="empty">Nenhum lançamento.</td></tr>';return;}
     const LINK='style="cursor:pointer;color:var(--text);font-weight:500;text-decoration:underline;text-decoration-color:transparent" onmouseover="this.style.color=\'var(--accent)\'" onmouseout="this.style.color=\'var(--text)\'"';
     tbody.innerHTML=data.map(l=>{
       const st=FIN_STATUS[l.status]||{label:l.status,icon:'',cls:'badge-usuario'};
@@ -4760,7 +4777,6 @@ async function carregarLancamentos(){
       return '<tr><td style="color:var(--text3)">'+l.id+'</td>'
         +'<td><span style="color:'+tipoColor+';font-weight:600">'+(l.tipo==='receita'?'📈 Receita':'📉 Despesa')+'</span></td>'
         +'<td><span '+LINK+' onclick="openModalLancamento(\'edit\','+l.id+')">'+l.descricao+'</span></td>'
-        +'<td style="font-size:12px;color:var(--text3)">'+(l.financeiro_categorias?.nome||'-')+'</td>'
         +'<td style="font-size:12px">'+venc+'</td>'
         +'<td style="font-weight:700;color:'+tipoColor+'">'+fmt(l.valor)+'</td>'
         +'<td><span class="badge '+st.cls+'">'+st.icon+' '+st.label+'</span></td>'
@@ -4770,7 +4786,7 @@ async function carregarLancamentos(){
         +(l.status!=='cancelado'?'<button class="btn-sm btn-deact" onclick="mudarStatusLan('+l.id+',\'cancelado\')">Cancelar</button>':'')
         +'</div></td></tr>';
     }).join('');
-  }catch(e){tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';}
+  }catch(e){tbody.innerHTML='<tr><td colspan="7" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 
 async function mudarStatusLan(id,status){
