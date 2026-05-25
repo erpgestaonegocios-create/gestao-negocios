@@ -2593,7 +2593,7 @@ async function adicionarAoCarrinho(){
     showMM('modal-compra-msg','Quantidade solicitada ('+qtd+') maior que o estoque disponível ('+saldoReal+').','error');return;
   }
   // Adicionar ao carrinho
-  carrinhoItens.push({prodId,prodNome,genero,tamanho,qtd,valorUnit,desconto,total,obs,saldoId:reg?.id||null});
+  carrinhoItens.push({prodId:String(prodId),prodNome,genero,tamanho,qtd,valorUnit,desconto,total,obs,saldoId:reg?.id||null});
   renderCarrinho();
   // Resetar campos do item
   limparProdutoCompra();
@@ -2670,7 +2670,7 @@ async function carregarEstoqueDisponivel(prodId){
     // Descontar itens já no carrinho para este produto
     const saldosAjustados=(saldos||[]).map(s=>{
       const jaCarrinho=(carrinhoItens||[]).filter(i=>
-        i.prodId===prodId&&
+        String(i.prodId)===String(prodId)&&
         (i.genero||null)===(s.genero||null)&&
         (i.tamanho||null)===(s.tamanho||null)
       ).reduce((acc,i)=>acc+i.qtd,0);
@@ -2946,7 +2946,7 @@ async function carregarEstoqueDisponivel(prodId){
     // Descontar itens já no carrinho para este produto
     const saldosAjustados=(saldos||[]).map(s=>{
       const jaCarrinho=(carrinhoItens||[]).filter(i=>
-        i.prodId===prodId&&
+        String(i.prodId)===String(prodId)&&
         (i.genero||null)===(s.genero||null)&&
         (i.tamanho||null)===(s.tamanho||null)
       ).reduce((acc,i)=>acc+i.qtd,0);
