@@ -748,30 +748,17 @@
       <div class="mfield col-2">
         <label>Tipo de Movimentação <span class="req">*</span></label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
-          <label id="est-tipo-entrada-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer">
-            <input type="radio" name="est-tipo" value="entrada" checked onchange="onEstTipoChange()" style="accent-color:#4caf7d">
-            <span style="font-size:13px">📥 Entrada</span>
+          <label id="est-tipo-entrada-lbl" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface2);border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .15s">
+            <input type="radio" name="est-tipo" value="entrada" checked onchange="onEstTipoChange()" style="accent-color:#4caf7d;width:16px;height:16px">
+            <span style="font-size:14px;font-weight:500">📥 ENTRADA</span>
           </label>
-          <label id="est-tipo-saida-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer">
-            <input type="radio" name="est-tipo" value="saida" onchange="onEstTipoChange()" style="accent-color:var(--danger)">
-            <span style="font-size:13px">📤 Saída</span>
-          </label>
-          <label id="est-tipo-ajuste-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer">
-            <input type="radio" name="est-tipo" value="ajuste" onchange="onEstTipoChange()" style="accent-color:var(--warn)">
-            <span style="font-size:13px">⚖️ Ajuste</span>
-          </label>
-          <label id="est-tipo-transferencia-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer">
-            <input type="radio" name="est-tipo" value="transferencia" onchange="onEstTipoChange()" style="accent-color:var(--accent)">
-            <span style="font-size:13px">🔄 Transferência</span>
+          <label id="est-tipo-saida-lbl" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface2);border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .15s">
+            <input type="radio" name="est-tipo" value="saida" onchange="onEstTipoChange()" style="accent-color:var(--danger);width:16px;height:16px">
+            <span style="font-size:14px;font-weight:500">📤 SAÍDA</span>
           </label>
         </div>
       </div>
       <div class="mfield col-1">
-        <label id="est-qtd-label">Quantidade <span class="req">*</span></label>
-        <input type="number" id="est-quantidade" placeholder="0" min="0" step="1" oninput="onEstQtdChange();calcularCustoTotal()">
-        <div class="field-hint" id="est-qtd-hint"></div>
-      </div>
-      <div class="mfield col-1" id="est-genero-wrap">
         <label>Gênero</label>
         <select id="est-genero" onchange="onEstGeneroChange()">
           <option value="">Não especificado</option>
@@ -781,11 +768,16 @@
           <option value="unissex">Unissex</option>
         </select>
       </div>
-      <div class="mfield col-1" id="est-tamanho-wrap">
+      <div class="mfield col-1">
         <label>Tamanho</label>
         <select id="est-tamanho" onchange="onEstTamanhoChange()">
           <option value="">Não especificado</option>
         </select>
+      </div>
+      <div class="mfield col-2">
+        <label id="est-qtd-label">Quantidade <span class="req">*</span></label>
+        <input type="number" id="est-quantidade" placeholder="0" min="0" step="1" oninput="onEstQtdChange();calcularCustoTotal()" style="max-width:200px">
+        <div class="field-hint" id="est-qtd-hint"></div>
       </div>
       <div class="mfield col-1" id="est-valor-custo-wrap" style="display:none">
         <label>Valor de Custo (R$) <span style="font-size:10px;color:var(--text3)">por unidade</span></label>
@@ -3456,7 +3448,7 @@ function salvarApiKeyIA(){
 async function chamarGemini(prompt, maxTokens=1500){
   const apiKey=localStorage.getItem('gemini_api_key')||'';
   if(!apiKey)throw new Error('API Key do Gemini não configurada. Clique em "Configurar agora".');
-  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey;
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey;
   const response=await fetch(url,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
