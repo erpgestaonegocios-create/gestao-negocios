@@ -1753,6 +1753,8 @@ async function salvarPerfil(){
   if(!codigo){showMM('modal-perfil-msg','Informe o código','error');return;}
   try{
     await api('perfis',{method:'POST',body:JSON.stringify({codigo,descricao:nome,ativo:true})});
+    // Criar registro em empresa_config automaticamente
+    await api('empresa_config',{method:'POST',body:JSON.stringify({perfil_codigo:codigo,nome_empresa:nome,codigo_acesso:codigo})}).catch(()=>{});
     showMM('modal-perfil-msg','Perfil criado com sucesso!','success');
     await carregarPerfisCache(); // Atualiza cache após criar
     setTimeout(()=>{
@@ -3611,7 +3613,6 @@ function filtrarClientesWpp(termo){
 }
 
 async function enviarMsgCliente(dataset){
-  console.log('[WPP] enviarMsgCliente chamada, dataset:',JSON.stringify({cid:dataset.cid,cnome:dataset.cnome,ctel:dataset.ctel}));
   const id=parseInt(dataset.cid);
   const nome=dataset.cnome||'';
   const tel=dataset.ctel||'';
@@ -3624,13 +3625,8 @@ async function enviarMsgCliente(dataset){
   let empresa='nossa empresa';
   try{
     const pf=currentUser.perfil||'';
-    console.log('[WPP DEBUG] perfil:',pf,'| nivel:',currentUser.nivel,'| usuario:',currentUser.usuario);
-    // Buscar todos os registros de empresa_config para debug
-    const cfgTodos=await api('empresa_config?select=perfil_codigo,nome_empresa');
-    console.log('[WPP DEBUG] empresa_config registros:',JSON.stringify(cfgTodos));
-    const cfgE=(cfgTodos||[]).filter(r=>r.perfil_codigo===pf);
-    console.log('[WPP DEBUG] match por perfil:',JSON.stringify(cfgE));
-    if(cfgE.length&&cfgE[0].nome_empresa)empresa=cfgE[0].nome_empresa;
+    const cfgE=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=nome_empresa&limit=1');
+    if(cfgE&&cfgE.length&&cfgE[0].nome_empresa)empresa=cfgE[0].nome_empresa;
   }catch(e){console.error('[WPP] Erro ao buscar empresa:',e);}
   console.log('[WPP] empresa final:',empresa);
   let msg=wppTextoModelo
