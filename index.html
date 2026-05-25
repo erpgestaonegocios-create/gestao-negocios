@@ -242,7 +242,11 @@
         </select>
       </div>
       <div class="mfield col-1" id="wrap-perfil"><label>Perfil <span class="req">*</span></label>
-        <select id="m-perfil"><option value="">Selecione...</option></select>
+        <select id="m-perfil" onchange="onPerfilUsuarioChange()"><option value="">Selecione...</option></select>
+      </div>
+      <div class="mfield col-1" id="wrap-empresa-sel" style="display:none">
+        <label>Empresa (selecione o master)</label>
+        <select id="m-empresa-sel" onchange="onEmpresaSelChange()"><option value="">Selecione a empresa...</option></select>
       </div>
       <div class="mfield col-1" id="wrap-empresa">
         <label id="lbl-empresa-modal">Empresa</label>
@@ -392,7 +396,7 @@
       </div>
       <div class="mfield col-2">
         <label>Nome da Empresa <span class="req">*</span></label>
-        <input type="text" id="cfg-nome" placeholder="ex: Hospital João XXIII">
+        <input type="text" id="cfg-nome" placeholder="ex: Hospital João XXIII" readonly style="opacity:.7;cursor:not-allowed" title="Altere o nome em Gestão de Usuários → usuário master da empresa">
       </div>
       <div class="mfield col-2">
         <label>Código de Acesso <span class="req">*</span></label>
@@ -1619,7 +1623,10 @@ async function openModalUsuario(mode,id){
     document.getElementById('m-nome').value='';
     document.getElementById('m-senha').value='';
     document.getElementById('m-nivel').value='usuario';
-    document.getElementById('m-perfil').value='';
+    // Pré-preencher perfil com o selecionado no combo da tela
+    const perfilFiltro=document.getElementById('filtro-perfil-usuarios')?.value||'';
+    document.getElementById('m-perfil').value=perfilFiltro;
+    if(perfilFiltro) onPerfilUsuarioChange();
     document.getElementById('m-usuario').disabled=false;
     // Só limpa empresa se NÃO for master_empresa (o valor foi setado acima)
     if(!isMasterEmpresa) empresaInput.value='';
@@ -1678,11 +1685,50 @@ async function salvarUsuario(){
       await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(body)});
       showMM('modal-user-msg','Usuário atualizado com sucesso!','success');
     }
+    // Se for master_empresa, atualizar/criar empresa_config automaticamente
+    if(nivel==='master_empresa'&&perfil&&empresa){
+      const codigoAcesso=empresa.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+      // Verificar se já existe
+      const cfgEx=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil)+'&select=id').catch(()=>[]);
+      if(cfgEx&&cfgEx.length){
+        await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil),{method:'PATCH',body:JSON.stringify({nome_empresa:empresa,codigo_acesso:codigoAcesso})}).catch(()=>{});
+      } else {
+        await api('empresa_config',{method:'POST',body:JSON.stringify({perfil_codigo:perfil,nome_empresa:empresa,codigo_acesso:codigoAcesso})}).catch(()=>{});
+      }
+      // Atualizar empresaConfig em memória se for o perfil atual
+      if(empresaConfig&&empresaConfig.perfil_codigo===perfil){
+        empresaConfig.nome_empresa=empresa;
+        empresaConfig.codigo_acesso=codigoAcesso;
+      }
+    }
     setTimeout(()=>{closeModal('modal-usuario');recarregarUsuarios();},900);
   }catch(e){showMM('modal-user-msg','Erro: '+e.message,'error');}
 }
 
 // ─── PAINEL: GESTÃO DE ACESSOS ────────────────────────────────────
+
+async function excluirPerfil(codigo, nome){
+  if(!confirm('Excluir o perfil "'+nome+'"?\n\nATENÇÃO: Todos os usuários e acessos deste perfil serão afetados.\nEsta ação não pode ser desfeita.'))return;
+  try{
+    // Verificar se há usuários neste perfil
+    const usrs=await api('usuarios?perfil=eq.'+encodeURIComponent(codigo)+'&select=id&limit=1');
+    if(usrs&&usrs.length){
+      alert('Não é possível excluir. Existem usuários cadastrados com este perfil.\nRemova os usuários primeiro.');
+      return;
+    }
+    // Excluir funcionalidades do perfil
+    await api('perfil_funcionalidades?perfil_codigo=eq.'+encodeURIComponent(codigo),{method:'DELETE'}).catch(()=>{});
+    await api('perfil_labels?perfil_codigo=eq.'+encodeURIComponent(codigo),{method:'DELETE'}).catch(()=>{});
+    await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(codigo),{method:'DELETE'}).catch(()=>{});
+    // Excluir o perfil
+    await api('perfis?codigo=eq.'+encodeURIComponent(codigo),{method:'DELETE'});
+    alert('Perfil "'+nome+'" excluído com sucesso!');
+    await carregarPerfisCache();
+    await carregarFuncCache();
+    renderAcessos();
+  }catch(e){alert('Erro ao excluir: '+e.message);}
+}
+
 function renderAcessos(){
   return `
     <div class="panel-header">
@@ -1721,7 +1767,7 @@ function renderTabelaAcessos(){
   }
   if(!funcsUnicas.length){el.innerHTML='<div class="empty">Nenhuma funcionalidade cadastrada ainda.</div>';return;}
   if(!perfisNomes.length){el.innerHTML='<div class="empty">Nenhum perfil de negócio cadastrado ainda.</div>';return;}
-  const thead=`<thead><tr><th>Funcionalidade</th>${perfisNomes.map(p=>`<th>${p.descricao}</th>`).join('')}</tr></thead>`;
+  const thead=`<thead><tr><th>Funcionalidade</th>${perfisNomes.map(p=>`<th><div style="display:flex;flex-direction:column;align-items:center;gap:4px">${p.descricao}<button onclick="excluirPerfil('${p.codigo}','${p.descricao}')" style="background:rgba(224,85,85,.15);border:1px solid var(--danger);color:var(--danger);border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer">🗑️ Excluir</button></div></th>`).join('')}</tr></thead>`;
   const tbody=funcsUnicas.map(func=>`<tr>
     <td>${funcsMap[func]}</td>
     ${perfisNomes.map(p=>{
@@ -3706,6 +3752,44 @@ function cancelarEdicaoWpp(modeloId){
   const div=document.getElementById('edit-btn-'+modeloId);
   if(div)div.remove();
   delete textarea.dataset.original;
+}
+
+
+async function onPerfilUsuarioChange(){
+  const perfil=document.getElementById('m-perfil')?.value||'';
+  const nivel=document.getElementById('m-nivel')?.value||'usuario';
+  const wrapEmpSel=document.getElementById('wrap-empresa-sel');
+  const selEmp=document.getElementById('m-empresa-sel');
+  const wrapEmp=document.getElementById('wrap-empresa');
+  if(!perfil||nivel==='master_empresa'){
+    if(wrapEmpSel)wrapEmpSel.style.display='none';
+    return;
+  }
+  // Mostrar combo de empresas para master_sistema escolher empresa existente
+  // Buscar todos os masters deste perfil
+  try{
+    const masters=await api('usuarios?perfil=eq.'+encodeURIComponent(perfil)+'&nivel=eq.master_empresa&ativo=eq.true&select=id,nome,empresa&order=empresa.asc');
+    if(masters&&masters.length){
+      if(selEmp){
+        selEmp.innerHTML='<option value="">Nova empresa...</option>'
+          +(masters||[]).map(m=>'<option value="'+m.id+'" data-empresa="'+(m.empresa||'')+'">'+( m.empresa||m.nome)+'</option>').join('');
+      }
+      if(wrapEmpSel)wrapEmpSel.style.display='block';
+    } else {
+      if(wrapEmpSel)wrapEmpSel.style.display='none';
+    }
+  }catch(e){if(wrapEmpSel)wrapEmpSel.style.display='none';}
+}
+
+function onEmpresaSelChange(){
+  const sel=document.getElementById('m-empresa-sel');
+  const opt=sel?.options[sel.selectedIndex];
+  const empresa=opt?.getAttribute('data-empresa')||'';
+  const empInput=document.getElementById('m-empresa');
+  if(empInput&&empresa)empInput.value=empresa;
+  // Definir nível como master_empresa se selecionou empresa existente
+  const nivel=document.getElementById('m-nivel');
+  if(nivel&&empresa)nivel.value='usuario'; // novo usuário na empresa existente
 }
 
 function salvarMensagensWpp(){
