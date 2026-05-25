@@ -1538,7 +1538,7 @@ async function onFiltroPerfilChange(){
     try{
       const masters=await api('usuarios?perfil=eq.'+encodeURIComponent(perfil)+'&nivel=eq.master_empresa&ativo=eq.true&select=empresa&order=empresa.asc');
       const empresas=[...new Set((masters||[]).map(m=>m.empresa).filter(Boolean))];
-      if(empresas.length>1){
+      if(empresas.length>0){
         selEmp.innerHTML='<option value="">Todas as empresas</option>'+empresas.map(e=>'<option value="'+e+'">'+e+'</option>').join('');
         selEmp.style.display='block';
       } else {
@@ -1737,7 +1737,7 @@ async function salvarUsuario(){
 // ─── PAINEL: GESTÃO DE ACESSOS ────────────────────────────────────
 
 async function excluirPerfil(codigo, nome){
-  if(!confirm('Excluir o perfil "'+nome+'"?\n\nATENÇÃO: Todos os usuários e acessos deste perfil serão afetados.\nEsta ação não pode ser desfeita.'))return;
+  if(!confirm('⚠️ Confirma a exclusão do perfil "'+nome+'"?\n\nATENÇÃO: Esta ação não pode ser desfeita.\nCertifique-se de que não há usuários vinculados a este perfil.'))return;
   try{
     // Verificar se há usuários neste perfil
     const usrs=await api('usuarios?perfil=eq.'+encodeURIComponent(codigo)+'&select=id&limit=1');
@@ -1751,10 +1751,18 @@ async function excluirPerfil(codigo, nome){
     await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(codigo),{method:'DELETE'}).catch(()=>{});
     // Excluir o perfil
     await api('perfis?codigo=eq.'+encodeURIComponent(codigo),{method:'DELETE'});
-    alert('Perfil "'+nome+'" excluído com sucesso!');
     await carregarPerfisCache();
     await carregarFuncCache();
-    renderAcessos();
+    // Recarregar a tela de acessos via showPanel
+    const elAcessos=document.getElementById('panel-acessos');
+    if(elAcessos){elAcessos.innerHTML=renderAcessos();carregarAcessos();}
+    // Mostrar mensagem de sucesso
+    const wrap=document.getElementById('panel-acessos');
+    const msg=document.createElement('div');
+    msg.style.cssText='position:fixed;top:20px;right:20px;background:var(--success);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3)';
+    msg.textContent='✅ Perfil "'+nome+'" excluído com sucesso!';
+    document.body.appendChild(msg);
+    setTimeout(()=>msg.remove(),3000);
   }catch(e){alert('Erro ao excluir: '+e.message);}
 }
 
