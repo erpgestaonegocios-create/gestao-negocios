@@ -1063,6 +1063,10 @@ function showMsg(el,txt,type){el.textContent=txt;el.className='msg '+type;el.sty
 function showMM(id,txt,type){const el=document.getElementById(id);el.textContent=txt;el.className='modal-msg '+type;el.style.display='block';}
 function closeModal(id){
   document.getElementById(id).classList.remove('open');
+  // Desbloquear campos que podem ter sido bloqueados
+  if(id==='modal-usuario'){
+    const mp=document.getElementById('m-perfil');if(mp)mp.disabled=false;
+  }
   // Desbloquear gênero/tamanho do estoque ao fechar (podem ter sido bloqueados pelo Movimentar)
   if(id==='modal-estoque-mov'){
     const sg=document.getElementById('est-genero');
@@ -1477,6 +1481,9 @@ function renderUsuarios(){
         <select id="filtro-perfil-usuarios" onchange="onFiltroPerfilChange()">
           <option value="">Selecione o perfil...</option>
         </select>
+        <select id="filtro-empresa-usuarios" onchange="carregarUsuarios()" style="display:none;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+          <option value="">Todas as empresas</option>
+        </select>
         <span class="filtro-hint" id="filtro-hint-usuarios">← Selecione um perfil para listar os usuários</span>
       </div>
       <div id="usuarios-tabela-wrap" style="display:none">
@@ -1512,18 +1519,33 @@ async function onShowUsuarios(){
   }
 }
 
-function onFiltroPerfilChange(){
+async function onFiltroPerfilChange(){
   const sel=document.getElementById('filtro-perfil-usuarios');
   const perfil=sel?sel.value:'';
   const wrap=document.getElementById('usuarios-tabela-wrap');
   const hint=document.getElementById('filtro-hint-usuarios');
+  const selEmp=document.getElementById('filtro-empresa-usuarios');
   if(!perfil){
     if(wrap) wrap.style.display='none';
     if(hint) hint.style.display='inline';
+    if(selEmp) selEmp.style.display='none';
     return;
   }
   if(wrap) wrap.style.display='block';
   if(hint) hint.style.display='none';
+  // Carregar empresas (masters) deste perfil
+  if(selEmp){
+    try{
+      const masters=await api('usuarios?perfil=eq.'+encodeURIComponent(perfil)+'&nivel=eq.master_empresa&ativo=eq.true&select=empresa&order=empresa.asc');
+      const empresas=[...new Set((masters||[]).map(m=>m.empresa).filter(Boolean))];
+      if(empresas.length>1){
+        selEmp.innerHTML='<option value="">Todas as empresas</option>'+empresas.map(e=>'<option value="'+e+'">'+e+'</option>').join('');
+        selEmp.style.display='block';
+      } else {
+        selEmp.style.display='none';
+      }
+    }catch(e){selEmp.style.display='none';}
+  }
   carregarUsuarios();
 }
 
@@ -1537,7 +1559,11 @@ async function carregarUsuarios(){
       const sel=document.getElementById('filtro-perfil-usuarios');
       const perfil=sel?sel.value:'';
       if(!perfil)return;
-      data=await api('usuarios?select=*&perfil=eq.'+encodeURIComponent(perfil))||[];
+      const selEmpFiltro=document.getElementById('filtro-empresa-usuarios');
+      const empresaFiltro=selEmpFiltro?.value||'';
+      let qUsuarios='usuarios?select=*&perfil=eq.'+encodeURIComponent(perfil);
+      if(empresaFiltro)qUsuarios+='&empresa=eq.'+encodeURIComponent(empresaFiltro);
+      data=await api(qUsuarios)||[];
       // Ordenação: master_empresa primeiro, depois usuario, por id asc dentro de cada grupo
       const ord={master_sistema:0,master_empresa:1,usuario:2};
       data.sort((a,b)=>(ord[a.nivel]??9)-(ord[b.nivel]??9)||a.id-b.id);
@@ -1626,6 +1652,9 @@ async function openModalUsuario(mode,id){
     // Pré-preencher perfil com o selecionado no combo da tela
     const perfilFiltro=document.getElementById('filtro-perfil-usuarios')?.value||'';
     document.getElementById('m-perfil').value=perfilFiltro;
+    // Bloquear perfil se veio pré-preenchido do filtro
+    const mPerfilSel=document.getElementById('m-perfil');
+    if(mPerfilSel)mPerfilSel.disabled=!!perfilFiltro;
     if(perfilFiltro) onPerfilUsuarioChange();
     document.getElementById('m-usuario').disabled=false;
     // Só limpa empresa se NÃO for master_empresa (o valor foi setado acima)
