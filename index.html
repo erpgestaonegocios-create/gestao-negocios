@@ -3450,35 +3450,40 @@ function salvarApiKeyIA(){
 async function chamarGemini(prompt, maxTokens=1500){
   const apiKey=(localStorage.getItem('gemini_api_key')||'').trim();
   if(!apiKey)throw new Error('API Key do Gemini não configurada. Clique em "Configurar agora".');
-  console.log('[Gemini] Chave (primeiros 8 chars):', apiKey.substring(0,8)+'...');
-  console.log('[Gemini] Tamanho da chave:', apiKey.length);
-  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey;
-  console.log('[Gemini] URL (sem chave):', url.replace(apiKey,'***'));
-  const response=await fetch(url,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      contents:[{parts:[{text:prompt}]}],
-      generationConfig:{maxOutputTokens:maxTokens,temperature:0.7}
-    })
-  });
-  const data=await response.json();
-  if(data.error){
-    const msg=data.error.message||'Erro desconhecido';
-    const code=data.error.code||'';
-    const status=data.error.status||'';
-    if(status==='RESOURCE_EXHAUSTED'||msg.includes('quota')){
-      throw new Error('⏳ Cota gratuita atingida. Aguarde 1 minuto e tente novamente.');
+  // Tentar modelos em ordem até um funcionar
+  const modelos=[
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey,
+    'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key='+apiKey,
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key='+apiKey,
+    'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key='+apiKey,
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key='+apiKey,
+  ];
+  let lastError='';
+  for(const url of modelos){
+    const modelName=url.match(/models\/([^:]+)/)?.[1]||'?';
+    try{
+      const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens,temperature:0.7}})});
+      const data=await response.json();
+      if(data.error){
+        const msg=data.error.message||'';
+        const status=data.error.status||'';
+        if(msg.includes('expired')||msg.includes('renew'))throw new Error('🔑 Chave expirada. Clique em "Trocar chave" e gere uma nova em aistudio.google.com/apikey');
+        if(status==='PERMISSION_DENIED'||status==='UNAUTHENTICATED')throw new Error('🔑 Chave inválida. Clique em "Trocar chave"');
+        lastError=modelName+': '+msg;
+        console.warn('[Gemini] '+modelName+' falhou:',msg);
+        continue;
+      }
+      const texto=data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if(texto){console.log('[Gemini] Sucesso com modelo:',modelName);return texto;}
+      lastError=modelName+': resposta vazia';
+    }catch(e){
+      if(e.message.includes('🔑'))throw e;
+      lastError=modelName+': '+e.message;
     }
-    if(code===400||status==='INVALID_ARGUMENT'){
-      const expired=msg.includes('expired')||msg.includes('renew');
-      throw new Error(expired
-        ?'🔑 Chave expirada. Clique em "Trocar chave", gere uma nova em aistudio.google.com/apikey e cole aqui.'
-        :'❌ Chave inválida. Clique em "Trocar chave" e cole a chave novamente.');
-    }
-    throw new Error('Erro Google ('+code+'): '+msg);
   }
-  return data.candidates?.[0]?.content?.parts?.[0]?.text||'Sem resposta.';
+  throw new Error('Nenhum modelo disponível. Último erro: '+lastError);
+  return ''; // nunca chega aqui
 }
 
 async function executarPerguntaIA(){
