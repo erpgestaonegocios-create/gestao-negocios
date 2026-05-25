@@ -3638,7 +3638,15 @@ async function enviarMsgCliente(dataset){
   const categoria=window._wppCategoriaAtual;
   const anoAtual=new Date().getFullYear();
   const hoje=new Date().toLocaleDateString('pt-BR');
-  const empresa=empresaConfig?.nome_empresa||perfilNome(currentUser?.perfil)||'nossa empresa';
+  // Buscar nome da empresa sempre atualizado
+  let empresa=empresaConfig?.nome_empresa;
+  if(!empresa&&currentUser.perfil&&currentUser.perfil!=='master'){
+    try{
+      const cfgE=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil)+'&select=nome_empresa&limit=1');
+      if(cfgE&&cfgE.length)empresa=cfgE[0].nome_empresa;
+    }catch(e){}
+  }
+  empresa=empresa||perfilNome(currentUser?.perfil)||'nossa empresa';
   let msg=wppTextoModelo
     .replace(/{nome}/g,nome)
     .replace(/{data}/g,hoje)
@@ -3755,8 +3763,15 @@ function excluirModeloCustom(id){
   carregarWhatsApp();
 }
 
-function carregarWhatsApp(){
+async function carregarWhatsApp(){
   const wrap=document.getElementById('rel-conteudo');
+  // Garantir que empresaConfig está carregada
+  if(!empresaConfig&&currentUser.perfil&&currentUser.perfil!=='master'){
+    try{
+      const cfgRows=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil)+'&select=nome_empresa&limit=1');
+      if(cfgRows&&cfgRows.length)empresaConfig={...(empresaConfig||{}),nome_empresa:cfgRows[0].nome_empresa};
+    }catch(e){}
+  }
   const empresa=empresaConfig?.nome_empresa||perfilNome(currentUser.perfil)||'nossa empresa';
   const temAg=perfilTemFunc('agendamentos');
   const modelosBase=[
