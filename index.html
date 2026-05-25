@@ -1321,6 +1321,13 @@ async function construirInterface(){
   isMasterEmpresa=currentUser.nivel==='master_empresa';
   isUsuario=currentUser.nivel==='usuario';
   funcPermitidas=new Set();
+  // Buscar configuração da empresa se ainda não carregada pela URL
+  if(!empresaConfig&&currentUser.perfil&&currentUser.perfil!=='master'){
+    try{
+      const cfgRows=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil)+'&select=*&limit=1');
+      if(cfgRows&&cfgRows.length)empresaConfig=cfgRows[0];
+    }catch(e){}
+  }
 
   if(isMasterEmpresa&&currentUser.perfil&&currentUser.perfil!=='master'){
     // Funções disponíveis para o perfil (respeitando o que foi removido em Gestão de Acessos)
@@ -3663,6 +3670,54 @@ async function enviarMsgCliente(dataset){
 }
 
 
+
+function editarModeloWpp(modeloId){
+  const textarea=document.getElementById(modeloId);
+  if(!textarea){alert('Modelo não encontrado.');return;}
+  // Salvar texto atual no localStorage com prefixo wpp_
+  // Tornar o textarea editável com destaque
+  textarea.style.border='2px solid var(--accent)';
+  textarea.style.outline='none';
+  textarea.focus();
+  // Adicionar botões de salvar/cancelar logo após o textarea
+  const existente=document.getElementById('edit-btn-'+modeloId);
+  if(existente)return; // já está em modo edição
+  const div=document.createElement('div');
+  div.id='edit-btn-'+modeloId;
+  div.style.cssText='display:flex;gap:8px;margin-top:6px';
+  div.innerHTML='<button onclick="salvarEdicaoWpp(\''+modeloId+'\')" style="background:var(--accent);border:none;color:#fff;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-weight:600">💾 Salvar</button>'
+    +'<button onclick="cancelarEdicaoWpp(\''+modeloId+'\')" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer">Cancelar</button>';
+  textarea.parentNode.insertBefore(div, textarea.nextSibling);
+  // Guardar valor original para cancelar
+  textarea.dataset.original=textarea.value;
+}
+
+function salvarEdicaoWpp(modeloId){
+  const textarea=document.getElementById(modeloId);
+  if(!textarea)return;
+  localStorage.setItem('wpp_'+modeloId, textarea.value);
+  textarea.style.border='1px solid var(--border)';
+  const div=document.getElementById('edit-btn-'+modeloId);
+  if(div)div.remove();
+  delete textarea.dataset.original;
+  // Feedback
+  const ok=document.createElement('div');
+  ok.style.cssText='font-size:11px;color:var(--success);margin-top:4px';
+  ok.textContent='✅ Modelo salvo!';
+  textarea.parentNode.insertBefore(ok, textarea.nextSibling);
+  setTimeout(()=>ok.remove(), 2000);
+}
+
+function cancelarEdicaoWpp(modeloId){
+  const textarea=document.getElementById(modeloId);
+  if(!textarea)return;
+  if(textarea.dataset.original!==undefined)textarea.value=textarea.dataset.original;
+  textarea.style.border='1px solid var(--border)';
+  const div=document.getElementById('edit-btn-'+modeloId);
+  if(div)div.remove();
+  delete textarea.dataset.original;
+}
+
 function salvarMensagensWpp(){
   const textareas=document.querySelectorAll('#rel-conteudo textarea');
   let count=0;
@@ -3718,7 +3773,7 @@ function carregarWhatsApp(){
   const modelosLoja=!temAg?[
     {id:'msg_produto_novo',titulo:'🆕 Novo Produto Disponível',msg:'Olá {nome}! 🎉 Chegou novidade na '+empresa+'!\n\nTemos um novo produto esperando por você. Venha conferir!'},
     {id:'msg_promocao',titulo:'🔥 Promoção Especial',msg:'Olá {nome}! 🔥 Promoção imperdível na '+empresa+'!\n\nNão perca essa oportunidade. Entre em contato e saiba mais!'},
-    {id:'msg_reposicao',titulo:'✅ Produto Reposto em Estoque',msg:'Olá {nome}! ✅ Boa notícia! O produto que você estava esperando voltou ao estoque na '+empresa+'.\n\nGaranta o seu agora!'},
+    {id:'msg_reposicao',titulo:'✅ Produto Reposto em Estoque',msg:'Olá {nome}! ✅ Boa notícia! O produto que você estava esperando voltou ao estoque na '+empresa+'.\n\nProduto: {descricao}\n\nGaranta o seu agora!'},
   ]:[];
   const modelos=[...modelosAg,...modelosBase,...modelosCobranca,...modelosLoja];
   let html='<div style="margin-bottom:16px;padding:14px 18px;background:rgba(37,211,102,.07);border:1px solid #25D366;border-radius:10px;font-size:13px;color:var(--text2)">'
@@ -3730,6 +3785,7 @@ function carregarWhatsApp(){
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
       +'<div style="font-size:12px;font-weight:600;color:var(--text2)">'+m.titulo+'</div>'
+      +'<button data-mid="'+m.id+'" onclick="editarModeloWpp(this.dataset.mid)" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">✏️ Editar</button>'
       +'<button onclick="enviarWhatsApp(\''+m.id+'\')" style="background:#25D366;border:none;color:#fff;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-weight:600">📲 Enviar</button>'
       +'</div>'
       +'<textarea id="'+m.id+'" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;line-height:1.6;resize:vertical;min-height:80px;font-family:inherit;outline:none">'+saved+'</textarea>'
