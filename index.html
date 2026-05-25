@@ -3619,15 +3619,14 @@ async function enviarMsgCliente(dataset){
   const categoria=window._wppCategoriaAtual;
   const anoAtual=new Date().getFullYear();
   const hoje=new Date().toLocaleDateString('pt-BR');
-  // Buscar nome da empresa sempre atualizado
-  let empresa=empresaConfig?.nome_empresa;
-  if(!empresa&&currentUser.perfil&&currentUser.perfil!=='master'){
-    try{
-      const cfgE=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil)+'&select=nome_empresa&limit=1');
-      if(cfgE&&cfgE.length)empresa=cfgE[0].nome_empresa;
-    }catch(e){}
-  }
-  empresa=empresa||perfilNome(currentUser?.perfil)||'nossa empresa';
+  // Buscar nome da empresa do banco pelo perfil do usuário
+  let empresa='nossa empresa';
+  try{
+    const pf=currentUser.perfil||'';
+    const cfgE=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=nome_empresa&limit=1');
+    if(cfgE&&cfgE.length&&cfgE[0].nome_empresa)empresa=cfgE[0].nome_empresa;
+  }catch(e){console.error('Erro ao buscar empresa:',e);}
+  console.log('[WPP] empresa resolvida:',empresa,'| perfil:',currentUser.perfil);
   let msg=wppTextoModelo
     .replace(/{nome}/g,nome)
     .replace(/{data}/g,hoje)
