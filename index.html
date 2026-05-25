@@ -446,7 +446,7 @@
       <div class="mfield col-1"><label>Estado</label><input type="text" id="cli-estado" placeholder="UF" maxlength="2" style="text-transform:uppercase"></div>
       <div class="mfield col-2"><label>País</label><input type="text" id="cli-pais" placeholder="País"></div>
       <div class="form-section">Informações Adicionais</div>
-      <div class="mfield col-2"><label>Observações</label><textarea id="cli-obs" placeholder="Observações..."></textarea></div>
+      <div class="mfield col-2"><label>Observações <span style="font-size:10px;color:var(--warn)">(usar exclusivamente para avisos de reposição de estoque)</span></label><textarea id="cli-obs" placeholder="Ex: Cliente aguarda Camisa Azul tam. M..."></textarea></div>
       <div class="form-section">Frete Estimado</div>
       <div class="mfield col-2">
         <div id="cli-frete-box" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--text3)">
@@ -3099,7 +3099,7 @@ async function carregarAlertas(){
       temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+hojeStr+'T00:00:00&data_hora=lte.'+hojeStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
       temAg?api('financeiro_lancamentos?select=*,clientes(nome,id)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=in.(pendente,vencido)&data_vencimento=lte.'+new Date(hoje.getTime()+7*86400000).toISOString().slice(0,10)+'&order=data_vencimento.asc'):Promise.resolve([]),
       api('estoque_saldo?select=quantidade,produto_id,genero,tamanho,produtos(nome,estoque_minimo,estoque_maximo,unidade,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)),
-      api('clientes?select=nome,data_nascimento,telefone&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+      api('clientes?select=id,nome,data_nascimento,telefone,observacoes,aniversario_msg_ano&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
       api('cliente_compras?select=cliente_id,data_compra,total_pago&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc'),
       api('financeiro_lancamentos?select=tipo,status,valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+iniMes+'&data_vencimento=lte.'+fimMes),
     ]);
@@ -3229,6 +3229,21 @@ async function carregarAlertas(){
       html+='</div>';
     } else if(!temAg&&lucroMes>=0){
       html+='<div style="background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:13px;color:var(--success)">📈 Lucro do mês: <strong>'+fmt(lucroMes)+'</strong></div>';
+    }
+
+    // ── Clientes aguardando reposição ───────────────────────────
+    const clientesReposicao=(clientes||[]).filter(cl=>cl.observacoes&&cl.observacoes.trim());
+    if(clientesReposicao.length){
+      totalAlertas+=clientesReposicao.length;
+      html+='<div style="background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;padding:16px;margin-bottom:12px">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">🔔 Clientes Aguardando Reposição de Estoque ('+clientesReposicao.length+')</div>';
+      clientesReposicao.forEach(cl=>{
+        html+='<div style="padding:8px 0;border-bottom:1px solid var(--border)">'
+          +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+cl.nome+'<span style="color:var(--text3);font-size:11px;margin-left:8px">'+(cl.telefone||'Sem telefone')+'</span></div>'
+          +'<div style="font-size:12px;color:var(--accent);margin-top:2px">📦 '+cl.observacoes+'</div>'
+          +'</div>';
+      });
+      html+='</div>';
     }
 
     // ── Aniversariantes ──────────────────────────────────────────
@@ -3502,6 +3517,149 @@ function atualizarBadgeMenuRel(count){
     menuEl.appendChild(badge);
   }
 }
+
+// ── WhatsApp com listas de destinatários ─────────────────────────
+let wppModeloAtual=null;
+let wppClientesSelecionados=new Set();
+let wppClientesEnviados=new Set();
+
+function enviarWhatsApp(modeloId){
+  wppModeloAtual=modeloId;
+  wppClientesSelecionados=new Set();
+  // Mostrar modal de seleção de destinatários
+  abrirModalWppDestinatarios();
+}
+
+async function abrirModalWppDestinatarios(){
+  const modal=document.getElementById('modal-wpp-destinatarios');
+  if(!modal)return;
+  const pf=currentUser.perfil||'master';
+  const hoje=new Date();
+  const mesAtual=hoje.getMonth()+1;
+  const diaAtual=hoje.getDate();
+  const anoAtual=hoje.getFullYear();
+  // Carregar clientes
+  const clientes=await api('clientes?select=id,nome,telefone,data_nascimento,observacoes,aniversario_msg_ano&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc').catch(()=>[]);
+  // Aniversariantes hoje (que ainda não receberam msg este ano)
+  const aniversariantes=(clientes||[]).filter(cl=>{
+    if(!cl.data_nascimento)return false;
+    if(cl.aniversario_msg_ano===anoAtual)return false; // já enviou este ano
+    const d=new Date(cl.data_nascimento+'T12:00');
+    return d.getMonth()+1===mesAtual&&d.getDate()===diaAtual;
+  });
+  // Clientes aguardando reposição
+  const reposicao=(clientes||[]).filter(cl=>cl.observacoes&&cl.observacoes.trim());
+  // Salvar em window para uso posterior
+  window._wppAniversariantes=aniversariantes;
+  window._wppReposicao=reposicao;
+  window._wppTodosClientes=clientes||[];
+  // Renderizar categorias
+  renderModalWppDestinatarios('aniversariantes');
+  openModal('modal-wpp-destinatarios');
+}
+
+function renderModalWppDestinatarios(categoria){
+  const area=document.getElementById('wpp-destinatarios-area');
+  const busca=document.getElementById('wpp-busca-cliente');
+  if(!area)return;
+  // Atualizar abas
+  ['aniversariantes','reposicao','livre'].forEach(cat=>{
+    const btn=document.getElementById('wpp-cat-'+cat);
+    if(btn){
+      if(cat===categoria){btn.style.borderBottomColor='var(--accent)';btn.style.color='var(--accent)';btn.style.fontWeight='600';}
+      else{btn.style.borderBottomColor='transparent';btn.style.color='var(--text3)';btn.style.fontWeight='400';}
+    }
+  });
+  window._wppCategoriaAtual=categoria;
+  if(busca)busca.style.display=categoria==='livre'?'block':'none';
+  let lista=[];
+  if(categoria==='aniversariantes')lista=window._wppAniversariantes||[];
+  else if(categoria==='reposicao')lista=window._wppReposicao||[];
+  else lista=window._wppTodosClientes||[];
+  renderListaDestinatarios(lista,categoria);
+}
+
+function renderListaDestinatarios(lista,categoria){
+  const area=document.getElementById('wpp-destinatarios-area');
+  if(!area)return;
+  if(!lista.length){
+    const msgs={aniversariantes:'Nenhum aniversariante hoje (ou todos já receberam mensagem).',reposicao:'Nenhum cliente aguardando reposição.',livre:'Nenhum cliente encontrado.'};
+    area.innerHTML='<div style="color:var(--text3);text-align:center;padding:24px;font-size:13px">'+msgs[categoria]+'</div>';
+    return;
+  }
+  const anoAtual=new Date().getFullYear();
+  area.innerHTML=lista.map(cl=>{
+    const jaEnviado=wppClientesEnviados.has(cl.id);
+    const selecionado=wppClientesSelecionados.has(cl.id);
+    const tel=cl.telefone?cl.telefone.replace(/\D/g,''):'';
+    return '<div data-cid="'+cl.id+'" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;background:'+(jaEnviado?'rgba(76,175,125,.06)':selecionado?'rgba(107,127,215,.08)':'var(--surface)')+';" onclick="selecionarDestinatario('+cl.id+')">'
+      +'<div style="width:20px;height:20px;border-radius:4px;border:2px solid '+(jaEnviado?'var(--success)':selecionado?'var(--accent)':'var(--border)')+';display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">'+(jaEnviado?'✓':selecionado?'✓':'')+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:13px;font-weight:600;color:'+(jaEnviado?'var(--success)':'var(--text)')+'">'+cl.nome+(jaEnviado?' <span style="font-size:10px;color:var(--success)">(enviado)</span>':'')+'</div>'
+      +(cl.observacoes?'<div style="font-size:11px;color:var(--accent);margin-top:1px">📦 '+cl.observacoes+'</div>':'')
+      +'<div style="font-size:11px;color:var(--text3)">'+( tel?tel:'Sem telefone')+'</div>'
+      +'</div>'
+      +(!jaEnviado&&tel?'<button data-cid="'+cl.id+'" data-cnome="'+cl.nome.replace(/"/g,'')+'" data-ctel="'+tel+'" data-cobs="'+(cl.observacoes||'').replace(/"/g,'')+'" onclick="event.stopPropagation();enviarMsgCliente(this.dataset)" style="background:#25D366;border:none;color:#fff;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;white-space:nowrap">📲 Enviar</button>':'')
+      +'</div>';
+  }).join('');
+}
+
+function selecionarDestinatario(id){
+  if(wppClientesEnviados.has(id))return;
+  if(wppClientesSelecionados.has(id))wppClientesSelecionados.delete(id);
+  else wppClientesSelecionados.add(id);
+  renderModalWppDestinatarios(window._wppCategoriaAtual);
+}
+
+function filtrarClientesWpp(termo){
+  if(!termo){renderListaDestinatarios(window._wppTodosClientes,'livre');return;}
+  const f=termo.toLowerCase();
+  const filtrados=(window._wppTodosClientes||[]).filter(cl=>cl.nome.toLowerCase().includes(f)||(cl.telefone||'').includes(f));
+  renderListaDestinatarios(filtrados,'livre');
+}
+
+async function enviarMsgCliente(dataset){
+  const id=parseInt(dataset.cid);
+  const nome=dataset.cnome||'';
+  const tel=dataset.ctel||'';
+  const obs=dataset.cobs||'';
+  if(!tel){alert('Cliente sem telefone cadastrado.');return;}
+  const modelo=document.getElementById(wppModeloAtual);
+  if(!modelo){alert('Modelo de mensagem não encontrado.');return;}
+  const categoria=window._wppCategoriaAtual;
+  const anoAtual=new Date().getFullYear();
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  const empresa=empresaConfig?.nome_empresa||perfilNome(currentUser?.perfil)||'nossa empresa';
+  let msg=modelo.value
+    .replace(/{nome}/g,nome)
+    .replace(/{data}/g,hoje)
+    .replace(/{valor}/g,'[Valor]')
+    .replace(/{vencimento}/g,'[Data]')
+    .replace(/{descricao}/g,obs||'[Descrição]')
+    .replace(/{hora}/g,'[Hora]')
+    .replace(/{servico}/g,'[Serviço]')
+    .replace(/{empresa}/g,empresa);
+  const url='https://wa.me/55'+tel+'?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+  // Marcar como enviado
+  wppClientesEnviados.add(id);
+  wppClientesSelecionados.delete(id);
+  // Ações pós-envio por categoria
+  const pf=currentUser.perfil||'master';
+  if(categoria==='aniversariantes'){
+    // Salvar ano do envio no banco
+    await api('clientes?id=eq.'+id,{method:'PATCH',body:JSON.stringify({aniversario_msg_ano:anoAtual})}).catch(()=>{});
+  } else if(categoria==='reposicao'){
+    // Limpar campo observações
+    await api('clientes?id=eq.'+id,{method:'PATCH',body:JSON.stringify({observacoes:null})}).catch(()=>{});
+    // Atualizar lista local
+    window._wppReposicao=(window._wppReposicao||[]).filter(cl=>cl.id!==id);
+    window._wppTodosClientes=(window._wppTodosClientes||[]).map(cl=>cl.id===id?{...cl,observacoes:null}:cl);
+  }
+  // Re-renderizar
+  renderModalWppDestinatarios(categoria);
+}
+
 
 function salvarMensagensWpp(){
   const textareas=document.querySelectorAll('#rel-conteudo textarea');
@@ -5254,6 +5412,29 @@ async function gerarComprovante(id){
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-novo-modelo-wpp')">Cancelar</button>
       <button class="btn-save" onclick="salvarNovoModelo()">Salvar Modelo</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL DESTINATÁRIOS WHATSAPP -->
+<div class="modal-overlay" id="modal-wpp-destinatarios">
+  <div class="modal" style="max-width:580px;max-height:80vh;display:flex;flex-direction:column">
+    <div class="modal-title">Selecionar Destinatário</div>
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:12px;flex-shrink:0">
+      <button id="wpp-cat-aniversariantes" onclick="renderModalWppDestinatarios('aniversariantes')" style="padding:8px 14px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer">🎂 Aniversariantes</button>
+      <button id="wpp-cat-reposicao" onclick="renderModalWppDestinatarios('reposicao')" style="padding:8px 14px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:12px;cursor:pointer">🔔 Reposição</button>
+      <button id="wpp-cat-livre" onclick="renderModalWppDestinatarios('livre')" style="padding:8px 14px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:12px;cursor:pointer">🔍 Lista Livre</button>
+    </div>
+    <input type="text" id="wpp-busca-cliente" placeholder="Buscar cliente por nome ou telefone..." oninput="filtrarClientesWpp(this.value)" style="display:none;margin-bottom:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;flex-shrink:0">
+    <div id="wpp-destinatarios-area" style="flex:1;overflow-y:auto;min-height:200px;max-height:400px">
+      <div class="loading">Carregando...</div>
+    </div>
+    <div style="padding-top:12px;border-top:1px solid var(--border);margin-top:8px;flex-shrink:0">
+      <div style="font-size:11px;color:var(--text3)">Clique em 📲 Enviar ao lado do cliente para abrir o WhatsApp com a mensagem pré-preenchida.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-wpp-destinatarios')">Fechar</button>
     </div>
   </div>
 </div>
