@@ -3407,7 +3407,9 @@ function carregarWhatsApp(){
 function carregarAnaliseIA(){
   const wrap=document.getElementById('rel-conteudo');
   const apiKey=localStorage.getItem('gemini_api_key')||'';
-  const keyAviso=apiKey?'':'<div style="margin-bottom:12px;padding:10px 14px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px;font-size:12px;color:var(--danger)">🔑 API Key do Gemini não configurada. para cadastrar. <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--danger);text-decoration:underline;cursor:pointer;font-size:12px;padding:0\'>Configurar agora</button></div>';
+  const keyAviso=apiKey
+    ?'<div style="margin-bottom:12px;padding:8px 14px;background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:8px;font-size:12px;color:var(--success);display:flex;justify-content:space-between;align-items:center">✅ API Key configurada <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--text3);text-decoration:underline;cursor:pointer;font-size:11px;padding:0\'>Trocar chave</button></div>'
+    :'<div style="margin-bottom:12px;padding:10px 14px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px;font-size:12px;color:var(--danger);display:flex;justify-content:space-between;align-items:center">🔑 API Key do Gemini não configurada. <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--danger);text-decoration:underline;cursor:pointer;font-size:12px;padding:0;font-weight:600\'>Configurar agora →</button></div>';
   wrap.innerHTML=''
     +'<div style="margin-bottom:16px;padding:14px 18px;background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;font-size:13px;color:var(--text2)">'
     +'<strong style="color:var(--accent)">Análise Estratégica por IA</strong><br>'
@@ -3429,7 +3431,7 @@ function abrirConfiguracaoIA(){
   const novo=prompt('Cole sua API Key do Google Gemini (começa com AIza):\n\nObtida gratuitamente em aistudio.google.com/apikey\nA chave fica salva apenas neste navegador.',key);
   if(novo===null)return;
   if(!novo.trim()){alert('Chave não pode ser vazia.');return;}
-  if(!novo.trim().startsWith('AIza')){alert('Chave inválida. Deve começar com AIza');return;}
+  if(novo.trim().length < 20){alert('Chave muito curta. Verifique e tente novamente.');return;}
   localStorage.setItem('gemini_api_key',novo.trim());
   alert('✅ Chave Gemini salva com sucesso!');
   carregarAnaliseIA();
@@ -3458,7 +3460,16 @@ async function chamarGemini(prompt, maxTokens=1500){
     })
   });
   const data=await response.json();
-  if(data.error)throw new Error(data.error.message||'Erro na API Gemini');
+  if(data.error){
+    const msg=data.error.message||'Erro na API Gemini';
+    if(msg.includes('API key not valid')||msg.includes('API_KEY_INVALID')||msg.includes('not found')){
+      throw new Error('Chave inválida ou expirada. Clique em "Trocar chave" para reconfigurar.');
+    }
+    if(msg.includes('quota')||msg.includes('RESOURCE_EXHAUSTED')){
+      throw new Error('Cota gratuita atingida. Aguarde alguns minutos e tente novamente.');
+    }
+    throw new Error(msg);
+  }
   return data.candidates?.[0]?.content?.parts?.[0]?.text||'Sem resposta.';
 }
 
