@@ -244,10 +244,6 @@
       <div class="mfield col-1" id="wrap-perfil"><label>Perfil <span class="req">*</span></label>
         <select id="m-perfil" onchange="onPerfilUsuarioChange()"><option value="">Selecione...</option></select>
       </div>
-      <div class="mfield col-1" id="wrap-empresa-sel" style="display:none">
-        <label>Empresa (selecione o master)</label>
-        <select id="m-empresa-sel" onchange="onEmpresaSelChange()"><option value="">Selecione a empresa...</option></select>
-      </div>
       <div class="mfield col-1" id="wrap-empresa">
         <label id="lbl-empresa-modal">Empresa</label>
         <input type="text" id="m-empresa" placeholder="Nome da empresa">
@@ -1585,6 +1581,7 @@ async function carregarUsuarios(){
         ${u.ativo
           ?`<button class="btn-sm btn-deact" onclick="toggleAtivo(${u.id},false)">Desativar</button>`
           :`<button class="btn-sm btn-react" onclick="toggleAtivo(${u.id},true)">Reativar</button>`}
+        <button class="btn-sm" style="border-color:var(--danger);color:var(--danger);background:transparent" onclick="excluirUsuario(${u.id},'${(u.nome||u.usuario).replace(/'/g,"\\'")}')">🗑️ Excluir</button>
       </div></td></tr>`).join('');
   }catch(e){tbody.innerHTML=`<tr><td colspan="7" class="empty">Erro: ${e.message}</td></tr>`;}
 }
@@ -1657,8 +1654,14 @@ async function openModalUsuario(mode,id){
     if(mPerfilSel)mPerfilSel.disabled=!!perfilFiltro;
     if(perfilFiltro) onPerfilUsuarioChange();
     document.getElementById('m-usuario').disabled=false;
-    // Só limpa empresa se NÃO for master_empresa (o valor foi setado acima)
-    if(!isMasterEmpresa) empresaInput.value='';
+    // Pré-preencher empresa com a selecionada no filtro da tela
+    if(!isMasterEmpresa){
+      const empresaFiltro=document.getElementById('filtro-empresa-usuarios')?.value||'';
+      empresaInput.value=empresaFiltro;
+      // Se veio empresa do filtro, campo fica desbloqueado (pode editar)
+      // Se não veio, campo também fica desbloqueado (nova empresa)
+      empresaInput.disabled=false;
+    }
 
     if(isMasterEmpresa){
       document.getElementById('wrap-acessos-new').style.display='block';
@@ -1703,6 +1706,14 @@ async function salvarUsuario(){
   const body={usuario,nome,senha,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
   try{
     if(!editingUserId){
+      // Validar: empresa só pode ter 1 master
+      if(nivel==='master_empresa'&&empresa){
+        const masterExist=await api('usuarios?nivel=eq.master_empresa&empresa=eq.'+encodeURIComponent(empresa)+'&ativo=eq.true&select=id,nome&limit=1');
+        if(masterExist&&masterExist.length){
+          showMM('modal-user-msg','Esta empresa já possui um usuário Master: "'+masterExist[0].nome+'". Cada empresa só pode ter um Master.','error');
+          return;
+        }
+      }
       const novo=await api('usuarios',{method:'POST',body:JSON.stringify({...body,usuario,ativo:true})});
       const novoId=novo&&novo[0]?novo[0].id:null;
       if(novoId&&isMasterEmpresa){
@@ -3791,6 +3802,61 @@ function cancelarEdicaoWpp(modeloId){
   delete textarea.dataset.original;
 }
 
+
+async 
+
+async function excluirUsuario(id, nome){
+  if(!confirm('⚠️ Confirma a exclusão do usuário "'+nome+'"?\n\nEsta ação não pode ser desfeita.'))return;
+  try{
+    // Remover acessos do usuário
+    await api('usuario_acessos?usuario_id=eq.'+id,{method:'DELETE'}).catch(()=>{});
+    // Excluir o usuário
+    await api('usuarios?id=eq.'+id,{method:'DELETE'});
+    // Toast de sucesso
+    const msg=document.createElement('div');
+    msg.style.cssText='position:fixed;top:20px;right:20px;background:var(--success);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3)';
+    msg.textContent='✅ Usuário "'+nome+'" excluído!';
+    document.body.appendChild(msg);
+    setTimeout(()=>msg.remove(),3000);
+    recarregarUsuarios();
+  }catch(e){alert('Erro ao excluir: '+e.message);}
+}
+
+async function openModalAcessos(userId, perfil, nomeUsuario){
+  document.getElementById('modal-access-titulo').textContent='Acessos — '+nomeUsuario;
+  document.getElementById('modal-access-sub').textContent='Perfil: '+perfilNome(perfil);
+  const lista=document.getElementById('acessos-lista');
+  if(lista)lista.innerHTML='<div class="loading">Carregando...</div>';
+  openModal('modal-acessos');
+  try{
+    // Funcionalidades disponíveis no perfil
+    const funcsNoPerfil=funcCache.filter(f=>f.perfil_codigo===perfil).map(f=>f.funcionalidade);
+    // Acessos atuais do usuário
+    const acessosUsuario=await api('usuario_acessos?usuario_id=eq.'+userId+'&ativo=eq.true&select=funcionalidade')||[];
+    const acessosSet=new Set(acessosUsuario.map(a=>a.funcionalidade));
+    // Labels
+    const labelsFunc={clientes:'Clientes',fornecedores:'Fornecedores',produtos:'Produtos',servicos:'Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
+    if(!funcsNoPerfil.length){
+      if(lista)lista.innerHTML='<div class="empty">Nenhuma funcionalidade disponível para este perfil.</div>';
+      return;
+    }
+    if(lista)lista.innerHTML=funcsNoPerfil.map(func=>'<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer">'
+      +'<input type="checkbox" data-func="'+func+'" data-uid="'+userId+'" '+(acessosSet.has(func)?'checked':'')
+      +' onchange="toggleAcessoUsuario(this)" style="width:16px;height:16px;accent-color:var(--accent)">'
+      +'<span style="font-size:13px;color:var(--text)">'+( labelsFunc[func]||func)+'</span>'
+      +'</label>').join('');
+  }catch(e){if(lista)lista.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+}
+
+async function toggleAcessoUsuario(checkbox){
+  const func=checkbox.dataset.func;
+  const uid=parseInt(checkbox.dataset.uid);
+  if(checkbox.checked){
+    await api('usuario_acessos',{method:'POST',body:JSON.stringify({usuario_id:uid,funcionalidade:func,ativo:true})}).catch(()=>{});
+  } else {
+    await api('usuario_acessos?usuario_id=eq.'+uid+'&funcionalidade=eq.'+func,{method:'DELETE'}).catch(()=>{});
+  }
+}
 
 async function onPerfilUsuarioChange(){
   const perfil=document.getElementById('m-perfil')?.value||'';
