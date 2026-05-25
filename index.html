@@ -3520,13 +3520,17 @@ function atualizarBadgeMenuRel(count){
 
 // ── WhatsApp com listas de destinatários ─────────────────────────
 let wppModeloAtual=null;
+let wppTextoModelo='';
 let wppClientesSelecionados=new Set();
 let wppClientesEnviados=new Set();
 
 function enviarWhatsApp(modeloId){
+  const modelo=document.getElementById(modeloId);
+  if(!modelo){alert('Modelo não encontrado.');return;}
   wppModeloAtual=modeloId;
+  wppTextoModelo=modelo.value; // salva o texto agora enquanto o textarea está visível
   wppClientesSelecionados=new Set();
-  // Mostrar modal de seleção de destinatários
+  wppClientesEnviados=new Set();
   abrirModalWppDestinatarios();
 }
 
@@ -3596,7 +3600,7 @@ function renderListaDestinatarios(lista,categoria){
       +'<div style="width:20px;height:20px;border-radius:4px;border:2px solid '+(jaEnviado?'var(--success)':selecionado?'var(--accent)':'var(--border)')+';display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">'+(jaEnviado?'✓':selecionado?'✓':'')+'</div>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-size:13px;font-weight:600;color:'+(jaEnviado?'var(--success)':'var(--text)')+'">'+cl.nome+(jaEnviado?' <span style="font-size:10px;color:var(--success)">(enviado)</span>':'')+'</div>'
-      +(cl.observacoes?'<div style="font-size:11px;color:var(--accent);margin-top:1px">📦 '+cl.observacoes+'</div>':'')
+      +(categoria==='reposicao'&&cl.observacoes?'<div style="font-size:11px;color:var(--accent);margin-top:1px">📦 '+cl.observacoes+'</div>':'')
       +'<div style="font-size:11px;color:var(--text3)">'+( tel?tel:'Sem telefone')+'</div>'
       +'</div>'
       +(!jaEnviado&&tel?'<button data-cid="'+cl.id+'" data-cnome="'+cl.nome.replace(/"/g,'')+'" data-ctel="'+tel+'" data-cobs="'+(cl.observacoes||'').replace(/"/g,'')+'" onclick="event.stopPropagation();enviarMsgCliente(this.dataset)" style="background:#25D366;border:none;color:#fff;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;white-space:nowrap">📲 Enviar</button>':'')
@@ -3624,13 +3628,11 @@ async function enviarMsgCliente(dataset){
   const tel=dataset.ctel||'';
   const obs=dataset.cobs||'';
   if(!tel){alert('Cliente sem telefone cadastrado.');return;}
-  const modelo=document.getElementById(wppModeloAtual);
-  if(!modelo){alert('Modelo de mensagem não encontrado.');return;}
   const categoria=window._wppCategoriaAtual;
   const anoAtual=new Date().getFullYear();
   const hoje=new Date().toLocaleDateString('pt-BR');
   const empresa=empresaConfig?.nome_empresa||perfilNome(currentUser?.perfil)||'nossa empresa';
-  let msg=modelo.value
+  let msg=wppTextoModelo
     .replace(/{nome}/g,nome)
     .replace(/{data}/g,hoje)
     .replace(/{valor}/g,'[Valor]')
