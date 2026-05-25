@@ -515,11 +515,11 @@
       </div>
       <div class="mfield col-1">
         <label>Valor Unitário (R$)</label>
-        <input type="number" id="compra-valor-unit" placeholder="0,00" min="0" step="0.01" oninput="calcularTotalCompra()">
+        <input type="number" id="compra-valor-unit" placeholder="0,00" min="0" step="0.01" oninput="calcularTotalCompra()" readonly style="opacity:.7;cursor:not-allowed">
       </div>
       <div class="mfield col-1">
         <label>Desconto (R$)</label>
-        <input type="number" id="compra-desconto" placeholder="0,00" min="0" step="0.01" value="0" oninput="calcularTotalCompra()">
+        <input type="number" id="compra-desconto" placeholder="0,00" min="0" step="1" value="0" oninput="calcularTotalCompra()">
       </div>
       <div class="mfield col-1">
         <label>Subtotal do Item</label>
@@ -640,11 +640,11 @@
       </div>
 
       <div class="form-section">Preços</div>
-      <div class="mfield col-1"><label>Preço de Custo (R$)</label><input type="number" id="prod-custo" placeholder="0,00" min="0" step="0.01"></div>
-      <div class="mfield col-1"><label>Preço de Venda (R$)</label><input type="number" id="prod-venda" placeholder="0,00" min="0" step="0.01"></div>
+      <div class="mfield col-1"><label>Preço de Custo (R$)</label><input type="number" id="prod-custo" placeholder="0,00" min="0" step="1"></div>
+      <div class="mfield col-1"><label>Preço de Venda (R$)</label><input type="number" id="prod-venda" placeholder="0,00" min="0" step="1"></div>
       <div class="form-section">Estoque</div>
-      <div class="mfield col-1"><label>Estoque Mínimo</label><input type="number" id="prod-est-min" placeholder="0" min="0" step="0.001"></div>
-      <div class="mfield col-1"><label>Estoque Máximo</label><input type="number" id="prod-est-max" placeholder="0" min="0" step="0.001"></div>
+      <div class="mfield col-1"><label>Estoque Mínimo</label><input type="number" id="prod-est-min" placeholder="0" min="0" step="1"></div>
+      <div class="mfield col-1"><label>Estoque Máximo</label><input type="number" id="prod-est-max" placeholder="0" min="0" step="1"></div>
       <div class="form-section">Fornecedor</div>
       <div class="mfield col-2"><label>Fornecedor</label>
         <select id="prod-fornecedor"><option value="">Nenhum / Sem vínculo</option></select>
@@ -2641,7 +2641,16 @@ async function selecionarProdutoCompra(id,nome,preco){
   document.getElementById('compra-prod-nome').textContent=nome;
   document.getElementById('compra-prod-preco').textContent=preco?'R$ '+parseFloat(preco).toFixed(2).replace('.',','):'';
   document.getElementById('compra-prod-selecionado').style.display='flex';
-  document.getElementById('compra-valor-unit').value=preco?parseFloat(preco).toFixed(2):'';
+  // Buscar preço de venda atualizado do produto
+  try{
+    const pf=currentUser.perfil||'master';
+    const pd=await api('produtos?id=eq.'+id+'&select=preco_venda');
+    const precoVenda=pd&&pd[0]&&pd[0].preco_venda?parseFloat(pd[0].preco_venda):parseFloat(preco||0);
+    document.getElementById('compra-valor-unit').value=precoVenda?precoVenda.toFixed(2):'';
+    document.getElementById('compra-prod-valor-unit').value=precoVenda||0;
+  }catch(e){
+    document.getElementById('compra-valor-unit').value=preco?parseFloat(preco).toFixed(2):'';
+  }
   // Reset gênero/tamanho
   document.getElementById('compra-genero').value='';
   popularSelectTamanhos('compra-tamanho','adulto','');
@@ -2917,7 +2926,16 @@ async function selecionarProdutoCompra(id,nome,preco){
   document.getElementById('compra-prod-nome').textContent=nome;
   document.getElementById('compra-prod-preco').textContent=preco?'R$ '+parseFloat(preco).toFixed(2).replace('.',','):'';
   document.getElementById('compra-prod-selecionado').style.display='flex';
-  document.getElementById('compra-valor-unit').value=preco?parseFloat(preco).toFixed(2):'';
+  // Buscar preço de venda atualizado do produto
+  try{
+    const pf=currentUser.perfil||'master';
+    const pd=await api('produtos?id=eq.'+id+'&select=preco_venda');
+    const precoVenda=pd&&pd[0]&&pd[0].preco_venda?parseFloat(pd[0].preco_venda):parseFloat(preco||0);
+    document.getElementById('compra-valor-unit').value=precoVenda?precoVenda.toFixed(2):'';
+    document.getElementById('compra-prod-valor-unit').value=precoVenda||0;
+  }catch(e){
+    document.getElementById('compra-valor-unit').value=preco?parseFloat(preco).toFixed(2):'';
+  }
   // Reset gênero/tamanho
   document.getElementById('compra-genero').value='';
   popularSelectTamanhos('compra-tamanho','adulto','');
