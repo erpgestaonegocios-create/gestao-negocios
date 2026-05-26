@@ -1268,6 +1268,25 @@ async function doLogin(){
     if(!data||!data.length){showMsg(msg,'Dados de login inválidos','error');return;}
     const u=data[0];
     if(u.senha!==pass){showMsg(msg,'Dados de login inválidos','error');return;}
+    // Validar acesso pelo link da empresa
+    const codigoEmpresaLink=new URLSearchParams(window.location.search).get('empresa')||'';
+    if(codigoEmpresaLink){
+      // Link de empresa específica — só aceita usuários daquela empresa
+      if(u.nivel==='master_sistema'){
+        showMsg(msg,'Acesso negado. Use o link do sistema master para entrar com este usuário.','error');return;
+      }
+      // Verificar se o perfil do usuário corresponde à empresa do link
+      const cfgEmpresa=await api('empresa_config?codigo_acesso=eq.'+encodeURIComponent(codigoEmpresaLink)+'&select=perfil_codigo').catch(()=>[]);
+      const perfilEmpresa=cfgEmpresa&&cfgEmpresa[0]?cfgEmpresa[0].perfil_codigo:'';
+      if(perfilEmpresa&&u.perfil!==perfilEmpresa){
+        showMsg(msg,'Acesso negado. Este usuário não pertence a esta empresa.','error');return;
+      }
+    } else {
+      // Link sem empresa — só master_sistema pode acessar
+      if(u.nivel!=='master_sistema'){
+        showMsg(msg,'Acesso negado. Use o link da sua empresa para entrar.','error');return;
+      }
+    }
     currentUser=u;
     showMsg(msg,'Login realizado com sucesso!','success');
     setTimeout(async()=>{
