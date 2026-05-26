@@ -464,7 +464,7 @@
 
 <!-- MODAL HISTÓRICO DE COMPRAS (CONSULTA) -->
 <div class="modal-overlay" id="modal-historico-compras">
-  <div class="modal">
+  <div class="modal" style="max-width:860px;width:95vw">
     <div class="modal-title" id="hist-compras-titulo">Histórico de Compras</div>
     <div class="modal-sub" id="hist-compras-sub"></div>
     <div id="hist-compras-conteudo"><div class="loading">Carregando...</div></div>
@@ -5195,8 +5195,20 @@ async function openModalMovimento(){
   const sg=document.getElementById('est-genero');if(sg){sg.value='';sg.disabled=false;}
   popularSelectTamanhos('est-tamanho','adulto','');
   const st=document.getElementById('est-tamanho');if(st)st.disabled=false;
-  const vc=document.getElementById('est-valor-custo');if(vc)vc.value='';
-  const vv=document.getElementById('est-valor-venda');if(vv)vv.value='';
+  // Buscar preços do produto e preencher campos bloqueados
+  try{
+    const pf=currentUser.perfil||'master';
+    const prodInfo=await api('produtos?id=eq.'+pid+'&select=preco_custo,preco_venda');
+    const custoProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_custo||0):0;
+    const vendaProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_venda||0):0;
+    const vc=document.getElementById('est-valor-custo');
+    const vv=document.getElementById('est-valor-venda');
+    if(vc){vc.value=custoProd?custoProd.toFixed(2):'';vc.readOnly=true;vc.style.opacity='.7';vc.style.cursor='not-allowed';}
+    if(vv){vv.value=vendaProd?vendaProd.toFixed(2):'';vv.readOnly=true;vv.style.opacity='.7';vv.style.cursor='not-allowed';}
+  }catch(e){
+    const vc=document.getElementById('est-valor-custo');if(vc)vc.value='';
+    const vv=document.getElementById('est-valor-venda');if(vv)vv.value='';
+  }
   onEstTipoChangeExtra();onEstTipoChange();
   openModal('modal-estoque-mov');
 }
@@ -5214,8 +5226,20 @@ async function openModalMovimentoExistente(dataset){
   document.getElementById('est-produto-busca').value='';
   document.getElementById('est-produto-nome').textContent=nome;
   document.getElementById('est-produto-selecionado').style.display='flex';
-  const vc=document.getElementById('est-valor-custo');if(vc)vc.value='';
-  const vv=document.getElementById('est-valor-venda');if(vv)vv.value='';
+  // Buscar preços do produto e preencher campos bloqueados
+  try{
+    const pf=currentUser.perfil||'master';
+    const prodInfo=await api('produtos?id=eq.'+pid+'&select=preco_custo,preco_venda');
+    const custoProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_custo||0):0;
+    const vendaProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_venda||0):0;
+    const vc=document.getElementById('est-valor-custo');
+    const vv=document.getElementById('est-valor-venda');
+    if(vc){vc.value=custoProd?custoProd.toFixed(2):'';vc.readOnly=true;vc.style.opacity='.7';vc.style.cursor='not-allowed';}
+    if(vv){vv.value=vendaProd?vendaProd.toFixed(2):'';vv.readOnly=true;vv.style.opacity='.7';vv.style.cursor='not-allowed';}
+  }catch(e){
+    const vc=document.getElementById('est-valor-custo');if(vc)vc.value='';
+    const vv=document.getElementById('est-valor-venda');if(vv)vv.value='';
+  }
   const selG=document.getElementById('est-genero');if(selG){selG.value=genero;selG.disabled=true;}
   popularSelectTamanhos('est-tamanho',genero||'adulto',tamanho);
   const selT=document.getElementById('est-tamanho');if(selT){selT.value=tamanho;selT.disabled=true;}
