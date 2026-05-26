@@ -5025,6 +5025,11 @@ function limparProdutoEstoque(){
   document.getElementById('est-produto-dropdown').style.display='none';
   document.getElementById('est-produto-selecionado').style.display='none';
   document.getElementById('est-produto-nome').textContent='';
+  // Limpar e desbloquear campos de custo e venda
+  const elC=document.getElementById('est-valor-custo');
+  const elV=document.getElementById('est-valor-venda');
+  if(elC){elC.value='';elC.readOnly=false;elC.style.opacity='';elC.style.cursor='';}
+  if(elV){elV.value='';elV.readOnly=false;elV.style.opacity='';elV.style.cursor='';}
   const wrap=document.getElementById('est-saldo-atual-wrap');if(wrap)wrap.style.display='none';
   const hint=document.getElementById('est-qtd-hint');if(hint)hint.textContent='';
   document.getElementById('est-produto').dataset.max='';
@@ -5045,9 +5050,16 @@ async function onEstProdutoChange(){
     const saldo=reg?parseFloat(reg.quantidade||0):0;
     const el=document.getElementById('est-saldo-atual');if(el)el.textContent=saldo;
     if(wrap)wrap.style.display='block';
-    const prodInfo=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo');
+    const prodInfo=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo,preco_custo,preco_venda');
     const max=prodInfo&&prodInfo[0]&&prodInfo[0].estoque_maximo!=null?parseFloat(prodInfo[0].estoque_maximo):null;
     const min=prodInfo&&prodInfo[0]&&prodInfo[0].estoque_minimo!=null?parseFloat(prodInfo[0].estoque_minimo):null;
+    // Preencher e bloquear campos de custo e venda
+    const custoProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_custo||0):0;
+    const vendaProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_venda||0):0;
+    const elCusto=document.getElementById('est-valor-custo');
+    const elVenda=document.getElementById('est-valor-venda');
+    if(elCusto){elCusto.value=custoProd?custoProd.toFixed(2):'';elCusto.readOnly=true;elCusto.style.opacity='.7';elCusto.style.cursor='not-allowed';}
+    if(elVenda){elVenda.value=vendaProd?vendaProd.toFixed(2):'';elVenda.readOnly=true;elVenda.style.opacity='.7';elVenda.style.cursor='not-allowed';}
     document.getElementById('est-produto').dataset.max=max!=null?max:'';
     document.getElementById('est-produto').dataset.min=min!=null?min:'';
     onEstQtdChange();
