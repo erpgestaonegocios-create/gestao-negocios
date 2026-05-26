@@ -5268,9 +5268,13 @@ async function salvarMovimento(){
   const tipo=document.querySelector('input[name="est-tipo"]:checked')?.value;
   if(!pid){showMM('modal-est-msg','Selecione o produto','error');return;}
   if(!qtd||qtd<=0){showMM('modal-est-msg','Informe uma quantidade válida','error');return;}
+  const estGenero=document.getElementById('est-genero')?.value||'';
+  const estTamanho=document.getElementById('est-tamanho')?.value||'';
+  const estMotivo=document.getElementById('est-motivo')?.value?.trim()||'';
+  if(!estGenero){showMM('modal-est-msg','Informe o Gênero','error');return;}
+  if(!estTamanho){showMM('modal-est-msg','Informe o Tamanho','error');return;}
+  if(!estMotivo){showMM('modal-est-msg','Informe o Motivo / Descrição','error');return;}
   const pf=currentUser.perfil||'master';
-  const estGenero=document.getElementById('est-genero')?.value||null;
-  const estTamanho=document.getElementById('est-tamanho')?.value||null;
   try{
     const todosRowsMov=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho');
     const gN=estGenero||null;const tN=estTamanho||null;
