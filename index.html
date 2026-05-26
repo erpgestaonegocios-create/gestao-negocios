@@ -1469,7 +1469,7 @@ function showPanel(name){
 }
 
 // ─── PAINEL: GESTÃO DE USUÁRIOS ───────────────────────────────────
-async function renderUsuarios(){
+function renderUsuarios(){
   isMasterSistema=currentUser?.nivel==='master_sistema';
   if(isMasterSistema){
     // Para master_sistema: mostra filtro de perfil, tabela só aparece após selecionar
@@ -3197,7 +3197,7 @@ function renderRelatorios(){
     +'<div id="rel-conteudo" style="padding:20px 0"><div class="loading">Carregando...</div></div>';
 }
 
-async function relAba(aba){
+function relAba(aba){
   relAbaAtual=aba;
   ['alertas','relatorios','whatsapp','ia'].forEach(a=>{
     const btn=document.getElementById('rel-aba-'+a);
@@ -3972,7 +3972,7 @@ function salvarNovoModelo(){
   setTimeout(()=>{closeModal('modal-novo-modelo-wpp');carregarWhatsApp();},800);
 }
 
-async function excluirModeloCustom(id){
+function excluirModeloCustom(id){
   if(!confirm('Excluir este modelo?'))return;
   localStorage.removeItem(id);
   const lista=JSON.parse(localStorage.getItem('wpp_custom_ids')||'[]').filter(x=>x.id!==id);
@@ -5394,7 +5394,7 @@ async function salvarAgendamento(){
 let editingLancamentoId=null;let finCategoriasCache=[];
 const FIN_STATUS={pendente:{label:'Pendente',icon:'⏳',cls:'badge-empresa'},pago:{label:'Pago',icon:'✅',cls:'badge-ativo'},vencido:{label:'Vencido',icon:'🔴',cls:'badge-inativo'},cancelado:{label:'Cancelado',icon:'❌',cls:'badge-usuario'}};
 
-async function finAba(aba){
+function finAba(aba){
   const vLan=document.getElementById('fin-vista-lancamentos');const vCx=document.getElementById('fin-vista-caixa');
   const btnLan=document.getElementById('fin-aba-lan');const btnCx=document.getElementById('fin-aba-cx');
   if(aba==='lancamentos'){
