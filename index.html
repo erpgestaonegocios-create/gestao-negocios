@@ -1282,7 +1282,7 @@ async function doLogin(){
 document.getElementById('inp-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('inp-user').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 
-function doLogout(){
+async function doLogout(){
   currentUser=null;labelsCache={};perfisCache=[];funcCache=[];
   document.getElementById('screen-main').style.display='none';
   document.getElementById('screen-login').style.display='flex';
@@ -1313,7 +1313,7 @@ async function carregarLabels(){
 }
 
 // ─── INTERFACE DINÂMICA ───────────────────────────────────────────
-function mostrarDiag(){
+async function mostrarDiag(){
   const bar=document.getElementById('diag-bar');
   if(bar.style.display==='none'){
     bar.style.display='block';
@@ -1469,7 +1469,7 @@ function showPanel(name){
 }
 
 // ─── PAINEL: GESTÃO DE USUÁRIOS ───────────────────────────────────
-function renderUsuarios(){
+async function renderUsuarios(){
   isMasterSistema=currentUser?.nivel==='master_sistema';
   if(isMasterSistema){
     // Para master_sistema: mostra filtro de perfil, tabela só aparece após selecionar
@@ -2161,7 +2161,7 @@ function selecionarElementoLabel(chave){
   document.getElementById('lbl-resumo-atual').textContent='Nome padrão: '+el.padrao;
 }
 
-function onLabelPerfilChange(){
+async function onLabelPerfilChange(){
   const perfil=document.getElementById('lbl-perfil').value;
   if(!perfil){document.getElementById('labels-existentes-wrap').style.display='none';return;}
   carregarLabelsExistentes(perfil);
@@ -2558,7 +2558,7 @@ async function executarImportacao(){
 
 
 // ── Frete estimado por CEP ────────────────────────────────────────
-function calcularFreteEstimado(cep){
+async function calcularFreteEstimado(cep){
   const box=document.getElementById('cli-frete-box');
   if(!box)return;
   const num=cep.replace(/\D/g,'');
@@ -2758,7 +2758,7 @@ async function abrirHistoricoCompras(clienteId,clienteNome){
   openModal('modal-compra-cliente');
 }
 
-function buscarProdutoCompra(termo){
+async function buscarProdutoCompra(termo){
   const dropdown=document.getElementById('compra-prod-dropdown');
   if(!dropdown)return;
   if(!termo||termo.length<1){dropdown.style.display='none';return;}
@@ -3197,7 +3197,7 @@ function renderRelatorios(){
     +'<div id="rel-conteudo" style="padding:20px 0"><div class="loading">Carregando...</div></div>';
 }
 
-function relAba(aba){
+async function relAba(aba){
   relAbaAtual=aba;
   ['alertas','relatorios','whatsapp','ia'].forEach(a=>{
     const btn=document.getElementById('rel-aba-'+a);
@@ -3972,7 +3972,7 @@ function salvarNovoModelo(){
   setTimeout(()=>{closeModal('modal-novo-modelo-wpp');carregarWhatsApp();},800);
 }
 
-function excluirModeloCustom(id){
+async function excluirModeloCustom(id){
   if(!confirm('Excluir este modelo?'))return;
   localStorage.removeItem(id);
   const lista=JSON.parse(localStorage.getItem('wpp_custom_ids')||'[]').filter(x=>x.id!==id);
@@ -4670,7 +4670,7 @@ function buscarFornecedores(){carregarFornecedores(document.getElementById('forn
 function limparBuscaForn(){const el=document.getElementById('forn-busca');if(el)el.value='';carregarFornecedores();}
 async function toggleFornecedor(id,ativo){try{await api('fornecedores?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});carregarFornecedores(document.getElementById('forn-busca')?.value||'');}catch(e){alert('Erro: '+e.message);}}
 
-function openModalFornecedor(mode,id){
+async function openModalFornecedor(mode,id){
   editingFornecedorId=null;
   const msg=document.getElementById('modal-forn-msg');if(msg)msg.style.display='none';
   const hint=document.getElementById('forn-cep-hint');if(hint)hint.textContent='';
@@ -4989,7 +4989,7 @@ function onEstQtdChange(){
   if(!erro&&btn)btn.disabled=false;
 }
 
-function buscarProdutoEstoque(termo){
+async function buscarProdutoEstoque(termo){
   const dropdown=document.getElementById('est-produto-dropdown');if(!dropdown)return;
   if(!termo||termo.length<1){dropdown.style.display='none';return;}
   const pf=currentUser.perfil||'master';
@@ -5121,7 +5121,7 @@ function selecionarProdutoHistoricoSelect(){
   else{if(titulo)titulo.textContent='📋 Histórico de Movimentações';}
   carregarHistorico();
 }
-function selecionarProdutoHistorico(prodId,prodNome){
+async function selecionarProdutoHistorico(prodId,prodNome){
   window._histGenero=null;window._histTamanho=null;
   selecionarProdutoHistoricoVariacao({pid:prodId,pnome:prodNome,pgenero:'',ptamanho:''});
 }
@@ -5340,7 +5340,7 @@ function renderCalendario(){
   html+='</div>';el.innerHTML=html;
 }
 function onAgInicioChange(){const inicio=document.getElementById('ag-inicio')?.value;if(inicio)onAgServicoChange();}
-function onAgServicoChange(){
+async function onAgServicoChange(){
   const sel=document.getElementById('ag-servico');const opt=sel?.options[sel.selectedIndex];const dur=opt?.getAttribute('data-duracao');
   const inicio=document.getElementById('ag-inicio')?.value;const hint=document.getElementById('ag-duracao-hint');
   if(dur&&inicio){const dt=new Date(inicio);dt.setMinutes(dt.getMinutes()+parseInt(dur));const fim=dt.toISOString().slice(0,16);const el=document.getElementById('ag-fim');if(el)el.value=fim;if(hint){hint.textContent='Fim calculado: '+formatarDuracao(parseInt(dur));hint.className='field-hint ok';}}
@@ -5394,7 +5394,7 @@ async function salvarAgendamento(){
 let editingLancamentoId=null;let finCategoriasCache=[];
 const FIN_STATUS={pendente:{label:'Pendente',icon:'⏳',cls:'badge-empresa'},pago:{label:'Pago',icon:'✅',cls:'badge-ativo'},vencido:{label:'Vencido',icon:'🔴',cls:'badge-inativo'},cancelado:{label:'Cancelado',icon:'❌',cls:'badge-usuario'}};
 
-function finAba(aba){
+async function finAba(aba){
   const vLan=document.getElementById('fin-vista-lancamentos');const vCx=document.getElementById('fin-vista-caixa');
   const btnLan=document.getElementById('fin-aba-lan');const btnCx=document.getElementById('fin-aba-cx');
   if(aba==='lancamentos'){
@@ -5558,7 +5558,7 @@ async function carregarCaixa(){
 
 async function deletarMovCaixa(id){if(!confirm('Remover este movimento?'))return;try{await api('caixa_movimentos?id=eq.'+id,{method:'DELETE'});carregarCaixa();}catch(e){alert('Erro: '+e.message);}}
 
-function popularSelectCategorias(elId,tipo){
+async function popularSelectCategorias(elId,tipo){
   const sel=document.getElementById(elId);if(!sel)return;
   const filtradas=tipo?finCategoriasCache.filter(c=>c.tipo===tipo||c.tipo==='ambos'):finCategoriasCache;
   sel.innerHTML='<option value="">Sem categoria</option>'+filtradas.map(c=>'<option value="'+c.id+'">'+c.nome+'</option>').join('');
@@ -5580,7 +5580,7 @@ function selecionarClienteLan(id,nome){
   const nm=document.getElementById('lan-cliente-nome');if(nm)nm.textContent=nome;
   const sel=document.getElementById('lan-cliente-selecionado');if(sel)sel.style.display='flex';
 }
-function limparClienteLan(){
+async function limparClienteLan(){
   const hid=document.getElementById('lan-cliente');if(hid)hid.value='';
   const busca=document.getElementById('lan-cliente-busca');if(busca)busca.value='';
   const drop=document.getElementById('lan-cliente-dropdown');if(drop)drop.style.display='none';
@@ -5614,7 +5614,7 @@ async function openModalLancamento(mode,id){
   }
   openModal('modal-lancamento');
 }
-function onLanTipoChange(){const tipo=document.querySelector('input[name="lan-tipo"]:checked')?.value||'receita';popularSelectCategorias('lan-categoria',tipo);}
+async function onLanTipoChange(){const tipo=document.querySelector('input[name="lan-tipo"]:checked')?.value||'receita';popularSelectCategorias('lan-categoria',tipo);}
 
 async function salvarLancamento(){
   const desc=document.getElementById('lan-desc')?.value?.trim();const valor=document.getElementById('lan-valor')?.value;const venc=document.getElementById('lan-vencimento')?.value;
