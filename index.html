@@ -1025,6 +1025,17 @@ let isUsuario=false;
 let funcPermitidas=new Set();
 
 
+// ── Variáveis de estado dos modais ───────────────────────────────
+let editingClienteId=null;
+let editingFornecedorId=null;
+let editingProdutoId=null;
+let editingServicoId=null;
+let editingAgendamentoId=null;
+let editingLancamentoId=null;
+const FIN_STATUS={pendente:{label:'Pendente',icon:'⏳',cls:'badge-empresa'},pago:{label:'Pago',icon:'✅',cls:'badge-ativo'},vencido:{label:'Vencido',icon:'🔴',cls:'badge-inativo'},cancelado:{label:'Cancelado',icon:'❌',cls:'badge-usuario'}};
+const TAMANHOS_ADULTO=['PP','P','M','G','GG','XGG','XGGG','34','36','38','40','42','44','46','48','50','Único'];
+const TAMANHOS_INFANTIL=['RN','P','M','G','1 ano','2 anos','4 anos','6 anos','8 anos','10 anos','12 anos','14 anos','16 anos'];
+
 // ── Constantes e helpers globais ──────────────────────────────────
 const fmt=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
 const empresa=()=>empresaConfig?.nome_empresa||perfilNome(currentUser?.perfil)||'nossa empresa';
@@ -3839,8 +3850,6 @@ function cancelarEdicaoWpp(modeloId){
 }
 
 
-async 
-
 async function excluirUsuario(id, nome){
   if(!confirm('⚠️ Confirma a exclusão do usuário "'+nome+'"?\n\nEsta ação não pode ser desfeita.'))return;
   try{
@@ -4487,7 +4496,7 @@ function renderFinanceiro(){
 }
 
 // ─── MÓDULO: CLIENTES ────────────────────────────────────────────
-let editingClienteId=null;
+
 let clientesLanCache=[];
 
 function mascaraCPF(el){let v=el.value.replace(/\D/g,'');v=v.replace(/(\d{3})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
@@ -4627,7 +4636,7 @@ async function salvarCliente(){
 }
 
 // ─── MÓDULO: FORNECEDORES ─────────────────────────────────────────
-let editingFornecedorId=null;
+
 function onFornTipoChange(){const t=document.querySelector('input[name="forn-tipo"]:checked')?.value||'pj';document.getElementById('wrap-forn-cnpj').style.display=t==='pj'?'block':'none';document.getElementById('wrap-forn-cpf').style.display=t==='pf'?'block':'none';}
 function mascaraCNPJ(el){let v=el.value.replace(/\D/g,'');v=v.replace(/(\d{2})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d)/,'$1.$2');v=v.replace(/(\d{3})(\d)/,'$1/$2');v=v.replace(/(\d{4})(\d{1,2})$/,'$1-$2');el.value=v;}
 
@@ -4724,7 +4733,7 @@ async function salvarFornecedor(){
 }
 
 // ─── MÓDULO: PRODUTOS ─────────────────────────────────────────────
-let editingProdutoId=null;
+
 let prodFotosArray=[];
 
 function onProdFotosChange(event){
@@ -4860,7 +4869,7 @@ async function salvarProduto(){
 }
 
 // ─── MÓDULO: SERVIÇOS ─────────────────────────────────────────────
-let editingServicoId=null;
+
 function formatarDuracao(minutos){if(!minutos&&minutos!==0)return '-';const h=Math.floor(minutos/60);const m=minutos%60;if(h>0&&m>0)return h+'h '+m+'min';if(h>0)return h+'h';return m+'min';}
 function atualizarDuracaoTotal(){const h=parseInt(document.getElementById('serv-duracao-h')?.value)||0;const m=parseInt(document.getElementById('serv-duracao-m')?.value)||0;const total=h*60+m;const el=document.getElementById('serv-duracao-total');if(el)el.value=total||'';const hint=document.getElementById('serv-duracao-hint');if(hint)hint.textContent=total>0?'Total: '+formatarDuracao(total):'';}
 
@@ -4924,8 +4933,8 @@ async function salvarServico(){
 
 // ─── MÓDULO: ESTOQUE ─────────────────────────────────────────────
 let produtosEstoqueCache=[];
-const TAMANHOS_ADULTO=['PP','P','M','G','GG','XGG','XGGG','34','36','38','40','42','44','46','48','50','Único'];
-const TAMANHOS_INFANTIL=['RN','P','M','G','1 ano','2 anos','4 anos','6 anos','8 anos','10 anos','12 anos','14 anos','16 anos'];
+
+
 
 function popularSelectTamanhos(selectId,genero,tamanhoSalvo){
   const sel=document.getElementById(selectId);if(!sel)return;
@@ -5267,7 +5276,7 @@ async function salvarMovimento(){
 }
 
 // ─── MÓDULO: AGENDAMENTOS ─────────────────────────────────────────
-let editingAgendamentoId=null;
+
 let agVistaAtual='lista';let agCalMes=new Date().getMonth();let agCalAno=new Date().getFullYear();var agTodosCache=[];
 
 async function carregarAgendamentos(filtro=''){
@@ -5391,8 +5400,8 @@ async function salvarAgendamento(){
 }
 
 // ─── MÓDULO: FINANCEIRO ───────────────────────────────────────────
-let editingLancamentoId=null;let finCategoriasCache=[];
-const FIN_STATUS={pendente:{label:'Pendente',icon:'⏳',cls:'badge-empresa'},pago:{label:'Pago',icon:'✅',cls:'badge-ativo'},vencido:{label:'Vencido',icon:'🔴',cls:'badge-inativo'},cancelado:{label:'Cancelado',icon:'❌',cls:'badge-usuario'}};
+let finCategoriasCache=[];
+
 
 function finAba(aba){
   const vLan=document.getElementById('fin-vista-lancamentos');const vCx=document.getElementById('fin-vista-caixa');
