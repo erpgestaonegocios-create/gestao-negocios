@@ -4491,7 +4491,7 @@ function renderFinanceiro(){
     +(temAg?dashCompleto:dashLojista)
     +'<div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)">'
     +'<button id="fin-aba-lan" onclick="finAba(\'lancamentos\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">📋 Lançamentos</button>'
-    +(temAg?'<button id="fin-aba-cx" onclick="finAba(\'caixa\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">💵 Caixa do Dia</button>':'')
+    +'<button id="fin-aba-cx" onclick="finAba(\'caixa\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">📊 Fluxo de Caixa</button>'
     +'</div>'
     +'<div id="fin-vista-lancamentos">'
     +'<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
@@ -4502,16 +4502,7 @@ function renderFinanceiro(){
     +'</div>'
     +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Data</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>'
     +'<tbody id="tbl-lancamentos"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div></div>'
-    +(temAg?'<div id="fin-vista-caixa" style="display:none">'
-    +'<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">'
-    +'<input type="date" id="cx-filtro-data" onchange="carregarCaixa()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none">'
-    +'<button class="btn-new" onclick="openModalCaixa()">+ Movimento</button></div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Entradas</div><div id="cx-total-entrada" style="font-size:20px;font-weight:700;color:var(--success)">—</div></div>'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Saídas</div><div id="cx-total-saida" style="font-size:20px;font-weight:700;color:var(--danger)">—</div></div>'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Saldo</div><div id="cx-saldo-dia" style="font-size:20px;font-weight:700;color:var(--accent)">—</div></div></div>'
-    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ação</th></tr></thead>'
-    +'<tbody id="tbl-caixa"><tr><td colspan="6" class="loading">Carregando...</td></tr></tbody></table></div></div>':'');
+    +'<div id="fin-vista-caixa" style="display:none">'  +'<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">'  +'<label style="font-size:13px;color:var(--text2);font-weight:600">Data:</label>'  +'<input type="date" id="cx-filtro-data" onchange="carregarFluxoCaixa()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">'  +'<button onclick="carregarFluxoCaixa()" style="padding:8px 14px;background:var(--accent);border:none;color:#fff;border-radius:6px;font-size:12px;cursor:pointer">Atualizar</button>'  +'</div>'  +'<div id="cx-dashboard" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gasto no Dia</div><div id="cx-gasto" style="font-size:24px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reposições do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Vendido no Dia</div><div id="cx-vendido" style="font-size:24px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Receitas do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Lucro do Dia</div><div id="cx-lucro" style="font-size:24px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Compras</div></div>'  +'</div>'  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📦 Reposições do Dia</div>'  +'<div id="cx-lista-despesas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🛒 Vendas do Dia</div>'  +'<div id="cx-lista-receitas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'</div>'  +'</div>';
 }
 
 // ─── MÓDULO: CLIENTES ────────────────────────────────────────────
@@ -5462,6 +5453,78 @@ async function salvarAgendamento(){
 let finCategoriasCache=[];
 
 
+
+async function carregarFluxoCaixa(){
+  const pf=currentUser.perfil||'master';
+  const dtInput=document.getElementById('cx-filtro-data');
+  const data=dtInput?.value||new Date().toISOString().slice(0,10);
+  if(dtInput&&!dtInput.value)dtInput.value=data;
+
+  // Inicializar cards com loading
+  const setCard=(id,txt,cor)=>{const el=document.getElementById(id);if(el){el.textContent=txt;if(cor)el.style.color=cor;}};
+  setCard('cx-gasto','Carregando...','var(--text3)');
+  setCard('cx-vendido','Carregando...','var(--text3)');
+  setCard('cx-lucro','Carregando...','var(--text3)');
+
+  const listaDep=document.getElementById('cx-lista-despesas');
+  const listaRec=document.getElementById('cx-lista-receitas');
+  if(listaDep)listaDep.innerHTML='<div class="loading">Carregando...</div>';
+  if(listaRec)listaRec.innerHTML='<div class="loading">Carregando...</div>';
+
+  try{
+    const [despesas,receitas]=await Promise.all([
+      api('financeiro_lancamentos?select=descricao,valor,status&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&data_vencimento=eq.'+data+'&order=id.desc'),
+      api('financeiro_lancamentos?select=descricao,valor,status&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&data_vencimento=eq.'+data+'&order=id.desc'),
+    ]);
+    const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
+    const totalGasto=soma(despesas);
+    const totalVendido=soma(receitas);
+    const lucro=totalVendido-totalGasto;
+
+    // Cards
+    setCard('cx-gasto',fmt(totalGasto),'var(--danger)');
+    setCard('cx-vendido',fmt(totalVendido),'var(--success)');
+    setCard('cx-lucro',fmt(lucro),lucro>=0?'var(--success)':'var(--danger)');
+
+    // Lista de despesas
+    if(listaDep){
+      if(!despesas||!despesas.length){
+        listaDep.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">Nenhuma reposição neste dia.</div>';
+      } else {
+        listaDep.innerHTML='<table style="width:100%;border-collapse:collapse">'
+          +'<thead><tr style="background:var(--surface2)">'
+          +'<th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Descrição</th>'
+          +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Valor</th>'
+          +'<th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Status</th>'
+          +'</tr></thead><tbody>'
+          +(despesas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--danger)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
+          +'<tr style="border-top:2px solid var(--border);background:var(--surface2)"><td style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text)">Total</td><td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:var(--danger)">'+fmt(totalGasto)+'</td><td></td></tr>'
+          +'</tbody></table>';
+      }
+    }
+
+    // Lista de receitas
+    if(listaRec){
+      if(!receitas||!receitas.length){
+        listaRec.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">Nenhuma venda neste dia.</div>';
+      } else {
+        listaRec.innerHTML='<table style="width:100%;border-collapse:collapse">'
+          +'<thead><tr style="background:var(--surface2)">'
+          +'<th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Descrição</th>'
+          +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Valor</th>'
+          +'<th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Status</th>'
+          +'</tr></thead><tbody>'
+          +(receitas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--success)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
+          +'<tr style="border-top:2px solid var(--border);background:var(--surface2)"><td style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text)">Total</td><td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:var(--success)">'+fmt(totalVendido)+'</td><td></td></tr>'
+          +'</tbody></table>';
+      }
+    }
+  }catch(e){
+    setCard('cx-gasto','Erro','var(--danger)');
+    console.error('[FluxoCaixa]',e);
+  }
+}
+
 function finAba(aba){
   const vLan=document.getElementById('fin-vista-lancamentos');const vCx=document.getElementById('fin-vista-caixa');
   const btnLan=document.getElementById('fin-aba-lan');const btnCx=document.getElementById('fin-aba-cx');
@@ -5475,7 +5538,7 @@ function finAba(aba){
     if(btnCx){btnCx.style.borderBottomColor='var(--accent)';btnCx.style.color='var(--accent)';}
     if(btnLan){btnLan.style.borderBottomColor='transparent';btnLan.style.color='var(--text3)';}
     const dtFiltro=document.getElementById('cx-filtro-data');if(dtFiltro&&!dtFiltro.value)dtFiltro.value=new Date().toISOString().slice(0,10);
-    carregarCaixa();
+    carregarFluxoCaixa();
   }
 }
 
