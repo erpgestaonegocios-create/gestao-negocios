@@ -539,9 +539,18 @@
           <span id="carrinho-qtd-badge" style="background:var(--accent);color:#fff;border-radius:20px;padding:2px 10px;font-size:11px"></span>
         </div>
         <div id="carrinho-itens" style="margin-bottom:10px"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--surface2);border-radius:8px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--surface2);border-radius:8px;margin-bottom:6px">
           <span style="font-size:14px;font-weight:600;color:var(--text)">Total da Compra</span>
           <span id="carrinho-total" style="font-size:22px;font-weight:700;color:var(--success)">R$ 0,00</span>
+        </div>
+        <div id="carrinho-frete-wrap" style="margin-bottom:12px;padding:10px 14px;background:rgba(107,127,215,.06);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button onclick="incluirFrete()" id="btn-incluir-frete" style="padding:7px 14px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">🚚 Incluir Frete</button>
+          <div style="flex:1;display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--text3)">Valor do frete:</span>
+            <input type="number" id="carrinho-frete-valor" placeholder="0,00" min="0" step="0.01" value="" oninput="atualizarTotalComFrete()" style="width:100px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+            <button onclick="removerFrete()" id="btn-remover-frete" title="Remover frete" style="display:none;background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:2px 6px">✕</button>
+          </div>
+          <span id="carrinho-frete-hint" style="font-size:11px;color:var(--text3);width:100%">Clique em "Incluir Frete" para puxar o valor calculado pelo CEP do cliente. Não acionar se o cliente retirar pessoalmente.</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="mfield" style="padding:0;margin:0">
@@ -2363,6 +2372,7 @@ const IMPORT_CONFIGS = {
 };
 
 function openModalImportacao(modulo){
+  window._importEstoqueMode=false;
   const cfg=IMPORT_CONFIGS[modulo];
   if(!cfg){alert('Módulo de importação não configurado: '+modulo);return;}
   importConfig=cfg;
@@ -2479,7 +2489,11 @@ function processarArquivoImport(file){
         const obrigOk=obrigCols.every(c=>r[c]&&r[c].toString().trim());
         return `<div class="${obrigOk?'import-row-ok':'import-row-err'}">${obrigOk?'✅':'❌'} Linha ${i+2}: ${obrigCols.map(c=>r[c]||'—').join(' | ')}</div>`;
       }).join('')+(rows.length>5?`<div style="font-size:11px;color:var(--text3);padding:4px 0">... e mais ${rows.length-5} registro(s)</div>`:'');
-      document.getElementById('imp-btn-importar').style.display='block';
+      const btnImpHF=document.getElementById('imp-btn-importar');
+      if(btnImpHF){
+        btnImpHF.style.display='block';
+        btnImpHF.onclick=window._importEstoqueMode?executarImportacaoEstoque:executarImportacao;
+      }
       document.getElementById('modal-imp-msg').style.display='none';
     }catch(err){showMM('modal-imp-msg','Erro ao ler arquivo: '+err.message,'error');}
   };
@@ -2677,7 +2691,86 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
 }
 
 
-// ── Carrinho de compras ──────────────────────────────────────────
+// ── Frete no carrinho ─────────────────────────────────────────────
+async function incluirFrete(){
+  const pf=currentUser.perfil||'master';
+  const hint=document.getElementById('carrinho-frete-hint');
+  const inp=document.getElementById('carrinho-frete-valor');
+  const btnRem=document.getElementById('btn-remover-frete');
+  if(!compraClienteId){if(hint)hint.textContent='⚠️ Nenhum cliente selecionado.';return;}
+  try{
+    const cli=await api('clientes?id=eq.'+compraClienteId+'&select=nome,cep');
+    if(!cli||!cli.length||!cli[0].cep){
+      if(hint)hint.textContent='⚠️ Cliente sem CEP cadastrado. Insira o valor manualmente.';
+      if(inp){inp.focus();inp.select();}
+      return;
+    }
+    const cep=cli[0].cep.replace(/\D/g,'');
+    // Usar a mesma tabela de frete do calcularFreteEstimado
+    const p=parseInt(cep.slice(0,5));
+    let preco=0;
+    if(p>=1000&&p<=19999)preco=12;
+    else if(p>=20000&&p<=28999)preco=15;
+    else if(p>=29000&&p<=29999)preco=16;
+    else if(p>=30000&&p<=39999)preco=14;
+    else if(p>=40000&&p<=48999)preco=22;
+    else if(p>=49000&&p<=49999)preco=24;
+    else if(p>=50000&&p<=56999)preco=25;
+    else if(p>=57000&&p<=57999)preco=26;
+    else if(p>=58000&&p<=58999)preco=27;
+    else if(p>=59000&&p<=59999)preco=28;
+    else if(p>=60000&&p<=63999)preco=29;
+    else if(p>=64000&&p<=64999)preco=30;
+    else if(p>=65000&&p<=65999)preco=32;
+    else if(p>=66000&&p<=68899)preco=35;
+    else if(p>=68900&&p<=68999)preco=38;
+    else if(p>=69000&&p<=69299)preco=40;
+    else if(p>=69300&&p<=69399)preco=42;
+    else if(p>=69400&&p<=69899)preco=45;
+    else if(p>=69900&&p<=69999)preco=38;
+    else if(p>=70000&&p<=73699)preco=18;
+    else if(p>=73700&&p<=76799)preco=19;
+    else if(p>=76800&&p<=77999)preco=28;
+    else if(p>=78000&&p<=78899)preco=25;
+    else if(p>=78900&&p<=79999)preco=22;
+    else if(p>=80000&&p<=87999)preco=16;
+    else if(p>=88000&&p<=89999)preco=18;
+    else if(p>=90000&&p<=99999)preco=20;
+    else preco=0;
+    if(preco>0){
+      if(inp)inp.value=preco.toFixed(2);
+      if(hint)hint.textContent='✅ Frete calculado para o CEP '+cli[0].cep+' ('+cli[0].nome+'). Edite se necessário.';
+      if(btnRem)btnRem.style.display='inline';
+      atualizarTotalComFrete();
+    } else {
+      if(hint)hint.textContent='⚠️ Não foi possível calcular o frete para este CEP. Insira manualmente.';
+      if(inp){inp.value='';inp.focus();}
+    }
+  }catch(e){if(hint)hint.textContent='Erro: '+e.message;}
+}
+
+function atualizarTotalComFrete(){
+  const totalItens=carrinhoItens.reduce((s,i)=>s+i.total,0);
+  const freteVal=parseFloat(document.getElementById('carrinho-frete-valor')?.value)||0;
+  const totalEl=document.getElementById('carrinho-total');
+  if(totalEl){
+    const total=totalItens+freteVal;
+    totalEl.textContent='R$ '+total.toFixed(2).replace('.',',');
+    totalEl.style.color=total>0?'var(--success)':'var(--text3)';
+  }
+  const btnRem=document.getElementById('btn-remover-frete');
+  if(btnRem)btnRem.style.display=freteVal>0?'inline':'none';
+}
+
+function removerFrete(){
+  const inp=document.getElementById('carrinho-frete-valor');
+  if(inp)inp.value='';
+  const hint=document.getElementById('carrinho-frete-hint');
+  if(hint)hint.textContent='Frete removido. Clique em "Incluir Frete" para adicionar novamente.';
+  const btnRem=document.getElementById('btn-remover-frete');
+  if(btnRem)btnRem.style.display='none';
+  atualizarTotalComFrete();
+}
 let carrinhoItens = []; // [{prodId, prodNome, genero, tamanho, qtd, valorUnit, desconto, total, obs}]
 
 function renderCarrinho(){
@@ -2697,6 +2790,8 @@ function renderCarrinho(){
   if(badge)badge.textContent=carrinhoItens.length+' item(s)';
   const totalGeral=carrinhoItens.reduce((s,i)=>s+i.total,0);
   if(totalEl)totalEl.textContent='R$ '+totalGeral.toFixed(2).replace('.',',');
+  // Atualizar total incluindo frete se houver
+  atualizarTotalComFrete();
   if(listaEl){
     listaEl.innerHTML=carrinhoItens.map((item,idx)=>{
       const g=item.genero?item.genero.charAt(0).toUpperCase()+item.genero.slice(1):'';
@@ -2783,6 +2878,10 @@ async function abrirHistoricoCompras(clienteId,clienteNome){
   document.getElementById('compra-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('compra-obs').value='';
   if(document.getElementById('compra-obs-item'))document.getElementById('compra-obs-item').value='';
+  // Reset frete
+  const freteInp2=document.getElementById("carrinho-frete-valor");if(freteInp2)freteInp2.value="";
+  const freteHint2=document.getElementById("carrinho-frete-hint");if(freteHint2)freteHint2.textContent="Clique em Incluir Frete para puxar o valor calculado pelo CEP do cliente. Nao acionar se o cliente retirar pessoalmente.";
+  const btnRemFrete2=document.getElementById("btn-remover-frete");if(btnRemFrete2)btnRemFrete2.style.display="none";
   renderCarrinho();
   popularSelectTamanhos('compra-tamanho','adulto','');
   openModal('modal-compra-cliente');
@@ -2991,18 +3090,27 @@ async function salvarCompraCliente(){
       })});
       // 3. Atualizar saldo
       if(saldoId){await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});}
+      // 3b. Atualizar estoque_atual no cadastro do produto (soma de todos os saldos deste produto)
+      try{
+        const todosReg=await api('estoque_saldo?produto_id=eq.'+item.prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade');
+        const estoqueTotal=(todosReg||[]).reduce((s,r)=>s+parseFloat(r.quantidade||0),0);
+        await api('produtos?id=eq.'+item.prodId,{method:'PATCH',body:JSON.stringify({estoque_atual:estoqueTotal})}).catch(()=>{});
+      }catch(e2){}
       totalGeralVenda+=item.total;
     }catch(e){erros.push(item.prodNome+': '+e.message);}
   }
   // 4. Lançamento financeiro único para toda a compra
-  if(totalGeralVenda>0){
+  const freteVal=parseFloat(document.getElementById('carrinho-frete-valor')?.value)||0;
+  const totalFinalVenda=totalGeralVenda+freteVal;
+  if(totalFinalVenda>0){
     const nomeProdutos=carrinhoItens.map(i=>i.prodNome).join(', ').slice(0,100);
+    const descricaoVenda='Venda: '+nomeProdutos+' ('+(carrinhoItens.length)+' item(s))'+(freteVal>0?' + Frete R$ '+freteVal.toFixed(2):'');
     await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({
       perfil_codigo:pf,tipo:'receita',
-      descricao:'Venda: '+nomeProdutos+' ('+(carrinhoItens.length)+' item(s))',
-      valor:totalGeralVenda,data_vencimento:data,data_pagamento:data,status:'pago',
+      descricao:descricaoVenda,
+      valor:totalFinalVenda,data_vencimento:data,data_pagamento:data,status:'pago',
       cliente_id:compraClienteId,
-      observacoes:'Venda registrada automaticamente pelo carrinho de compras'
+      observacoes:'Venda registrada automaticamente pelo carrinho de compras'+(freteVal>0?' (inclui frete: R$ '+freteVal.toFixed(2)+')':'')
     })}).catch(()=>{});
   }
   if(erros.length){
@@ -3068,6 +3176,9 @@ async function abrirHistoricoCompras(clienteId,clienteNome){
   document.getElementById('compra-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('compra-obs').value='';
   if(document.getElementById('compra-obs-item'))document.getElementById('compra-obs-item').value='';
+  // Reset frete
+  const freteInp3=document.getElementById("carrinho-frete-valor");if(freteInp3)freteInp3.value="";
+  const btnRemFrete3=document.getElementById("btn-remover-frete");if(btnRemFrete3)btnRemFrete3.style.display="none";
   renderCarrinho();
   popularSelectTamanhos('compra-tamanho','adulto','');
   openModal('modal-compra-cliente');
@@ -4077,22 +4188,30 @@ async function carregarWhatsApp(){
 function carregarAnaliseIA(){
   const wrap=document.getElementById('rel-conteudo');
   const apiKey=localStorage.getItem('groq_api_key')||'';
+  // Inicializar histórico do chat se ainda não existe
+  if(!window._iaChatHistory)window._iaChatHistory=[];
   const keyAviso=apiKey
     ?'<div style="margin-bottom:12px;padding:8px 14px;background:rgba(76,175,125,.06);border:1px solid var(--success);border-radius:8px;font-size:12px;color:var(--success);display:flex;justify-content:space-between;align-items:center">✅ API Key Groq configurada <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--text3);text-decoration:underline;cursor:pointer;font-size:11px;padding:0\'>Trocar chave</button></div>'
     :'<div style="margin-bottom:12px;padding:10px 14px;background:rgba(224,85,85,.08);border:1px solid var(--danger);border-radius:8px;font-size:12px;color:var(--danger);display:flex;justify-content:space-between;align-items:center">🔑 API Key do Groq não configurada. <button onclick=\'abrirConfiguracaoIA()\' style=\'background:none;border:none;color:var(--danger);text-decoration:underline;cursor:pointer;font-size:12px;padding:0;font-weight:600\'>Configurar agora →</button></div>';
   wrap.innerHTML=''
     +'<div style="margin-bottom:16px;padding:14px 18px;background:rgba(107,127,215,.08);border:1px solid var(--accent);border-radius:10px;font-size:13px;color:var(--text2)">'
     +'<strong style="color:var(--accent)">Análise Estratégica por IA</strong><br>'
-    +'A IA analisa os dados da sua empresa e gera insights. Você também pode fazer perguntas específicas abaixo.</div>'
+    +'A IA analisa os dados da sua empresa e gera insights. Você também pode fazer perguntas e continuar a conversa abaixo.</div>'
     +keyAviso
     +'<button class="btn-primary" onclick="executarAnaliseIA()" id="btn-exec-ia" style="margin-bottom:20px">📊 Gerar Análise Completa Agora</button>'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">'
-    +'<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">💬 Ou faça uma pergunta específica:</div>'
+    +'<button class="btn-secondary" onclick="limparHistoricoIA()" style="margin-bottom:20px;margin-left:8px" title="Limpar histórico e começar nova conversa">🗑️ Nova Conversa</button>'
+    +'<div id="ia-chat-historico" style="margin-bottom:16px"></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">'
+    +'<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">💬 Faça uma pergunta ou continue a conversa:</div>'
     +'<div style="display:flex;gap:8px">'
-    +'<textarea id="ia-pergunta-livre" placeholder="Ex: Quais produtos vendem mais? Qual meu lucro este mês?" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;resize:vertical;min-height:60px;font-family:inherit;outline:none"></textarea>'
-    +'<button onclick="executarPerguntaIA()" class="btn-new" style="white-space:nowrap;align-self:flex-end">Perguntar</button>'
-    +'</div></div>'
-    +'<div id="ia-resultado" style="margin-top:4px"></div>';
+    +'<textarea id="ia-pergunta-livre" placeholder="Ex: Quais produtos vendem mais? Qual meu lucro este mês? Pode detalhar mais?" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;resize:vertical;min-height:60px;font-family:inherit;outline:none" onkeydown="if(event.ctrlKey&&event.key===\'Enter\')executarPerguntaIA()"></textarea>'
+    +'<button onclick="executarPerguntaIA()" class="btn-new" style="white-space:nowrap;align-self:flex-end">Enviar</button>'
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:6px">Dica: Ctrl+Enter para enviar. A IA mantém o contexto de toda a conversa.</div>'
+    +'</div>'
+    +'<div id="ia-resultado" style="margin-top:8px"></div>';
+  // Re-renderizar histórico existente
+  renderHistoricoIA();
 }
 
 
@@ -4152,12 +4271,40 @@ async function chamarGemini(prompt, maxTokens=1500){
 }
 
 
+function renderHistoricoIA(){
+  const hist=document.getElementById('ia-chat-historico');
+  if(!hist)return;
+  if(!window._iaChatHistory||!window._iaChatHistory.length){hist.innerHTML='';return;}
+  hist.innerHTML=window._iaChatHistory.map(msg=>{
+    const isUser=msg.role==='user';
+    return '<div style="display:flex;gap:10px;margin-bottom:14px;align-items:flex-start;'+(isUser?'flex-direction:row-reverse':'flex-direction:row')+'">'
+      +'<div style="width:32px;height:32px;border-radius:50%;background:'+(isUser?'var(--accent)':'var(--surface2)')+';border:1px solid '+(isUser?'var(--accent)':'var(--border)')+';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+(isUser?'👤':'🤖')+'</div>'
+      +'<div style="flex:1;max-width:85%">'
+      +'<div style="padding:12px 16px;background:'+(isUser?'rgba(107,127,215,.12)':'var(--surface)')+';border:1px solid '+(isUser?'var(--accent)':'var(--border)')+';border-radius:'+(isUser?'12px 2px 12px 12px':'2px 12px 12px 12px')+';font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap">'+msg.content+'</div>'
+      +'</div></div>';
+  }).join('');
+  hist.scrollTop=hist.scrollHeight;
+}
+
+function limparHistoricoIA(){
+  if(!confirm('Limpar o histórico da conversa e começar uma nova?'))return;
+  window._iaChatHistory=[];
+  renderHistoricoIA();
+  const res=document.getElementById('ia-resultado');if(res)res.innerHTML='';
+}
+
 async function executarPerguntaIA(){
   const pergunta=document.getElementById('ia-pergunta-livre')?.value?.trim();
   if(!pergunta){alert('Digite uma pergunta antes de enviar.');return;}
   const resultado=document.getElementById('ia-resultado');
   const pf=currentUser.perfil||'master';
-  resultado.innerHTML='<div class="loading">Processando sua pergunta...</div>';
+  // Adicionar pergunta ao histórico
+  if(!window._iaChatHistory)window._iaChatHistory=[];
+  window._iaChatHistory.push({role:'user',content:pergunta});
+  renderHistoricoIA();
+  // Limpar campo
+  const campo=document.getElementById('ia-pergunta-livre');if(campo)campo.value='';
+  if(resultado)resultado.innerHTML='<div class="loading">IA está pensando...</div>';
   try{
     const mes=new Date().toISOString().slice(0,7);
     const [ano,m]=mes.split('-').map(Number);
@@ -4176,20 +4323,48 @@ async function executarPerguntaIA(){
     const totalVendas=soma(compras,c=>parseFloat(c.total_pago||0));
     const vendasPorProd={};(compras||[]).forEach(c=>{const n=c.produtos?.nome||'?';vendasPorProd[n]=(vendasPorProd[n]||0)+parseFloat(c.total_pago||0);});
     const topVendas=Object.entries(vendasPorProd).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,v])=>n+': R$ '+v.toFixed(2)).join(', ');
-    const contexto='Empresa: '+(empresaConfig?.nome_empresa||perfilNome(pf)||'empresa')+' | Mês: '+mes
+    const contextoSistema='Você é um consultor de gestão empresarial. Contexto da empresa ('+(empresaConfig?.nome_empresa||perfilNome(pf)||'empresa')+') no mês '+mes+':'
       +'\nReceitas pagas: R$ '+recPago.toFixed(2)+' | Despesas pagas: R$ '+despPago.toFixed(2)+' | Lucro: R$ '+(recPago-despPago).toFixed(2)
       +'\nVendas: '+((compras||[]).length)+' | Total: R$ '+totalVendas.toFixed(2)
       +'\nTop produtos: '+topVendas
-      +'\nEstoque crítico: '+estCrit.length+' | Clientes ativos: '+((clientes||[]).length);
-    const prompt='Contexto do negócio:\n'+contexto+'\n\nPergunta: '+pergunta+'\n\nResponda em português de forma direta e objetiva.';
-    const texto=await chamarGemini(prompt, 1000);
-    resultado.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">'
-      +'<div style="font-size:11px;color:var(--text3);margin-bottom:12px">💬 '+pergunta+'</div>'
-      +'<div style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap">'+texto+'</div></div>';
-  }catch(e){resultado.innerHTML='<div class="empty" style="color:var(--danger)">'+e.message+'</div>';}
+      +'\nEstoque crítico: '+estCrit.length+' | Clientes ativos: '+((clientes||[]).length)
+      +'\nResponda em português de forma direta e objetiva, mantendo o contexto da conversa.';
+    // Montar mensagens com histórico completo
+    const mensagens=[{role:'system',content:contextoSistema},...window._iaChatHistory];
+    const texto=await chamarGeminiComHistorico(mensagens, 1000);
+    // Adicionar resposta ao histórico
+    window._iaChatHistory.push({role:'assistant',content:texto});
+    renderHistoricoIA();
+    if(resultado)resultado.innerHTML='';
+  }catch(e){
+    // Remover última mensagem do usuário do histórico em caso de erro
+    window._iaChatHistory.pop();
+    renderHistoricoIA();
+    if(resultado)resultado.innerHTML='<div class="empty" style="color:var(--danger)">'+e.message+'</div>';
+  }
 }
 
-async function executarAnaliseIA(){
+// ── Chamada à API Groq com histórico de mensagens ────────────────
+async function chamarGeminiComHistorico(mensagens, maxTokens=1500){
+  const apiKey=(localStorage.getItem('groq_api_key')||'').trim();
+  if(!apiKey)throw new Error('API Key do Groq não configurada. Clique em "Configurar agora".');
+  const url='https://api.groq.com/openai/v1/chat/completions';
+  const response=await fetch(url,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+    body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:mensagens,max_tokens:maxTokens,temperature:0.7})
+  });
+  const data=await response.json();
+  if(data.error){
+    const msg=data.error.message||'Erro na API Groq';
+    if(msg.includes('invalid_api_key')||msg.includes('401'))throw new Error('🔑 Chave inválida. Clique em "Trocar chave".');
+    if(msg.includes('rate_limit')||msg.includes('429'))throw new Error('⏳ Limite de requisições atingido. Aguarde 1 minuto.');
+    throw new Error('Erro Groq: '+msg);
+  }
+  const texto=data.choices?.[0]?.message?.content;
+  if(!texto)throw new Error('Resposta vazia do Groq.');
+  return texto;
+}
   const btn=document.getElementById('btn-exec-ia');
   const resultado=document.getElementById('ia-resultado');
   const pf=currentUser.perfil||'master';
@@ -4425,7 +4600,12 @@ function renderServicos(){
 
 function renderEstoque(){
   return '<div class="panel-header"><span class="panel-title">Controle de Estoque</span>'
-    +'<button class="btn-new" onclick="openModalMovimento()">+ Nova Movimentação</button></div>'
+    +'<div class="panel-actions">'
+    +'<button class="btn-secondary" onclick="exportarEstoqueExcel()" title="Exportar estoque atual para Excel">📥 Exportar Excel</button>'
+    +'<button class="btn-secondary" onclick="exportarEstoquePDF()" title="Exportar estoque atual para PDF">📄 Exportar PDF</button>'
+    +'<button class="btn-secondary" onclick="openModalImportacaoEstoque()" title="Importar movimentações em lote">📤 Importar</button>'
+    +'<button class="btn-new" onclick="openModalMovimento()">+ Nova Movimentação</button>'
+    +'</div></div>'
     +'<div id="estoque-alertas"></div>'
     +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Produtos cadastrados</div><div id="est-count-total" style="font-size:28px;font-weight:700;color:var(--text)">—</div></div>'
@@ -5309,6 +5489,12 @@ async function salvarMovimento(){
     await api('estoque_movimentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),tipo,quantidade:qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,motivo:document.getElementById('est-motivo')?.value?.trim()||null,observacoes:document.getElementById('est-obs')?.value?.trim()||null,genero:estGenero,tamanho:estTamanho,criado_por:currentUser.usuario})});
     if(saldoId){await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});}
     else{await api('estoque_saldo',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),quantidade:novoSaldo,genero:estGenero||null,tamanho:estTamanho||null})});}
+    // Atualizar estoque_atual no cadastro do produto
+    try{
+      const todosRegMov=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade');
+      const estTotalMov=(todosRegMov||[]).reduce((s,r)=>s+parseFloat(r.quantidade||0),0);
+      await api('produtos?id=eq.'+pid,{method:'PATCH',body:JSON.stringify({estoque_atual:estTotalMov})}).catch(()=>{});
+    }catch(e2){}
     // Lançamento financeiro na entrada
     if(tipo==='entrada'){
       const valorCusto=parseFloat(document.getElementById('est-valor-custo')?.value)||0;
@@ -5326,6 +5512,146 @@ async function salvarMovimento(){
 }
 
 // ─── MÓDULO: AGENDAMENTOS ─────────────────────────────────────────
+
+async function exportarEstoqueExcel(){
+  const pf=currentUser.perfil||'master';
+  try{
+    const rows=await api('estoque_saldo?select=quantidade,genero,tamanho,produtos(nome,codigo,estoque_minimo,estoque_maximo,unidade,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=produtos(nome).asc');
+    if(!rows||!rows.length){alert('Nenhum dado de estoque para exportar.');return;}
+    const XLSX=window.XLSX;if(!XLSX){alert('Biblioteca XLSX não carregada.');return;}
+    const ws_data=[['Produto','Código','Gênero','Tamanho','Saldo Atual','Estoque Mín.','Estoque Máx.','Unidade','Ativo']];
+    rows.forEach(r=>{
+      const p=r.produtos||{};
+      ws_data.push([p.nome||'',p.codigo||'',r.genero||'',r.tamanho||'',parseFloat(r.quantidade||0),p.estoque_minimo||'',p.estoque_maximo||'',p.unidade||'',p.ativo?'Sim':'Não']);
+    });
+    const ws=XLSX.utils.aoa_to_sheet(ws_data);
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Estoque');
+    XLSX.writeFile(wb,'estoque_atual_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  }catch(e){alert('Erro ao exportar: '+e.message);}
+}
+
+async function exportarEstoquePDF(){
+  const pf=currentUser.perfil||'master';
+  try{
+    const rows=await api('estoque_saldo?select=quantidade,genero,tamanho,produtos(nome,codigo,estoque_minimo,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=produtos(nome).asc');
+    if(!rows||!rows.length){alert('Nenhum dado de estoque para exportar.');return;}
+    const emp=empresaConfig?.nome_empresa||perfilNome(pf)||'Gestão de Negócios';
+    const hoje=new Date().toLocaleDateString('pt-BR');
+    const total=rows.reduce((s,r)=>s+parseFloat(r.quantidade||0),0);
+    const criticos=rows.filter(r=>r.produtos?.estoque_minimo!=null&&parseFloat(r.quantidade||0)<parseFloat(r.produtos.estoque_minimo));
+    let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:sans-serif;color:#222;padding:32px;max-width:900px;margin:0 auto;}.header{border-bottom:2px solid #222;padding-bottom:12px;margin-bottom:16px;}.empresa{font-size:18px;font-weight:700;text-transform:uppercase;}.sub{font-size:12px;color:#666;margin-top:3px;}table{width:100%;border-collapse:collapse;font-size:12px;}th{background:#f5f5f5;padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#555;border-bottom:2px solid #ddd;}td{padding:6px 10px;border-bottom:1px solid #eee;}.critico{color:#c62828;font-weight:600;}.ok{color:#2e7d32;}.zero{color:#888;}.resumo{display:flex;gap:16px;margin-bottom:16px;}.card{background:#f9f9f9;border:1px solid #eee;border-radius:6px;padding:10px 16px;flex:1;text-align:center;}.card-label{font-size:10px;text-transform:uppercase;color:#888;margin-bottom:3px;}.card-val{font-size:18px;font-weight:700;}@media print{button{display:none!important;}}</style></head><body>'
+      +'<div class="header"><div class="empresa">'+emp+'</div><div class="sub">Relatório de Estoque Atual — Emitido em '+hoje+'</div></div>'
+      +'<div class="resumo"><div class="card"><div class="card-label">Total de Variações</div><div class="card-val">'+rows.length+'</div></div>'
+      +'<div class="card"><div class="card-label">Itens em Estoque</div><div class="card-val">'+total.toFixed(0)+'</div></div>'
+      +'<div class="card"><div class="card-label" style="color:#c62828">Abaixo do Mínimo</div><div class="card-val" style="color:#c62828">'+criticos.length+'</div></div></div>'
+      +'<table><thead><tr><th>Produto</th><th>Código</th><th>Gênero</th><th>Tamanho</th><th>Saldo</th><th>Mín.</th><th>Situação</th></tr></thead><tbody>'
+      +rows.map(r=>{
+        const p=r.produtos||{};const qtd=parseFloat(r.quantidade||0);const min=p.estoque_minimo!=null?parseFloat(p.estoque_minimo):null;
+        const sit=qtd===0?'<span class="zero">Zerado</span>':(min!=null&&qtd<min?'<span class="critico">⚠️ Crítico</span>':'<span class="ok">✅ OK</span>');
+        return '<tr><td>'+( p.nome||'')+'</td><td style="color:#888">'+(p.codigo||'')+'</td><td>'+(r.genero||'')+'</td><td>'+(r.tamanho||'')+'</td><td style="font-weight:600">'+qtd+'</td><td>'+(min!=null?min:'—')+'</td><td>'+sit+'</td></tr>';
+      }).join('')
+      +'</tbody></table>'
+      +'<div style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:10px 24px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">🖨️ Imprimir</button></div>'
+      +'</body></html>';
+    const win=window.open('','_blank');win.document.write(html);win.document.close();
+  }catch(e){alert('Erro ao exportar PDF: '+e.message);}
+}
+
+function openModalImportacaoEstoque(){
+  // Reutilizar modal de importação genérico com config de estoque
+  const spec=document.getElementById('imp-campos-spec');
+  if(spec){
+    spec.innerHTML='<div class="campo-spec-title">Estrutura do arquivo para importação de movimentações de estoque</div>'
+      +'<div style="margin-bottom:6px;font-size:12px;color:var(--text2)">Colunas obrigatórias:</div>'
+      +'<span class="campo-tag obrig">produto_codigo</span> <span class="campo-tag obrig">tipo (entrada/saida)</span> <span class="campo-tag obrig">quantidade</span>'
+      +'<div style="margin-top:8px;font-size:12px;color:var(--text2)">Opcionais:</div>'
+      +'<span class="campo-tag">genero</span> <span class="campo-tag">tamanho</span> <span class="campo-tag">motivo</span> <span class="campo-tag">valor_custo</span>';
+  }
+  const titulo=document.getElementById('imp-titulo');if(titulo)titulo.textContent='Importar Movimentações de Estoque';
+  const sub=document.getElementById('imp-sub');if(sub)sub.textContent='Faça upload de um arquivo Excel (.xlsx) ou CSV (.csv)';
+  // Configurar import para estoque
+  window._importEstoqueMode=true;
+  importConfig={
+    tabela:'__estoque_import__',
+    modulo:'estoque',
+    campos:[
+      {col:'produto_codigo'},{col:'tipo'},{col:'quantidade'},{col:'genero'},{col:'tamanho'},{col:'motivo'},{col:'valor_custo'}
+    ],
+    fixo:()=>({perfil_codigo:currentUser.perfil||'master'})
+  };
+  const btnImp=document.getElementById('imp-btn-importar');if(btnImp)btnImp.style.display='none';
+  limparImport();
+  document.getElementById('imp-zone-text').textContent='Clique para selecionar ou arraste o arquivo aqui';
+  // Sobrescrever botão de importar para usar nossa lógica customizada
+  if(btnImp){
+    btnImp.style.display='none';
+    btnImp.onclick=executarImportacaoEstoque;
+  }
+  openModal('modal-importacao');
+}
+
+async function executarImportacaoEstoque(){
+  if(!importDados||!importDados.length){showMM('modal-imp-msg','Nenhum dado carregado.','error');return;}
+  const pf=currentUser.perfil||'master';
+  const btn=document.getElementById('imp-btn-importar');
+  const bar=document.getElementById('imp-bar');
+  const status=document.getElementById('imp-status');
+  const log=document.getElementById('imp-log');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Importando...';}
+  log.innerHTML='';let ok=0,erro=0;
+  for(let i=0;i<importDados.length;i++){
+    const r=importDados[i];
+    const linha=i+2;
+    try{
+      const codigo=String(r.produto_codigo||r['produto_codigo']||'').trim();
+      const tipo=String(r.tipo||'').trim().toLowerCase();
+      const qtd=parseFloat(String(r.quantidade||'0').replace(',','.'));
+      if(!codigo)throw new Error('produto_codigo obrigatório');
+      if(!['entrada','saida'].includes(tipo))throw new Error('tipo deve ser "entrada" ou "saida"');
+      if(!qtd||qtd<=0)throw new Error('quantidade inválida');
+      // Buscar produto pelo código
+      const prods=await api('produtos?codigo=eq.'+encodeURIComponent(codigo)+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,nome,estoque_minimo');
+      if(!prods||!prods.length)throw new Error('Produto "'+codigo+'" não encontrado');
+      const prod=prods[0];
+      const genero=String(r.genero||'').trim()||null;
+      const tamanho=String(r.tamanho||'').trim()||null;
+      const motivo=String(r.motivo||'').trim()||'Importação em lote';
+      const valorCusto=parseFloat(String(r.valor_custo||'0').replace(',','.'))||0;
+      // Buscar saldo atual
+      let saldoQ='estoque_saldo?produto_id=eq.'+prod.id+'&perfil_codigo=eq.'+encodeURIComponent(pf);
+      if(genero)saldoQ+='&genero=eq.'+encodeURIComponent(genero);else saldoQ+='&genero=is.null';
+      if(tamanho)saldoQ+='&tamanho=eq.'+encodeURIComponent(tamanho);else saldoQ+='&tamanho=is.null';
+      const saldoRows=await api(saldoQ+'&select=id,quantidade').catch(()=>[]);
+      const saldoReg=saldoRows&&saldoRows.length?saldoRows[0]:null;
+      const saldoAtual=saldoReg?parseFloat(saldoReg.quantidade||0):0;
+      const novoSaldo=tipo==='entrada'?saldoAtual+qtd:saldoAtual-qtd;
+      if(novoSaldo<0)throw new Error('Saldo insuficiente para saída (atual: '+saldoAtual+')');
+      // Registrar movimentação
+      await api('estoque_movimentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:prod.id,tipo,quantidade:qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,motivo,genero:genero||null,tamanho:tamanho||null,criado_por:currentUser.usuario})});
+      // Atualizar saldo
+      if(saldoReg){await api('estoque_saldo?id=eq.'+saldoReg.id,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});}
+      else{await api('estoque_saldo',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:prod.id,quantidade:novoSaldo,genero:genero||null,tamanho:tamanho||null})});}
+      // Atualizar estoque_atual no produto
+      const todosRegImp=await api('estoque_saldo?produto_id=eq.'+prod.id+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade');
+      const estTotalImp=(todosRegImp||[]).reduce((s,reg)=>s+parseFloat(reg.quantidade||0),0);
+      await api('produtos?id=eq.'+prod.id,{method:'PATCH',body:JSON.stringify({estoque_atual:estTotalImp})}).catch(()=>{});
+      // Lançamento financeiro se entrada com custo
+      if(tipo==='entrada'&&valorCusto>0){
+        await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,tipo:'despesa',descricao:'Reposição: '+prod.nome+(genero?' '+genero:'')+(tamanho?' /'+tamanho:'')+' ('+qtd+' un.)',valor:valorCusto*qtd,data_vencimento:new Date().toISOString().slice(0,10),data_pagamento:new Date().toISOString().slice(0,10),status:'pago',observacoes:'Criado automaticamente pela importação de estoque'})}).catch(()=>{});
+      }
+      ok++;log.innerHTML+='<div class="import-row-ok">✅ Linha '+linha+': '+prod.nome+' — '+tipo+' de '+qtd+' un.</div>';
+    }catch(e){erro++;log.innerHTML+='<div class="import-row-err">❌ Linha '+linha+': '+e.message+'</div>';}
+    bar.style.width=Math.round(((i+1)/importDados.length)*100)+'%';
+    status.textContent='Processando... '+(i+1)+' de '+importDados.length;
+    log.scrollTop=log.scrollHeight;
+    await new Promise(res=>setTimeout(res,30));
+  }
+  bar.style.width='100%';
+  status.textContent='Concluído: '+ok+' importado(s), '+erro+' erro(s)';
+  if(ok>0)showMM('modal-imp-msg','✅ '+ok+' movimentação(ões) importada(s)!'+( erro?' ('+erro+' erro(s))':''),ok&&!erro?'success':'error');
+  if(btn){btn.disabled=false;btn.textContent='⬆️ Importar';}
+  carregarEstoque();
+}
 
 let agVistaAtual='lista';let agCalMes=new Date().getMonth();let agCalAno=new Date().getFullYear();var agTodosCache=[];
 
@@ -5532,6 +5858,10 @@ function finAba(aba){
     if(vLan)vLan.style.display='block';if(vCx)vCx.style.display='none';
     if(btnLan){btnLan.style.borderBottomColor='var(--accent)';btnLan.style.color='var(--accent)';}
     if(btnCx){btnCx.style.borderBottomColor='transparent';btnCx.style.color='var(--text3)';}
+    // Garantir que filtro de mês está ativo (e dia está limpo)
+    const dia=document.getElementById('fin-filtro-dia');if(dia)dia.value='';
+    const mes=document.getElementById('fin-filtro-mes');
+    if(mes&&!mes.value)mes.value=new Date().toISOString().slice(0,7);
     carregarLancamentos();
   } else {
     if(vLan)vLan.style.display='none';if(vCx)vCx.style.display='block';
@@ -5550,7 +5880,10 @@ async function carregarFinanceiro(){
     // DOM ainda não está pronto — aguardar e tentar novamente
     setTimeout(()=>carregarFinanceiro(),200);return;
   }
-  if(!mes.value)mes.value=new Date().toISOString().slice(0,7);
+  // Sempre inicializar o filtro de mês com o mês atual ao entrar no painel
+  mes.value=new Date().toISOString().slice(0,7);
+  // Limpar filtro de dia para evitar conflito
+  const dia=document.getElementById('fin-filtro-dia');if(dia)dia.value='';
   const dtCx=document.getElementById('cx-filtro-data');if(dtCx&&!dtCx.value)dtCx.value=new Date().toISOString().slice(0,10);
   try{
     await Promise.all([carregarDashboard(),carregarLancamentos()]);
