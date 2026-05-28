@@ -1067,6 +1067,7 @@ let labelsCache={};   // {perfil_codigo: {chave: label}}
 async function api(path,opts={}){
   const isWrite=opts.method&&opts.method!=='GET';
   const baseHdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
+  if(!isWrite){baseHdrs['Cache-Control']='no-cache, no-store, must-revalidate';baseHdrs['Pragma']='no-cache';}
   if(isWrite) baseHdrs['Prefer']='return=representation';
   try{
     const res=await fetch(SUPA_URL+'/rest/v1/'+path,{headers:{...baseHdrs,...(opts.headers||{})},...opts});
@@ -5963,7 +5964,11 @@ async function carregarLancamentos(){
     let q='financeiro_lancamentos?select=*,clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_vencimento.asc';
     if(tipo)q+='&tipo=eq.'+tipo;if(status)q+='&status=eq.'+status;
     if(dia){q+='&data_vencimento=eq.'+dia;}
-    else if(mes){const [ano,m]=mes.split('-').map(Number);const ultDia=new Date(ano,m,0).getDate();q+='&data_vencimento=gte.'+mes+'-01&data_vencimento=lte.'+mes+'-'+String(ultDia).padStart(2,'0');}
+    else if(mes){
+      const [ano,m]=mes.split('-').map(Number);
+      const proxMes=m===12?`${ano+1}-01`:`${ano}-${String(m+1).padStart(2,'0')}`;
+      q+='&data_vencimento=gte.'+mes+'-01&data_vencimento=lt.'+proxMes+'-01';
+    }
     const data=await api(q);
     if(!data||!data.length){tbody.innerHTML='<tr><td colspan="7" class="empty">Nenhum lançamento.</td></tr>';return;}
     const LINK='style="cursor:pointer;color:var(--text);font-weight:500;text-decoration:underline;text-decoration-color:transparent" onmouseover="this.style.color=\'var(--accent)\'" onmouseout="this.style.color=\'var(--text)\'"';
