@@ -652,6 +652,11 @@
       <div class="mfield col-1"><label>Preço de Custo (R$)</label><input type="number" id="prod-custo" placeholder="0,00" min="0" step="1"></div>
       <div class="mfield col-1"><label>Preço de Venda (R$)</label><input type="number" id="prod-venda" placeholder="0,00" min="0" step="1"></div>
       <div class="form-section">Estoque</div>
+      <div class="mfield col-2" id="prod-estoque-atual-wrap" style="display:none">
+        <label>Estoque Atual <span style="font-size:11px;color:var(--text3);font-weight:400">(atualizado automaticamente)</span></label>
+        <div id="prod-estoque-atual-display" style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:15px;font-weight:700;color:var(--success)">—</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Este campo é calculado automaticamente a partir das movimentações de estoque. Para alterar, use o menu <strong>Controle de Estoque → Nova Movimentação</strong>.</div>
+      </div>
       <div class="mfield col-1"><label>Estoque Mínimo</label><input type="number" id="prod-est-min" placeholder="0" min="0" step="1"></div>
       <div class="mfield col-1"><label>Estoque Máximo</label><input type="number" id="prod-est-max" placeholder="0" min="0" step="1"></div>
       <div class="form-section">Fornecedor</div>
@@ -4584,7 +4589,7 @@ function renderProdutos(){
     +'<div class="search-bar"><input type="text" id="prod-busca" placeholder="Buscar por nome, código ou categoria..." onkeydown="if(event.key===\'Enter\')buscarProdutos()">'
     +'<button class="btn-search" onclick="buscarProdutos()">Buscar</button>'
     +'<button class="btn-clear" onclick="limparBuscaProd()">✕ Limpar</button></div>'
-    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Imagem</th><th>Código</th><th>Nome</th><th>Categoria</th><th>Unidade</th><th>Preço Venda</th><th>Est. Mín.</th><th>Status</th><th>Ações</th></tr></thead>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Imagem</th><th>Código</th><th>Nome</th><th>Categoria</th><th>Unidade</th><th>Preço Venda</th><th title="Estoque atual (atualizado automaticamente a cada venda ou movimentação)">Estoque 🔄</th><th>Est. Mín.</th><th>Status</th><th>Ações</th></tr></thead>'
     +'<tbody id="tbl-produtos"><tr><td colspan="10" class="loading">Carregando...</td></tr></tbody></table></div>';
 }
 
@@ -4979,17 +4984,29 @@ async function abrirGaleriaFromProd(id,nome){
 
 async function carregarProdutos(filtro=''){
   const tbody=document.getElementById('tbl-produtos');if(!tbody)return;
-  tbody.innerHTML='<tr><td colspan="10" class="loading">Carregando...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="11" class="loading">Carregando...</td></tr>';
   try{
     const pf=currentUser.perfil||'master';
     let q='produtos?select=*&order=nome.asc&perfil_codigo=eq.'+encodeURIComponent(pf);
     if(filtro){const f=encodeURIComponent('%'+filtro+'%');q+='&or=(nome.ilike.'+f+',codigo.ilike.'+f+',categoria.ilike.'+f+')';}
-    const data=await api(q);
+    const [data,saldos]=await Promise.all([
+      api(q),
+      api('estoque_saldo?select=produto_id,quantidade&perfil_codigo=eq.'+encodeURIComponent(pf)).catch(()=>[])
+    ]);
+    // Somar saldos por produto_id
+    const saldoMap={};
+    (saldos||[]).forEach(s=>{const pid=String(s.produto_id);saldoMap[pid]=(saldoMap[pid]||0)+parseFloat(s.quantidade||0);});
     const total=document.getElementById('prod-total');if(total)total.textContent=data&&data.length?'('+data.length+')':'';
-    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="10" class="empty">'+(filtro?'Nenhum resultado.':'Nenhum produto.')+'</td></tr>';return;}
+    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="11" class="empty">'+(filtro?'Nenhum resultado.':'Nenhum produto.')+'</td></tr>';return;}
     const fmtV=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
     const LINK='style="cursor:pointer;color:var(--text);font-weight:500;text-decoration:underline;text-decoration-color:transparent" onmouseover="this.style.color=\'var(--accent)\'" onmouseout="this.style.color=\'var(--text)\'"';
-    tbody.innerHTML=data.map(p=>'<tr>'
+    tbody.innerHTML=data.map(p=>{
+      const saldoReal=saldoMap[String(p.id)];
+      const eAtual=saldoReal!=null?saldoReal:(p.estoque_atual!=null?parseFloat(p.estoque_atual):null);
+      const eMin=p.estoque_minimo!=null?parseFloat(p.estoque_minimo):null;
+      const eCor=eAtual==null?'var(--text3)':eAtual===0?'var(--danger)':(eMin!=null&&eAtual<eMin?'#f59e0b':'var(--success)');
+      const eIcon=eAtual==null?'—':eAtual===0?'⚠️ 0':(eMin!=null&&eAtual<eMin?'⚠️ '+eAtual:String(eAtual));
+      return '<tr>'
       +'<td style="color:var(--text3)">'+p.id+'</td>'
       +'<td><div data-pid="'+p.id+'" data-pnome="'+p.nome+'" onclick="abrirGaleriaFromProd(parseInt(this.dataset.pid),this.dataset.pnome)" title="Ver fotos" style="cursor:pointer;display:inline-block">'+(p.imagem_base64?'<img src="'+p.imagem_base64+'" style="width:36px;height:36px;border-radius:6px;object-fit:cover">':'<span style="font-size:22px">📦</span>')+'</div></td>'
       +'<td style="color:var(--text3);font-size:12px">'+(p.codigo||'-')+'</td>'
@@ -4997,10 +5014,12 @@ async function carregarProdutos(filtro=''){
       +'<td>'+(p.categoria||'-')+'</td>'
       +'<td><span class="badge" style="background:var(--surface2);color:var(--text2)">'+(p.unidade||'un')+'</span></td>'
       +'<td style="color:var(--success);font-weight:600">'+fmtV(p.preco_venda)+'</td>'
-      +'<td>'+(p.estoque_minimo!=null?p.estoque_minimo:'-')+'</td>'
+      +'<td style="font-weight:700;color:'+eCor+';min-width:60px" title="Estoque disponível em todas as variações">'+eIcon+'</td>'
+      +'<td style="color:var(--text3)">'+(p.estoque_minimo!=null?p.estoque_minimo:'-')+'</td>'
       +'<td><span class="badge '+(p.ativo?'badge-ativo':'badge-inativo')+'">'+(p.ativo?'Ativo':'Inativo')+'</span></td>'
-      +'<td><div class="action-btns">'+(p.ativo?'<button class="btn-sm btn-deact" onclick="toggleProduto('+p.id+',false)">Desativar</button>':'<button class="btn-sm btn-react" onclick="toggleProduto('+p.id+',true)">Reativar</button>')+'</div></td></tr>').join('');
-  }catch(e){tbody.innerHTML='<tr><td colspan="10" class="empty">Erro: '+e.message+'</td></tr>';}
+      +'<td><div class="action-btns">'+(p.ativo?'<button class="btn-sm btn-deact" onclick="toggleProduto('+p.id+',false)">Desativar</button>':'<button class="btn-sm btn-react" onclick="toggleProduto('+p.id+',true)">Reativar</button>')+'</div></td></tr>';
+    }).join('');
+  }catch(e){tbody.innerHTML='<tr><td colspan="11" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 function buscarProdutos(){carregarProdutos(document.getElementById('prod-busca')?.value?.trim()||'');}
 function limparBuscaProd(){const el=document.getElementById('prod-busca');if(el)el.value='';carregarProdutos();}
@@ -5020,6 +5039,7 @@ async function openModalProduto(mode,id){
     campos.forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     const pu=document.getElementById('prod-unidade');if(pu)pu.value='un';
     if(selForn)selForn.value='';
+    const wrapEst=document.getElementById('prod-estoque-atual-wrap');if(wrapEst)wrapEst.style.display='none';
   } else {
     document.getElementById('modal-prod-titulo').textContent='Editar Produto';editingProdutoId=id;
     const data=await api('produtos?id=eq.'+id+'&select=*');if(!data||!data.length)return;const p=data[0];
@@ -5028,6 +5048,24 @@ async function openModalProduto(mode,id){
     const pu=document.getElementById('prod-unidade');if(pu)pu.value=p.unidade||'un';
     set('prod-custo',p.preco_custo);set('prod-venda',p.preco_venda);set('prod-est-min',p.estoque_minimo);set('prod-est-max',p.estoque_maximo);set('prod-obs',p.observacoes);
     if(selForn)selForn.value=p.fornecedor_id||'';
+    // Mostrar estoque atual (leitura de estoque_saldo para garantir dado atualizado)
+    const wrapEst=document.getElementById('prod-estoque-atual-wrap');
+    const dispEst=document.getElementById('prod-estoque-atual-display');
+    if(wrapEst)wrapEst.style.display='block';
+    if(dispEst){
+      dispEst.textContent='Carregando...';dispEst.style.color='var(--text3)';
+      try{
+        const saldos=await api('estoque_saldo?produto_id=eq.'+id+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade');
+        const total=(saldos||[]).reduce((s,r)=>s+parseFloat(r.quantidade||0),0);
+        const eMin=p.estoque_minimo!=null?parseFloat(p.estoque_minimo):null;
+        dispEst.textContent=total+' '+(p.unidade||'un');
+        dispEst.style.color=total===0?'var(--danger)':(eMin!=null&&total<eMin?'#f59e0b':'var(--success)');
+        // Sync estoque_atual no banco se diferente
+        if(p.estoque_atual==null||parseFloat(p.estoque_atual)!==total){
+          api('produtos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({estoque_atual:total})}).catch(()=>{});
+        }
+      }catch(e2){dispEst.textContent=p.estoque_atual!=null?p.estoque_atual+' '+(p.unidade||'un'):'—';dispEst.style.color='var(--text3)';}
+    }
     if(p.imagens_base64&&p.imagens_base64.length){prodFotosArray=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');}
     else if(p.imagem_base64){prodFotosArray=[p.imagem_base64];}
     renderProdFotosGrid();
