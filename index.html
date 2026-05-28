@@ -4365,6 +4365,8 @@ async function chamarGeminiComHistorico(mensagens, maxTokens=1500){
   if(!texto)throw new Error('Resposta vazia do Groq.');
   return texto;
 }
+
+async function executarAnaliseIA(){
   const btn=document.getElementById('btn-exec-ia');
   const resultado=document.getElementById('ia-resultado');
   const pf=currentUser.perfil||'master';
