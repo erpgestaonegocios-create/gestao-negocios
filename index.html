@@ -654,7 +654,7 @@
       <div class="form-section">Estoque</div>
       <div class="mfield col-2" id="prod-estoque-atual-wrap" style="display:none">
         <label>Estoque Atual <span style="font-size:11px;color:var(--text3);font-weight:400">(atualizado automaticamente)</span></label>
-        <div id="prod-estoque-atual-display" style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:15px;font-weight:700;color:var(--success)">—</div>
+        <div id="prod-estoque-atual-display" style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;min-height:42px;display:flex;align-items:center">—</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">Este campo é calculado automaticamente a partir das movimentações de estoque. Para alterar, use o menu <strong>Controle de Estoque → Nova Movimentação</strong>.</div>
       </div>
       <div class="mfield col-1"><label>Estoque Mínimo</label><input type="number" id="prod-est-min" placeholder="0" min="0" step="1"></div>
@@ -5057,18 +5057,32 @@ async function openModalProduto(mode,id){
     const dispEst=document.getElementById('prod-estoque-atual-display');
     if(wrapEst)wrapEst.style.display='block';
     if(dispEst){
-      dispEst.textContent='Carregando...';dispEst.style.color='var(--text3)';
+      dispEst.innerHTML='<span style="color:var(--text3)">Carregando...</span>';
       try{
-        const saldos=await api('estoque_saldo?produto_id=eq.'+id+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade');
+        const saldos=await api('estoque_saldo?produto_id=eq.'+id+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=genero,tamanho,quantidade&order=genero.asc,tamanho.asc');
         const total=(saldos||[]).reduce((s,r)=>s+parseFloat(r.quantidade||0),0);
         const eMin=p.estoque_minimo!=null?parseFloat(p.estoque_minimo):null;
-        dispEst.textContent=total+' '+(p.unidade||'un');
-        dispEst.style.color=total===0?'var(--danger)':(eMin!=null&&total<eMin?'#f59e0b':'var(--success)');
+        const corTotal=total===0?'var(--danger)':(eMin!=null&&total<eMin?'#f59e0b':'var(--success)');
+        // Montar tags por variação (mesmo estilo do carrinho)
+        const tags=(saldos||[]).filter(s=>parseFloat(s.quantidade||0)>0).map(s=>{
+          const g=s.genero?s.genero.charAt(0).toUpperCase()+s.genero.slice(1):'';
+          const t=s.tamanho||'';
+          const label=([g,t].filter(Boolean).join(' '))||'Único';
+          const qtd=parseFloat(s.quantidade);
+          const cor=qtd===0?'var(--danger)':(eMin!=null&&qtd<eMin?'#f59e0b':'var(--success)');
+          return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:rgba(76,175,125,.12);border:1px solid '+cor+';border-radius:20px;font-size:12px;font-weight:600;color:'+cor+';white-space:nowrap">'+label+': '+qtd+'</span>';
+        }).join(' ');
+        dispEst.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+          +'<span style="font-size:16px;font-weight:700;color:'+corTotal+'">'+total+' '+(p.unidade||'un')+' total</span>'
+          +(tags?'<span style="color:var(--border)">|</span>'+tags:'')
+          +'</div>';
         // Sync estoque_atual no banco se diferente
         if(p.estoque_atual==null||parseFloat(p.estoque_atual)!==total){
           api('produtos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({estoque_atual:total})}).catch(()=>{});
         }
-      }catch(e2){dispEst.textContent=p.estoque_atual!=null?p.estoque_atual+' '+(p.unidade||'un'):'—';dispEst.style.color='var(--text3)';}
+      }catch(e2){
+        dispEst.innerHTML='<span style="color:var(--text3)">'+(p.estoque_atual!=null?p.estoque_atual+' '+(p.unidade||'un'):'—')+'</span>';
+      }
     }
     if(p.imagens_base64&&p.imagens_base64.length){prodFotosArray=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');}
     else if(p.imagem_base64){prodFotosArray=[p.imagem_base64];}
