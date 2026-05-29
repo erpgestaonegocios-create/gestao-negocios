@@ -2666,7 +2666,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
   openModal('modal-historico-compras');
   const pf=currentUser.perfil||'master';
   try{
-    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,created_at.desc,id.desc');
+    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,id.desc');
     const wrap=document.getElementById('hist-compras-conteudo');
     if(!compras||!compras.length){
       wrap.innerHTML='<div class="empty">Nenhuma compra registrada para este cliente.</div>';return;
@@ -2683,7 +2683,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
     html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
     html+=compras.map(comp=>`<tr>
       <td style="font-size:12px;white-space:nowrap">${fmtD(comp.data_compra)}</td>
-      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtH(comp.created_at)}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtH(comp.criado_em)}</td>
       <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}${comp.produtos?.codigo?' <span style="color:var(--text3);font-size:11px">['+comp.produtos.codigo+']</span>':''}</td>
       <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
       <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
@@ -3137,7 +3137,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
   openModal('modal-historico-compras');
   const pf=currentUser.perfil||'master';
   try{
-    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,created_at.desc,id.desc');
+    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,id.desc');
     const wrap=document.getElementById('hist-compras-conteudo');
     if(!compras||!compras.length){
       wrap.innerHTML='<div class="empty">Nenhuma compra registrada para este cliente.</div>';return;
@@ -3154,7 +3154,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
     html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
     html+=compras.map(comp=>`<tr>
       <td style="font-size:12px;white-space:nowrap">${fmtD(comp.data_compra)}</td>
-      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtH(comp.created_at)}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtH(comp.criado_em)}</td>
       <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}${comp.produtos?.codigo?' <span style="color:var(--text3);font-size:11px">['+comp.produtos.codigo+']</span>':''}</td>
       <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
       <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
@@ -5849,8 +5849,8 @@ async function carregarFluxoCaixa(){
 
   try{
     const [despesas,receitas]=await Promise.all([
-      api('financeiro_lancamentos?select=id,descricao,valor,status,created_at&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&data_vencimento=eq.'+data+'&order=created_at.asc,id.asc'),
-      api('financeiro_lancamentos?select=id,descricao,valor,status,created_at&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&data_vencimento=eq.'+data+'&order=created_at.asc,id.asc'),
+      api('financeiro_lancamentos?select=id,descricao,valor,status,alterado_em&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&data_vencimento=eq.'+data+'&order=id.asc'),
+      api('financeiro_lancamentos?select=id,descricao,valor,status,alterado_em&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&data_vencimento=eq.'+data+'&order=id.asc'),
     ]);
     const fmtHCx=ts=>ts?new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
     const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
@@ -5875,7 +5875,7 @@ async function carregarFluxoCaixa(){
           +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Valor</th>'
           +'<th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Status</th>'
           +'</tr></thead><tbody>'
-          +(despesas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:11px;color:var(--text3);white-space:nowrap">'+fmtHCx(l.created_at)+'</td><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--danger)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
+          +(despesas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:11px;color:var(--text3);white-space:nowrap">'+fmtHCx(l.alterado_em)+'</td><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--danger)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
           +'<tr style="border-top:2px solid var(--border);background:var(--surface2)"><td colspan="2" style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text)">Total</td><td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:var(--danger)">'+fmt(totalGasto)+'</td><td></td></tr>'
           +'</tbody></table>';
       }
@@ -5893,7 +5893,7 @@ async function carregarFluxoCaixa(){
           +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Valor</th>'
           +'<th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Status</th>'
           +'</tr></thead><tbody>'
-          +(receitas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:11px;color:var(--text3);white-space:nowrap">'+fmtHCx(l.created_at)+'</td><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--success)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
+          +(receitas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:11px;color:var(--text3);white-space:nowrap">'+fmtHCx(l.alterado_em)+'</td><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--success)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
           +'<tr style="border-top:2px solid var(--border);background:var(--surface2)"><td colspan="2" style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text)">Total</td><td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:var(--success)">'+fmt(totalVendido)+'</td><td></td></tr>'
           +'</tbody></table>';
       }
@@ -6011,7 +6011,7 @@ async function carregarLancamentos(){
     const status=document.getElementById('fin-filtro-status')?.value||'';
     const mes=document.getElementById('fin-filtro-mes')?.value||'';
     const dia=document.getElementById('fin-filtro-dia')?.value||'';
-    let q='financeiro_lancamentos?select=*,clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_vencimento.asc,created_at.asc,id.asc';
+    let q='financeiro_lancamentos?select=*,clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_vencimento.asc,id.asc';
     if(tipo)q+='&tipo=eq.'+tipo;if(status)q+='&status=eq.'+status;
     if(dia){q+='&data_vencimento=eq.'+dia;}
     else if(mes){
@@ -6026,7 +6026,7 @@ async function carregarLancamentos(){
       const st=FIN_STATUS[l.status]||{label:l.status,icon:'',cls:'badge-usuario'};
       const tipoColor=l.tipo==='receita'?'var(--success)':'var(--danger)';
       const venc=l.data_vencimento?new Date(l.data_vencimento+'T12:00').toLocaleDateString('pt-BR'):'-';
-      const hora=l.created_at?new Date(l.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
+      const hora=l.alterado_em?new Date(l.alterado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
       return '<tr><td style="color:var(--text3)">'+l.id+'</td>'
         +'<td><span style="color:'+tipoColor+';font-weight:600">'+(l.tipo==='receita'?'📈 Receita':'📉 Despesa')+'</span></td>'
         +'<td><span '+LINK+' onclick="openModalLancamento(\'edit\','+l.id+')">'+l.descricao+'</span></td>'
