@@ -2666,22 +2666,24 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
   openModal('modal-historico-compras');
   const pf=currentUser.perfil||'master';
   try{
-    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,criado_em.desc');
+    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,created_at.desc,id.desc');
     const wrap=document.getElementById('hist-compras-conteudo');
     if(!compras||!compras.length){
       wrap.innerHTML='<div class="empty">Nenhuma compra registrada para este cliente.</div>';return;
     }
     const fmtV=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
     const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'-';
+    const fmtH=ts=>ts?new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
     // Totalizador
     const totalGasto=compras.reduce((s,c)=>s+parseFloat(c.total_pago||0),0);
     let html='<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">';
     html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total de Compras</div><div style="font-size:22px;font-weight:700;color:var(--accent)">'+compras.length+'</div></div>';
     html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total Gasto</div><div style="font-size:22px;font-weight:700;color:var(--success)">'+fmtV(totalGasto)+'</div></div>';
     html+='</div>';
-    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
+    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
     html+=compras.map(comp=>`<tr>
-      <td style="font-size:12px">${fmtD(comp.data_compra)}</td>
+      <td style="font-size:12px;white-space:nowrap">${fmtD(comp.data_compra)}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtH(comp.created_at)}</td>
       <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}${comp.produtos?.codigo?' <span style="color:var(--text3);font-size:11px">['+comp.produtos.codigo+']</span>':''}</td>
       <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
       <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
@@ -3135,22 +3137,24 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
   openModal('modal-historico-compras');
   const pf=currentUser.perfil||'master';
   try{
-    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,criado_em.desc');
+    const compras=await api('cliente_compras?select=*,produtos(nome,codigo)&cliente_id=eq.'+clienteId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc,created_at.desc,id.desc');
     const wrap=document.getElementById('hist-compras-conteudo');
     if(!compras||!compras.length){
       wrap.innerHTML='<div class="empty">Nenhuma compra registrada para este cliente.</div>';return;
     }
     const fmtV=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
     const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'-';
+    const fmtH=ts=>ts?new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
     // Totalizador
     const totalGasto=compras.reduce((s,c)=>s+parseFloat(c.total_pago||0),0);
     let html='<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">';
     html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total de Compras</div><div style="font-size:22px;font-weight:700;color:var(--accent)">'+compras.length+'</div></div>';
     html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total Gasto</div><div style="font-size:22px;font-weight:700;color:var(--success)">'+fmtV(totalGasto)+'</div></div>';
     html+='</div>';
-    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
+    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
     html+=compras.map(comp=>`<tr>
-      <td style="font-size:12px">${fmtD(comp.data_compra)}</td>
+      <td style="font-size:12px;white-space:nowrap">${fmtD(comp.data_compra)}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtH(comp.created_at)}</td>
       <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}${comp.produtos?.codigo?' <span style="color:var(--text3);font-size:11px">['+comp.produtos.codigo+']</span>':''}</td>
       <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
       <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
@@ -4688,7 +4692,7 @@ function renderFinanceiro(){
     +'<input type="month" id="fin-filtro-mes" onchange="onFinFiltroMesChange()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none">'
     +'<input type="date" id="fin-filtro-dia" oninput="onFinFiltroDiaChange()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none" title="Filtrar por dia específico">'
     +'</div>'
-    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Data</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Data</th><th>Hora</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>'
     +'<tbody id="tbl-lancamentos"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div></div>'
     +'<div id="fin-vista-caixa" style="display:none">'  +'<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">'  +'<label style="font-size:13px;color:var(--text2);font-weight:600">Data:</label>'  +'<input type="date" id="cx-filtro-data" onchange="carregarFluxoCaixa()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">'  +'<button onclick="carregarFluxoCaixa()" style="padding:8px 14px;background:var(--accent);border:none;color:#fff;border-radius:6px;font-size:12px;cursor:pointer">Atualizar</button>'  +'</div>'  +'<div id="cx-dashboard" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gasto no Dia</div><div id="cx-gasto" style="font-size:24px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reposições do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Vendido no Dia</div><div id="cx-vendido" style="font-size:24px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Receitas do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Lucro do Dia</div><div id="cx-lucro" style="font-size:24px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Compras</div></div>'  +'</div>'  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📦 Reposições do Dia</div>'  +'<div id="cx-lista-despesas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🛒 Vendas do Dia</div>'  +'<div id="cx-lista-receitas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'</div>'  +'</div>';
 }
@@ -5383,7 +5387,7 @@ async function carregarHistorico(){
   const pf=currentUser.perfil||'master';
   const prodFiltro=document.getElementById('hist-filtro-produto')?.value||'';
   try{
-    let q='estoque_movimentos?select=*,produtos(nome,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=criado_em.desc&limit=100';
+    let q='estoque_movimentos?select=*,produtos(nome,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=criado_em.desc,id.desc&limit=200';
     if(prodFiltro){
       q+='&produto_id=eq.'+prodFiltro;
       const hg=window._histGenero;const ht=window._histTamanho;
@@ -5396,9 +5400,14 @@ async function carregarHistorico(){
     const tipoLabel={entrada:'Entrada',saida:'Saída',ajuste:'Ajuste',transferencia:'Transferência'};
     const tipoColor={entrada:'var(--success)',saida:'var(--danger)',ajuste:'var(--warn)',transferencia:'var(--accent)'};
     const capG=g=>g?g.charAt(0).toUpperCase()+g.slice(1):'—';
-    wrap.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Tipo</th><th>Qtd</th><th>Saldo Ant.</th><th>Saldo Post.</th><th>Motivo</th></tr></thead><tbody>'
-      +movs.map(m=>{const dt=new Date(m.criado_em).toLocaleString('pt-BR');const sinal=m.tipo==='entrada'?'+':m.tipo==='saida'?'-':'';
-        return '<tr><td style="font-size:12px;color:var(--text3)">'+dt+'</td>'
+    wrap.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Tipo</th><th>Qtd</th><th>Saldo Ant.</th><th>Saldo Post.</th><th>Motivo</th></tr></thead><tbody>'
+      +movs.map(m=>{
+        const dtObj=m.criado_em?new Date(m.criado_em):null;
+        const dtStr=dtObj?dtObj.toLocaleDateString('pt-BR'):'—';
+        const hrStr=dtObj?dtObj.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
+        const sinal=m.tipo==='entrada'?'+':m.tipo==='saida'?'-':'';
+        return '<tr><td style="font-size:12px;color:var(--text3);white-space:nowrap">'+dtStr+'</td>'
+          +'<td style="font-size:12px;color:var(--text3);white-space:nowrap">'+hrStr+'</td>'
           +'<td style="font-weight:500;color:var(--text)">'+(m.produtos?.nome||'—')+'</td>'
           +'<td style="font-size:12px;color:var(--text2)">'+capG(m.genero)+'</td>'
           +'<td style="font-size:12px;font-weight:'+(m.tamanho?'600':'400')+';color:var(--accent)">'+(m.tamanho||'—')+'</td>'
@@ -5840,9 +5849,10 @@ async function carregarFluxoCaixa(){
 
   try{
     const [despesas,receitas]=await Promise.all([
-      api('financeiro_lancamentos?select=descricao,valor,status&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&data_vencimento=eq.'+data+'&order=id.desc'),
-      api('financeiro_lancamentos?select=descricao,valor,status&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&data_vencimento=eq.'+data+'&order=id.desc'),
+      api('financeiro_lancamentos?select=id,descricao,valor,status,created_at&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&data_vencimento=eq.'+data+'&order=created_at.asc,id.asc'),
+      api('financeiro_lancamentos?select=id,descricao,valor,status,created_at&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&data_vencimento=eq.'+data+'&order=created_at.asc,id.asc'),
     ]);
+    const fmtHCx=ts=>ts?new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
     const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
     const totalGasto=soma(despesas);
     const totalVendido=soma(receitas);
@@ -5860,12 +5870,13 @@ async function carregarFluxoCaixa(){
       } else {
         listaDep.innerHTML='<table style="width:100%;border-collapse:collapse">'
           +'<thead><tr style="background:var(--surface2)">'
+          +'<th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Hora</th>'
           +'<th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Descrição</th>'
           +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Valor</th>'
           +'<th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Status</th>'
           +'</tr></thead><tbody>'
-          +(despesas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--danger)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
-          +'<tr style="border-top:2px solid var(--border);background:var(--surface2)"><td style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text)">Total</td><td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:var(--danger)">'+fmt(totalGasto)+'</td><td></td></tr>'
+          +(despesas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:11px;color:var(--text3);white-space:nowrap">'+fmtHCx(l.created_at)+'</td><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--danger)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
+          +'<tr style="border-top:2px solid var(--border);background:var(--surface2)"><td colspan="2" style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text)">Total</td><td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:var(--danger)">'+fmt(totalGasto)+'</td><td></td></tr>'
           +'</tbody></table>';
       }
     }
@@ -5877,12 +5888,13 @@ async function carregarFluxoCaixa(){
       } else {
         listaRec.innerHTML='<table style="width:100%;border-collapse:collapse">'
           +'<thead><tr style="background:var(--surface2)">'
+          +'<th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Hora</th>'
           +'<th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Descrição</th>'
           +'<th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Valor</th>'
           +'<th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Status</th>'
           +'</tr></thead><tbody>'
-          +(receitas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--success)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
-          +'<tr style="border-top:2px solid var(--border);background:var(--surface2)"><td style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text)">Total</td><td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:var(--success)">'+fmt(totalVendido)+'</td><td></td></tr>'
+          +(receitas||[]).map((l,i)=>'<tr style="border-top:1px solid var(--border);background:'+(i%2===0?'transparent':'rgba(255,255,255,.02)')+'"><td style="padding:10px 12px;font-size:11px;color:var(--text3);white-space:nowrap">'+fmtHCx(l.created_at)+'</td><td style="padding:10px 12px;font-size:12px;color:var(--text)">'+(l.descricao||'—')+'</td><td style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--success)">'+fmt(l.valor)+'</td><td style="padding:10px 12px;text-align:center;font-size:11px;color:'+(l.status==='pago'?'var(--success)':'var(--warn)')+'">'+l.status+'</td></tr>').join('')
+          +'<tr style="border-top:2px solid var(--border);background:var(--surface2)"><td colspan="2" style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text)">Total</td><td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:var(--success)">'+fmt(totalVendido)+'</td><td></td></tr>'
           +'</tbody></table>';
       }
     }
@@ -5999,7 +6011,7 @@ async function carregarLancamentos(){
     const status=document.getElementById('fin-filtro-status')?.value||'';
     const mes=document.getElementById('fin-filtro-mes')?.value||'';
     const dia=document.getElementById('fin-filtro-dia')?.value||'';
-    let q='financeiro_lancamentos?select=*,clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_vencimento.asc';
+    let q='financeiro_lancamentos?select=*,clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_vencimento.asc,created_at.asc,id.asc';
     if(tipo)q+='&tipo=eq.'+tipo;if(status)q+='&status=eq.'+status;
     if(dia){q+='&data_vencimento=eq.'+dia;}
     else if(mes){
@@ -6008,16 +6020,18 @@ async function carregarLancamentos(){
       q+='&data_vencimento=gte.'+mes+'-01&data_vencimento=lt.'+proxMes+'-01';
     }
     const data=await api(q);
-    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="7" class="empty">Nenhum lançamento.</td></tr>';return;}
+    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty">Nenhum lançamento.</td></tr>';return;}
     const LINK='style="cursor:pointer;color:var(--text);font-weight:500;text-decoration:underline;text-decoration-color:transparent" onmouseover="this.style.color=\'var(--accent)\'" onmouseout="this.style.color=\'var(--text)\'"';
     tbody.innerHTML=data.map(l=>{
       const st=FIN_STATUS[l.status]||{label:l.status,icon:'',cls:'badge-usuario'};
       const tipoColor=l.tipo==='receita'?'var(--success)':'var(--danger)';
       const venc=l.data_vencimento?new Date(l.data_vencimento+'T12:00').toLocaleDateString('pt-BR'):'-';
+      const hora=l.created_at?new Date(l.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
       return '<tr><td style="color:var(--text3)">'+l.id+'</td>'
         +'<td><span style="color:'+tipoColor+';font-weight:600">'+(l.tipo==='receita'?'📈 Receita':'📉 Despesa')+'</span></td>'
         +'<td><span '+LINK+' onclick="openModalLancamento(\'edit\','+l.id+')">'+l.descricao+'</span></td>'
-        +'<td style="font-size:12px">'+venc+'</td>'
+        +'<td style="font-size:12px;white-space:nowrap">'+venc+'</td>'
+        +'<td style="font-size:12px;color:var(--text3);white-space:nowrap">'+hora+'</td>'
         +'<td style="font-weight:700;color:'+tipoColor+'">'+fmt(l.valor)+'</td>'
         +'<td><span class="badge '+st.cls+'">'+st.icon+' '+st.label+'</span></td>'
         +'<td><div class="action-btns">'
@@ -6026,7 +6040,7 @@ async function carregarLancamentos(){
         +(l.status!=='cancelado'?'<button class="btn-sm btn-deact" onclick="mudarStatusLan('+l.id+',\'cancelado\')">Cancelar</button>':'')
         +'</div></td></tr>';
     }).join('');
-  }catch(e){tbody.innerHTML='<tr><td colspan="7" class="empty">Erro: '+e.message+'</td></tr>';}
+  }catch(e){tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 
 async function mudarStatusLan(id,status){
