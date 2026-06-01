@@ -3376,6 +3376,8 @@ async function carregarAlertas(){
   const pf=currentUser.perfil||'master';
   const hoje=new Date();
   const hojeStr=hojeLocalStr(hoje);
+  const mesAtual=hoje.getMonth()+1;
+  const diaAtual=hoje.getDate();
   const mesStr=mesLocalStr(hoje);
   const {ini:iniMes,proxMes:proxMesStr}=faixaMes(mesStr);
   wrap.innerHTML='<div class="loading">Verificando alertas...</div>';
