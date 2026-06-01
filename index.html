@@ -6017,29 +6017,31 @@ async function carregarDashboard(){
 
 const GASTOS_CATS=['🚗 Viagem','🏨 Hospedagem','🛍️ Embalagem/Sacola','📣 Marketing','📦 Frete/Logística','🖨️ Material de Escritório','💡 Utilities/Contas','🔧 Manutenção','👗 Outros'];
 
-async function carregarGastos(){
+async function carregarGastos(mesFiltro){
   const wrap=document.getElementById('gastos-conteudo');if(!wrap)return;
   const pf=currentUser.perfil||'master';
   wrap.innerHTML='<div class="loading">Carregando gastos...</div>';
   try{
-    const mes=mesLocalStr();
+    const mes=mesFiltro||mesLocalStr();
     const {ini,proxMes}=faixaMes(mes);
+    const nomeMes=new Date(mes+'-15').toLocaleString('pt-BR',{month:'long',year:'numeric'});
     const [gastosMes,gastosTodos]=await Promise.all([
-      api('financeiro_lancamentos?select=id,descricao,valor,data_vencimento,observacoes,alterado_em&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago&observacoes=like.GASTO_LOJA:*&data_vencimento=gte.'+ini+'&data_vencimento=lt.'+proxMes+'-01&order=id.desc'),
+      api('financeiro_lancamentos?select=id,descricao,valor,status,data_vencimento,observacoes,alterado_em&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&observacoes=like.GASTO_LOJA:*&data_vencimento=gte.'+ini+'&data_vencimento=lt.'+proxMes+'-01&order=id.desc'),
       api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago&observacoes=like.GASTO_LOJA:*'),
     ]);
     const totalMes=(gastosMes||[]).reduce((s,l)=>s+parseFloat(l.valor||0),0);
     const totalGeral=(gastosTodos||[]).reduce((s,l)=>s+parseFloat(l.valor||0),0);
     const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'-';
     const catsHtml=GASTOS_CATS.map(c=>`<option value="${c}">${c}</option>`).join('');
+    const stBadge=st=>st==='pago'?'<span style="color:var(--success);font-size:11px;font-weight:600">✅ Pago</span>':'<span style="color:#f59e0b;font-size:11px;font-weight:600">⏳ Pendente</span>';
     let html=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gastos de ${new Date().toLocaleString('pt-BR',{month:'long'})}</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gastos de ${nomeMes}</div>
         <div style="font-size:24px;font-weight:700;color:#f59e0b">${fmt(totalMes)}</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Acumulado</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Pago Acumulado</div>
         <div style="font-size:24px;font-weight:700;color:var(--danger)">${fmt(totalGeral)}</div>
       </div>
     </div>
@@ -6065,26 +6067,36 @@ async function carregarGastos(){
       <div id="gasto-msg" style="display:none;margin-bottom:10px"></div>
       <button onclick="salvarGasto()" class="btn-new">💾 Registrar Gasto</button>
     </div>
-    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">📋 Gastos do mês de ${new Date().toLocaleString('pt-BR',{month:'long'})}</div>`;
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">📋 Gastos de ${nomeMes}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--text3)">Filtrar mês:</label>
+        <input type="month" id="gastos-filtro-mes" value="${mes}" onchange="carregarGastos(this.value)"
+          style="padding:7px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+        <button onclick="carregarGastos()" style="padding:7px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:12px;cursor:pointer" title="Voltar ao mês atual">Mês atual</button>
+      </div>
+    </div>`;
     if(!gastosMes||!gastosMes.length){
-      html+='<div class="empty">Nenhum gasto registrado neste mês.</div>';
+      html+='<div class="empty">Nenhum gasto registrado em '+nomeMes+'.</div>';
     } else {
-      html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Ações</th></tr></thead><tbody>'
+      html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody>'
         +gastosMes.map(l=>{
           const obs=String(l.observacoes||'');
           const cat=obs.startsWith('GASTO_LOJA:')?obs.slice('GASTO_LOJA:'.length).split('|')[0].trim():'—';
-          const nota=obs.includes('|')?obs.split('|').slice(1).join('|').trim():'';
           return '<tr>'
             +'<td style="font-size:12px;white-space:nowrap">'+fmtD(l.data_vencimento)+'</td>'
             +'<td><span onclick="editarGasto('+l.id+')" style="padding:3px 10px;background:rgba(245,158,11,.12);border:1px solid #f59e0b;border-radius:20px;font-size:12px;font-weight:600;color:#f59e0b;white-space:nowrap;cursor:pointer;text-decoration:underline;text-decoration-color:#f59e0b55" title="Clique para editar">'+cat+' ✏️</span></td>'
             +'<td style="font-size:13px;color:var(--text)">'+l.descricao.replace(/^💸 [^—]+— /,'')+'</td>'
             +'<td style="font-weight:700;color:#f59e0b;white-space:nowrap">'+fmt(l.valor)+'</td>'
+            +'<td>'+stBadge(l.status)+'</td>'
             +'<td><button class="btn-sm btn-deact" onclick="cancelarGasto('+l.id+')">Excluir</button></td>'
             +'</tr>';
         }).join('')
         +'</tbody></table></div>';
     }
     wrap.innerHTML=html;
+    // Guardar mês ativo para que salvarGasto recarregue no mês correto
+    window._gastosMesFiltro=mes;
   }catch(e){wrap.innerHTML='<div class="empty" style="color:var(--danger)">Erro: '+e.message+'</div>';}
 }
 
@@ -6122,7 +6134,7 @@ async function salvarGasto(){
     if(el('gasto-data'))el('gasto-data').value=hojeLocalStr();
     if(el('gasto-status'))el('gasto-status').value='pendente';
     // Recarregar
-    setTimeout(()=>{carregarGastos();carregarDashboard();},400);
+    setTimeout(()=>{carregarGastos(window._gastosMesFiltro);carregarDashboard();},400);
   }catch(e){showMsg('Erro: '+e.message,'error');}
 }
 
@@ -6235,7 +6247,7 @@ async function cancelarGasto(id){
   if(!confirm('Excluir este gasto? Ele será removido dos lançamentos financeiros.'))return;
   try{
     await api('financeiro_lancamentos?id=eq.'+id,{method:'DELETE'});
-    carregarGastos();carregarDashboard();
+    carregarGastos(window._gastosMesFiltro);carregarDashboard();
   }catch(e){alert('Erro ao excluir: '+e.message);}
 }
 function onFinFiltroMesChange(){
