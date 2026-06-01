@@ -5953,20 +5953,18 @@ async function carregarFinanceiro(){
   const pf=currentUser.perfil||'master';
   try{finCategoriasCache=await api('financeiro_categorias?select=*&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc')||[];}catch(e){finCategoriasCache=[];}
   const mes=document.getElementById('fin-filtro-mes');
-  if(!mes){
-    // DOM ainda não está pronto — aguardar e tentar novamente
-    setTimeout(()=>carregarFinanceiro(),200);return;
-  }
-  // Sempre inicializar o filtro de mês com o mês atual ao entrar no painel
+  if(!mes){setTimeout(()=>carregarFinanceiro(),200);return;}
+  // Sempre resetar para aba Lançamentos ao entrar no menu
+  finAba('lancamentos');
+  // Reiniciar filtros com mês atual
   mes.value=mesLocalStr();
-  // Limpar filtro de dia para evitar conflito
   const dia=document.getElementById('fin-filtro-dia');if(dia)dia.value='';
-  const dtCx=document.getElementById('cx-filtro-data');if(dtCx&&!dtCx.value)dtCx.value=hojeLocalStr();
+  const dtCx=document.getElementById('cx-filtro-data');if(dtCx)dtCx.value=hojeLocalStr();
   try{
     await Promise.all([carregarDashboard(),carregarLancamentos()]);
   }catch(e){
     const tbody=document.getElementById('tbl-lancamentos');
-    if(tbody)tbody.innerHTML='<tr><td colspan="7" class="empty">Erro: '+e.message+'</td></tr>';
+    if(tbody)tbody.innerHTML='<tr><td colspan="8" class="empty">Erro: '+e.message+'</td></tr>';
   }
 }
 
