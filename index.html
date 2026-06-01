@@ -905,8 +905,7 @@
           <option value="cancelado">❌ Cancelado</option>
         </select>
       </div>
-      <div class="mfield col-2"><label>Categoria</label><select id="lan-categoria"><option value="">Sem categoria</option></select></div>
-      <div class="mfield col-2">
+      <div class="mfield col-2" id="lan-cliente-wrap">
         <label>Cliente vinculado</label>
         <div style="position:relative">
           <input type="text" id="lan-cliente-busca" placeholder="🔍 Digite para buscar cliente..." autocomplete="off"
@@ -6348,25 +6347,45 @@ async function openModalLancamento(mode,id){
   const pf=currentUser.perfil||'master';
   try{finCategoriasCache=await api('financeiro_categorias?select=*&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc')||[];}catch(e){}
   await carregarClientesLanCache();
+  const wrapCli=document.getElementById('lan-cliente-wrap');
   if(mode==='new'){
     document.getElementById('modal-lan-titulo').textContent='Novo Lançamento';
     ['lan-desc','lan-valor','lan-pagamento','lan-obs'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     const venc=document.getElementById('lan-vencimento');if(venc)venc.value=hojeLocalStr();
     const st=document.getElementById('lan-status');if(st)st.value='pendente';
     const rad=document.querySelector('input[name="lan-tipo"][value="receita"]');if(rad)rad.checked=true;
-    limparClienteLan();popularSelectCategorias('lan-categoria','receita');
+    limparClienteLan();
+    if(wrapCli)wrapCli.style.display='block';
   } else {
     editingLancamentoId=id;document.getElementById('modal-lan-titulo').textContent='Editar Lançamento';
     const data=await api('financeiro_lancamentos?id=eq.'+id+'&select=*');if(!data||!data.length)return;const l=data[0];
     const rad=document.querySelector('input[name="lan-tipo"][value="'+l.tipo+'"]');if(rad)rad.checked=true;
-    popularSelectCategorias('lan-categoria',l.tipo);
     const set=(i,v)=>{const el=document.getElementById(i);if(el)el.value=v||'';};
     set('lan-desc',l.descricao);set('lan-valor',l.valor);set('lan-vencimento',l.data_vencimento);set('lan-pagamento',l.data_pagamento);
     const st=document.getElementById('lan-status');if(st)st.value=l.status||'pendente';
-    const cat=document.getElementById('lan-categoria');if(cat)cat.value=l.categoria_id||'';
     set('lan-obs',l.observacoes);
     limparClienteLan();
-    if(l.cliente_id){const cli=clientesLanCache.find(x=>x.id===l.cliente_id);if(cli)selecionarClienteLan(cli.id,cli.nome);}
+    const isGastoLoja=String(l.observacoes||'').startsWith('GASTO_LOJA:');
+    const isVenda=l.tipo==='receita'&&String(l.observacoes||'').includes('automaticamente');
+    if(isGastoLoja){
+      // Gasto da loja: ocultar campo Cliente
+      if(wrapCli)wrapCli.style.display='none';
+    } else if(isVenda&&l.cliente_id){
+      // Receita de venda: exibir e preencher automaticamente com o cliente
+      if(wrapCli)wrapCli.style.display='block';
+      const cli=clientesLanCache.find(x=>x.id===l.cliente_id);
+      if(cli){selecionarClienteLan(cli.id,cli.nome);}
+      else{
+        // Buscar cliente direto se não estiver no cache
+        try{
+          const cliData=await api('clientes?id=eq.'+l.cliente_id+'&select=id,nome');
+          if(cliData&&cliData.length)selecionarClienteLan(cliData[0].id,cliData[0].nome);
+        }catch(e2){}
+      }
+    } else {
+      if(wrapCli)wrapCli.style.display='block';
+      if(l.cliente_id){const cli=clientesLanCache.find(x=>x.id===l.cliente_id);if(cli)selecionarClienteLan(cli.id,cli.nome);}
+    }
   }
   openModal('modal-lancamento');
 }
