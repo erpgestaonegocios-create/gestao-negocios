@@ -4659,10 +4659,11 @@ function renderAgendamentos(){
 
 function renderFinanceiro(){
   const temAg=perfilTemFunc('agendamentos');
-  const dashLojista='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Compra de Produtos</div><div id="fin-total-compra" style="font-size:24px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Custo total de reposição</div></div>'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Venda de Produtos</div><div id="fin-total-venda" style="font-size:24px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Total recebido nas vendas</div></div>'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Faturamento — Lucro</div><div id="fin-lucro" style="font-size:24px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Compras</div></div>'
+  const dashLojista='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Compra de Produtos</div><div id="fin-total-compra" style="font-size:22px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reposição de estoque</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;cursor:pointer" onclick="finAba(\'gastos\')" title="Clique para gerenciar gastos operacionais"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Despesas Operacionais</div><div id="fin-total-gastos" style="font-size:22px;font-weight:700;color:#f59e0b">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Viagem, hotel, embalagens…</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Vendas</div><div id="fin-total-venda" style="font-size:22px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Total recebido</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Lucro</div><div id="fin-lucro" style="font-size:22px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Todas despesas</div></div>'
     +'</div>';
   const dashCompleto='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Saldo Atual</div><div id="fin-saldo" style="font-size:24px;font-weight:700;color:var(--text)">—</div></div>'
@@ -4680,6 +4681,7 @@ function renderFinanceiro(){
     +'<div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)">'
     +'<button id="fin-aba-lan" onclick="finAba(\'lancamentos\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">📋 Lançamentos</button>'
     +'<button id="fin-aba-cx" onclick="finAba(\'caixa\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">📊 Fluxo de Caixa</button>'
+    +'<button id="fin-aba-gastos" onclick="finAba(\'gastos\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">💸 Gastos da Loja</button>'
     +'</div>'
     +'<div id="fin-vista-lancamentos">'
     +'<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
@@ -4690,7 +4692,8 @@ function renderFinanceiro(){
     +'</div>'
     +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Data</th><th>Hora</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>'
     +'<tbody id="tbl-lancamentos"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div></div>'
-    +'<div id="fin-vista-caixa" style="display:none">'  +'<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">'  +'<label style="font-size:13px;color:var(--text2);font-weight:600">Data:</label>'  +'<input type="date" id="cx-filtro-data" onchange="carregarFluxoCaixa()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">'  +'<button onclick="carregarFluxoCaixa()" style="padding:8px 14px;background:var(--accent);border:none;color:#fff;border-radius:6px;font-size:12px;cursor:pointer">Atualizar</button>'  +'</div>'  +'<div id="cx-dashboard" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gasto no Dia</div><div id="cx-gasto" style="font-size:24px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reposições do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Vendido no Dia</div><div id="cx-vendido" style="font-size:24px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Receitas do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Lucro do Dia</div><div id="cx-lucro" style="font-size:24px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Compras</div></div>'  +'</div>'  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📦 Reposições do Dia</div>'  +'<div id="cx-lista-despesas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🛒 Vendas do Dia</div>'  +'<div id="cx-lista-receitas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'</div>'  +'</div>';
+    +'<div id="fin-vista-caixa" style="display:none">'  +'<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">'  +'<label style="font-size:13px;color:var(--text2);font-weight:600">Data:</label>'  +'<input type="date" id="cx-filtro-data" onchange="carregarFluxoCaixa()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">'  +'<button onclick="carregarFluxoCaixa()" style="padding:8px 14px;background:var(--accent);border:none;color:#fff;border-radius:6px;font-size:12px;cursor:pointer">Atualizar</button>'  +'</div>'  +'<div id="cx-dashboard" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gasto no Dia</div><div id="cx-gasto" style="font-size:24px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reposições do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Vendido no Dia</div><div id="cx-vendido" style="font-size:24px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Receitas do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Lucro do Dia</div><div id="cx-lucro" style="font-size:24px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Compras</div></div>'  +'</div>'  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📦 Reposições do Dia</div>'  +'<div id="cx-lista-despesas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🛒 Vendas do Dia</div>'  +'<div id="cx-lista-receitas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'</div>'  +'</div>'
+    +'<div id="fin-vista-gastos" style="display:none"><div id="gastos-conteudo"><div class="loading">Carregando...</div></div></div>';
 }
 
 // ─── MÓDULO: CLIENTES ────────────────────────────────────────────
@@ -5920,23 +5923,29 @@ async function carregarFluxoCaixa(){
 }
 
 function finAba(aba){
-  const vLan=document.getElementById('fin-vista-lancamentos');const vCx=document.getElementById('fin-vista-caixa');
-  const btnLan=document.getElementById('fin-aba-lan');const btnCx=document.getElementById('fin-aba-cx');
+  const vLan=document.getElementById('fin-vista-lancamentos');
+  const vCx=document.getElementById('fin-vista-caixa');
+  const vGastos=document.getElementById('fin-vista-gastos');
+  const btnLan=document.getElementById('fin-aba-lan');
+  const btnCx=document.getElementById('fin-aba-cx');
+  const btnGastos=document.getElementById('fin-aba-gastos');
+  const abas=[{v:vLan,b:btnLan},{v:vCx,b:btnCx},{v:vGastos,b:btnGastos}];
+  abas.forEach(({v,b})=>{if(v)v.style.display='none';if(b){b.style.borderBottomColor='transparent';b.style.color='var(--text3)';}});
   if(aba==='lancamentos'){
-    if(vLan)vLan.style.display='block';if(vCx)vCx.style.display='none';
+    if(vLan)vLan.style.display='block';
     if(btnLan){btnLan.style.borderBottomColor='var(--accent)';btnLan.style.color='var(--accent)';}
-    if(btnCx){btnCx.style.borderBottomColor='transparent';btnCx.style.color='var(--text3)';}
-    // Garantir que filtro de mês está ativo (e dia está limpo)
     const dia=document.getElementById('fin-filtro-dia');if(dia)dia.value='';
-    const mes=document.getElementById('fin-filtro-mes');
-    if(mes&&!mes.value)mes.value=mesLocalStr();
+    const mes=document.getElementById('fin-filtro-mes');if(mes&&!mes.value)mes.value=mesLocalStr();
     carregarLancamentos();
-  } else {
-    if(vLan)vLan.style.display='none';if(vCx)vCx.style.display='block';
+  } else if(aba==='caixa'){
+    if(vCx)vCx.style.display='block';
     if(btnCx){btnCx.style.borderBottomColor='var(--accent)';btnCx.style.color='var(--accent)';}
-    if(btnLan){btnLan.style.borderBottomColor='transparent';btnLan.style.color='var(--text3)';}
     const dtFiltro=document.getElementById('cx-filtro-data');if(dtFiltro&&!dtFiltro.value)dtFiltro.value=hojeLocalStr();
     carregarFluxoCaixa();
+  } else if(aba==='gastos'){
+    if(vGastos)vGastos.style.display='block';
+    if(btnGastos){btnGastos.style.borderBottomColor='#f59e0b';btnGastos.style.color='#f59e0b';btnGastos.style.fontWeight='600';}
+    carregarGastos();
   }
 }
 
@@ -5966,15 +5975,20 @@ async function carregarDashboard(){
   const temAg=perfilTemFunc('agendamentos');
   try{
     if(!temAg){
-      const [compras,vendas]=await Promise.all([
-        api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago'),
+      const [despesas,vendas]=await Promise.all([
+        api('financeiro_lancamentos?select=valor,observacoes&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago'),
         api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pago'),
       ]);
       const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
-      const totalCompra=soma(compras);const totalVenda=soma(vendas);const lucro=totalVenda-totalCompra;
+      const gastosOp=(despesas||[]).filter(l=>String(l.observacoes||'').startsWith('GASTO_LOJA:'));
+      const comprasProd=(despesas||[]).filter(l=>!String(l.observacoes||'').startsWith('GASTO_LOJA:'));
+      const totalGastosOp=soma(gastosOp);
+      const totalCompra=soma(comprasProd);
+      const totalVenda=soma(vendas);
+      const lucro=totalVenda-totalCompra-totalGastosOp;
       const el=id=>document.getElementById(id);
       if(el('fin-total-compra'))el('fin-total-compra').textContent=fmt(totalCompra);
-      else console.warn('fin-total-compra não encontrado no DOM');
+      if(el('fin-total-gastos')){el('fin-total-gastos').textContent=fmt(totalGastosOp);el('fin-total-gastos').style.color=totalGastosOp>0?'#f59e0b':'var(--text3)';}
       if(el('fin-total-venda'))el('fin-total-venda').textContent=fmt(totalVenda);
       if(el('fin-lucro')){el('fin-lucro').textContent=fmt(lucro);el('fin-lucro').style.color=lucro>=0?'var(--success)':'var(--danger)';}
     } else {
@@ -6004,6 +6018,117 @@ async function carregarDashboard(){
 }
 
 
+const GASTOS_CATS=['🚗 Viagem','🏨 Hospedagem','🛍️ Embalagem/Sacola','📣 Marketing','📦 Frete/Logística','🖨️ Material de Escritório','💡 Utilities/Contas','🔧 Manutenção','👗 Outros'];
+
+async function carregarGastos(){
+  const wrap=document.getElementById('gastos-conteudo');if(!wrap)return;
+  const pf=currentUser.perfil||'master';
+  wrap.innerHTML='<div class="loading">Carregando gastos...</div>';
+  try{
+    const mes=mesLocalStr();
+    const {ini,proxMes}=faixaMes(mes);
+    const [gastosMes,gastosTodos]=await Promise.all([
+      api('financeiro_lancamentos?select=id,descricao,valor,data_vencimento,observacoes,alterado_em&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago&observacoes=like.GASTO_LOJA:*&data_vencimento=gte.'+ini+'&data_vencimento=lt.'+proxMes+'-01&order=id.desc'),
+      api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago&observacoes=like.GASTO_LOJA:*'),
+    ]);
+    const totalMes=(gastosMes||[]).reduce((s,l)=>s+parseFloat(l.valor||0),0);
+    const totalGeral=(gastosTodos||[]).reduce((s,l)=>s+parseFloat(l.valor||0),0);
+    const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'-';
+    const catsHtml=GASTOS_CATS.map(c=>`<option value="${c}">${c}</option>`).join('');
+    let html=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gastos de ${new Date().toLocaleString('pt-BR',{month:'long'})}</div>
+        <div style="font-size:24px;font-weight:700;color:#f59e0b">${fmt(totalMes)}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Acumulado</div>
+        <div style="font-size:24px;font-weight:700;color:var(--danger)">${fmt(totalGeral)}</div>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px">➕ Registrar Gasto</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div><label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Categoria</label>
+          <select id="gasto-cat" style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"><option value="">Selecione...</option>${catsHtml}</select></div>
+        <div><label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Data</label>
+          <input type="date" id="gasto-data" value="${hojeLocalStr()}" style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:12px">
+        <div><label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Descrição <span style="color:var(--text3);font-weight:400">(detalhe)</span></label>
+          <input type="text" id="gasto-desc" placeholder="Ex: Passagem ida e volta para São Paulo, Sacolas 50 un..." style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"></div>
+        <div><label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Valor (R$)</label>
+          <input type="number" id="gasto-valor" placeholder="0,00" min="0.01" step="0.01" style="width:130px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"></div>
+      </div>
+      <div id="gasto-msg" style="display:none;margin-bottom:10px"></div>
+      <button onclick="salvarGasto()" class="btn-new">💾 Registrar Gasto</button>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">📋 Gastos do mês de ${new Date().toLocaleString('pt-BR',{month:'long'})}</div>`;
+    if(!gastosMes||!gastosMes.length){
+      html+='<div class="empty">Nenhum gasto registrado neste mês.</div>';
+    } else {
+      html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Ações</th></tr></thead><tbody>'
+        +gastosMes.map(l=>{
+          const obs=String(l.observacoes||'');
+          const cat=obs.startsWith('GASTO_LOJA:')?obs.slice('GASTO_LOJA:'.length).split('|')[0].trim():'—';
+          const nota=obs.includes('|')?obs.split('|').slice(1).join('|').trim():'';
+          return '<tr>'
+            +'<td style="font-size:12px;white-space:nowrap">'+fmtD(l.data_vencimento)+'</td>'
+            +'<td><span style="padding:3px 10px;background:rgba(245,158,11,.12);border:1px solid #f59e0b;border-radius:20px;font-size:12px;font-weight:600;color:#f59e0b;white-space:nowrap">'+cat+'</span></td>'
+            +'<td style="font-size:13px;color:var(--text)">'+l.descricao.replace(/^💸 [^—]+— /,'')+'</td>'
+            +'<td style="font-weight:700;color:#f59e0b;white-space:nowrap">'+fmt(l.valor)+'</td>'
+            +'<td><button class="btn-sm btn-deact" onclick="cancelarGasto('+l.id+')">Excluir</button></td>'
+            +'</tr>';
+        }).join('')
+        +'</tbody></table></div>';
+    }
+    wrap.innerHTML=html;
+  }catch(e){wrap.innerHTML='<div class="empty" style="color:var(--danger)">Erro: '+e.message+'</div>';}
+}
+
+async function salvarGasto(){
+  const cat=document.getElementById('gasto-cat')?.value?.trim();
+  const desc=document.getElementById('gasto-desc')?.value?.trim();
+  const valor=parseFloat(document.getElementById('gasto-valor')?.value||'0');
+  const data=document.getElementById('gasto-data')?.value;
+  const msg=document.getElementById('gasto-msg');
+  const showMsg=(t,tp)=>{if(msg){msg.style.display='block';msg.style.color=tp==='error'?'var(--danger)':'var(--success)';msg.style.background=tp==='error'?'rgba(224,85,85,.08)':'rgba(76,175,125,.08)';msg.style.border='1px solid '+(tp==='error'?'var(--danger)':'var(--success)');msg.style.borderRadius='6px';msg.style.padding='8px 12px';msg.style.fontSize='13px';msg.textContent=t;}};
+  if(!cat){showMsg('Selecione a categoria.','error');return;}
+  if(!desc){showMsg('Informe a descrição do gasto.','error');return;}
+  if(!valor||valor<=0){showMsg('Informe um valor válido.','error');return;}
+  if(!data){showMsg('Informe a data.','error');return;}
+  const pf=currentUser.perfil||'master';
+  try{
+    await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({
+      perfil_codigo:pf,
+      tipo:'despesa',
+      status:'pago',
+      descricao:'💸 '+cat+' — '+desc,
+      valor,
+      data_vencimento:data,
+      data_pagamento:data,
+      observacoes:'GASTO_LOJA:'+cat,
+      alterado_em:new Date().toISOString(),
+    })});
+    showMsg('✅ Gasto registrado com sucesso!','success');
+    // Limpar form
+    const el=id=>document.getElementById(id);
+    if(el('gasto-cat'))el('gasto-cat').value='';
+    if(el('gasto-desc'))el('gasto-desc').value='';
+    if(el('gasto-valor'))el('gasto-valor').value='';
+    if(el('gasto-data'))el('gasto-data').value=hojeLocalStr();
+    // Recarregar
+    setTimeout(()=>{carregarGastos();carregarDashboard();},400);
+  }catch(e){showMsg('Erro: '+e.message,'error');}
+}
+
+async function cancelarGasto(id){
+  if(!confirm('Excluir este gasto? Ele será removido dos lançamentos financeiros.'))return;
+  try{
+    await api('financeiro_lancamentos?id=eq.'+id,{method:'DELETE'});
+    carregarGastos();carregarDashboard();
+  }catch(e){alert('Erro ao excluir: '+e.message);}
+}
 function onFinFiltroMesChange(){
   // Ao selecionar mês, limpa o filtro de dia
   const dia=document.getElementById('fin-filtro-dia');
