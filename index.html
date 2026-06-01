@@ -2883,7 +2883,7 @@ async function abrirHistoricoCompras(clienteId,clienteNome){
   document.getElementById('compra-desconto').value='0';
   document.getElementById('compra-total').value='';
   document.getElementById('compra-total-display').textContent='R$ 0,00';
-  document.getElementById('compra-data').value=new Date().toISOString().slice(0,10);
+  document.getElementById('compra-data').value=hojeLocalStr();
   document.getElementById('compra-obs').value='';
   if(document.getElementById('compra-obs-item'))document.getElementById('compra-obs-item').value='';
   // Reset frete
@@ -3183,7 +3183,7 @@ async function abrirHistoricoCompras(clienteId,clienteNome){
   document.getElementById('compra-desconto').value='0';
   document.getElementById('compra-total').value='';
   document.getElementById('compra-total-display').textContent='R$ 0,00';
-  document.getElementById('compra-data').value=new Date().toISOString().slice(0,10);
+  document.getElementById('compra-data').value=hojeLocalStr();
   document.getElementById('compra-obs').value='';
   if(document.getElementById('compra-obs-item'))document.getElementById('compra-obs-item').value='';
   // Reset frete
@@ -3375,23 +3375,20 @@ async function carregarAlertas(){
   if(!wrap)return;
   const pf=currentUser.perfil||'master';
   const hoje=new Date();
-  const hojeStr=hoje.toISOString().slice(0,10);
-  const mesAtual=hoje.getMonth()+1;
-  const diaAtual=hoje.getDate();
-  const mesStr=hoje.toISOString().slice(0,7);
-  const iniMes=mesStr+'-01';
-  const fimMes=mesStr+'-'+String(new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate()).padStart(2,'0');
+  const hojeStr=hojeLocalStr(hoje);
+  const mesStr=mesLocalStr(hoje);
+  const {ini:iniMes,proxMes:proxMesStr}=faixaMes(mesStr);
   wrap.innerHTML='<div class="loading">Verificando alertas...</div>';
   const temAg=perfilTemFunc('agendamentos');
   try{
     const [agAmanha,agHoje,contasVenc,estoqueRows,clientes,comprasRows,lancamentos]=await Promise.all([
-      temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+new Date(hoje.getTime()+86400000).toISOString().slice(0,10)+'T00:00:00&data_hora=lte.'+new Date(hoje.getTime()+86400000).toISOString().slice(0,10)+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
+      temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+hojeLocalStr(new Date(hoje.getTime()+86400000))+'T00:00:00&data_hora=lte.'+hojeLocalStr(new Date(hoje.getTime()+86400000))+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
       temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+hojeStr+'T00:00:00&data_hora=lte.'+hojeStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
-      temAg?api('financeiro_lancamentos?select=*,clientes(nome,id)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=in.(pendente,vencido)&data_vencimento=lte.'+new Date(hoje.getTime()+7*86400000).toISOString().slice(0,10)+'&order=data_vencimento.asc'):Promise.resolve([]),
+      temAg?api('financeiro_lancamentos?select=*,clientes(nome,id)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=in.(pendente,vencido)&data_vencimento=lte.'+hojeLocalStr(new Date(hoje.getTime()+7*86400000))+'&order=data_vencimento.asc'):Promise.resolve([]),
       api('estoque_saldo?select=quantidade,produto_id,genero,tamanho,produtos(nome,estoque_minimo,estoque_maximo,unidade,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)),
       api('clientes?select=id,nome,data_nascimento,telefone,observacoes,aniversario_msg_ano&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
       api('cliente_compras?select=cliente_id,data_compra,total_pago&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc'),
-      api('financeiro_lancamentos?select=tipo,status,valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+iniMes+'&data_vencimento=lte.'+fimMes),
+      api('financeiro_lancamentos?select=tipo,status,valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+iniMes+'&data_vencimento=lt.'+proxMesStr+'-01'),
     ]);
 
     // ── Calcular dados ────────────────────────────────────────────
@@ -3418,9 +3415,9 @@ async function carregarAlertas(){
     // Vendas hoje
     const vendasHoje=(comprasRows||[]).filter(c=>c.data_compra===hojeStr);
     // Novos clientes esta semana
-    const semanaAtras=new Date(hoje.getTime()-7*86400000).toISOString().slice(0,10);
+    const semanaAtras=hojeLocalStr(new Date(hoje.getTime()-7*86400000));
     // Produtos encalhados: saldo > 0 mas sem venda no mês
-    const produtosComVendaMes=new Set((comprasRows||[]).filter(c=>c.data_compra>=iniMes&&c.data_compra<=fimMes).map(c=>String(c.cliente_id)));
+    const produtosComVendaMes=new Set((comprasRows||[]).filter(c=>c.data_compra>=iniMes&&c.data_compra<proxMesStr+'-01').map(c=>String(c.cliente_id)));
     const encalhados=estoque.filter(e=>parseFloat(e.quantidade||0)>0&&!produtosComVendaMes.has(String(e.produto_id)));
 
     let html='';
@@ -3566,7 +3563,7 @@ async function carregarRelatoriosDados(){
     +'<option value="personalizado">🗓️ Período personalizado</option>'
     +'</select></div>'
     +'<div id="rel-ctrl-mes"><div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Mês</div>'
-    +'<input type="month" id="rel-filtro-mes" value="'+new Date().toISOString().slice(0,7)+'" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"></div>'
+    +'<input type="month" id="rel-filtro-mes" value="'+mesLocalStr()+'" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"></div>'
     +'<div id="rel-ctrl-dia" style="display:none"><div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Data</div>'
     +'<input type="date" id="rel-filtro-dia" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"></div>'
     +'<div id="rel-ctrl-ini" style="display:none"><div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">De</div>'
@@ -3611,14 +3608,14 @@ async function gerarDadosRelatorio(){
   const periodo=document.getElementById('rel-periodo')?.value||'mensal';
   let ini,fim,nomePeriodo;
   if(periodo==='mensal'){
-    const mes=document.getElementById('rel-filtro-mes')?.value||new Date().toISOString().slice(0,7);
+    const mes=document.getElementById('rel-filtro-mes')?.value||mesLocalStr();
     const [ano,m]=mes.split('-').map(Number);
     const ultDia=new Date(ano,m,0).getDate();
     ini=mes+'-01';fim=mes+'-'+String(ultDia).padStart(2,'0');
     const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     nomePeriodo=meses[m-1]+'/'+ano;
   } else if(periodo==='diario'){
-    const dia=document.getElementById('rel-filtro-dia')?.value||new Date().toISOString().slice(0,10);
+    const dia=document.getElementById('rel-filtro-dia')?.value||hojeLocalStr();
     ini=dia;fim=dia;
     nomePeriodo=new Date(dia+'T12:00').toLocaleDateString('pt-BR');
   } else {
@@ -3733,7 +3730,7 @@ function enviarWhatsApp(modeloId){
 async function contarAlertas(){
   const pf=currentUser.perfil||'master';
   const hoje=new Date();
-  const hojeStr=hoje.toISOString().slice(0,10);
+  const hojeStr=hojeLocalStr(hoje);
   const mesAtual=hoje.getMonth()+1;
   const diaAtual=hoje.getDate();
   try{
@@ -4316,12 +4313,11 @@ async function executarPerguntaIA(){
   const campo=document.getElementById('ia-pergunta-livre');if(campo)campo.value='';
   if(resultado)resultado.innerHTML='<div class="loading">IA está pensando...</div>';
   try{
-    const mes=new Date().toISOString().slice(0,7);
-    const [ano,m]=mes.split('-').map(Number);
-    const fim=mes+'-'+String(new Date(ano,m,0).getDate()).padStart(2,'0');
-    const ini=mes+'-01';
+    const mes=mesLocalStr();
+    const {ini,proxMes:proxMesPergunta}=faixaMes(mes);
+    const fim=proxMesPergunta+'-01';
     const [lancamentos,estoque,clientes,compras]=await Promise.all([
-      api('financeiro_lancamentos?select=tipo,status,valor,descricao&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+ini+'&data_vencimento=lte.'+fim),
+      api('financeiro_lancamentos?select=tipo,status,valor,descricao&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+ini+'&data_vencimento=lt.'+fim),
       api('estoque_saldo?select=quantidade,genero,tamanho,produtos(nome,estoque_minimo)&perfil_codigo=eq.'+encodeURIComponent(pf)),
       api('clientes?select=id,nome&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
       api('cliente_compras?select=quantidade,total_pago,data_compra,produtos(nome),clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc&limit=100'),
@@ -4383,16 +4379,14 @@ async function executarAnaliseIA(){
   if(btn){btn.disabled=true;btn.textContent='Analisando...';}
   resultado.innerHTML='<div class="loading">Coletando dados da empresa...</div>';
   try{
-    const mes=new Date().toISOString().slice(0,7);
-    const [ano,m]=mes.split('-').map(Number);
-    const fimMes=mes+'-'+String(new Date(ano,m,0).getDate()).padStart(2,'0');
-    const iniMes=mes+'-01';
+    const mes=mesLocalStr();
+    const {ini:iniMes,proxMes:proxMesAnalise}=faixaMes(mes);
     const [lancamentos,agendamentos,estoque,clientes,compras]=await Promise.all([
-      api('financeiro_lancamentos?select=tipo,status,valor,data_vencimento&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+iniMes+'&data_vencimento=lte.'+fimMes),
-      api('agendamentos?select=status&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+iniMes+'T00:00&data_hora=lte.'+fimMes+'T23:59'),
+      api('financeiro_lancamentos?select=tipo,status,valor,data_vencimento&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+iniMes+'&data_vencimento=lt.'+proxMesAnalise+'-01'),
+      api('agendamentos?select=status&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+iniMes+'T00:00&data_hora=lt.'+proxMesAnalise+'T00:00'),
       api('estoque_saldo?select=quantidade,genero,tamanho,produtos(nome,estoque_minimo,preco_venda)&perfil_codigo=eq.'+encodeURIComponent(pf)),
       api('clientes?select=id&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
-      api('cliente_compras?select=quantidade,total_pago,produtos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_compra=gte.'+iniMes+'&data_compra=lte.'+fimMes),
+      api('cliente_compras?select=quantidade,total_pago,produtos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_compra=gte.'+iniMes+'&data_compra=lt.'+proxMesAnalise+'-01'),
     ]);
     const soma=(arr,fn)=>(arr||[]).reduce((s,x)=>s+(fn(x)||0),0);
     const recPago=soma(lancamentos,l=>l.tipo==='receita'&&l.status==='pago'?parseFloat(l.valor):0);
@@ -5567,13 +5561,18 @@ async function salvarMovimento(){
       if(valorCusto>0){
         const custoTotal=valorCusto*qtd;
         if(valorVenda>0)await api('produtos?id=eq.'+pid,{method:'PATCH',body:JSON.stringify({preco_custo:valorCusto,preco_venda:valorVenda})}).catch(()=>{});
-        await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,tipo:'despesa',descricao:'Reposição: '+nomeProd+(estGenero?' '+estGenero:'')+(estTamanho?' /'+estTamanho:'')+' ('+qtd+' un.)',valor:custoTotal,data_vencimento:new Date().toISOString().slice(0,10),data_pagamento:new Date().toISOString().slice(0,10),status:'pago',observacoes:'Criado automaticamente pela movimentação de estoque'})}).catch(()=>{});
+        await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,tipo:'despesa',descricao:'Reposição: '+nomeProd+(estGenero?' '+estGenero:'')+(estTamanho?' /'+estTamanho:'')+' ('+qtd+' un.)',valor:custoTotal,data_vencimento:hojeLocalStr(),data_pagamento:hojeLocalStr(),status:'pago',observacoes:'Criado automaticamente pela movimentação de estoque'})}).catch(()=>{});
       }
     }
     showMM('modal-est-msg','Movimentação registrada!','success');
     setTimeout(()=>{closeModal('modal-estoque-mov');carregarEstoque();},900);
   }catch(e){showMM('modal-est-msg','Erro: '+e.message,'error');}
 }
+
+// ── Utilitários de data local (evitam bug UTC do toISOString) ────────────
+function mesLocalStr(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function hojeLocalStr(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function faixaMes(mesStr){const [ano,m]=mesStr.split('-').map(Number);const px=m===12?`${ano+1}-01`:`${ano}-${String(m+1).padStart(2,'0')}`;return{ini:mesStr+'-01',proxMes:px};}
 
 // ─── MÓDULO: AGENDAMENTOS ─────────────────────────────────────────
 
@@ -5590,7 +5589,7 @@ async function exportarEstoqueExcel(){
     });
     const ws=XLSX.utils.aoa_to_sheet(ws_data);
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Estoque');
-    XLSX.writeFile(wb,'estoque_atual_'+new Date().toISOString().slice(0,10)+'.xlsx');
+    XLSX.writeFile(wb,'estoque_atual_'+hojeLocalStr()+'.xlsx');
   }catch(e){alert('Erro ao exportar: '+e.message);}
 }
 
@@ -5701,7 +5700,7 @@ async function executarImportacaoEstoque(){
       await api('produtos?id=eq.'+prod.id,{method:'PATCH',body:JSON.stringify({estoque_atual:estTotalImp})}).catch(()=>{});
       // Lançamento financeiro se entrada com custo
       if(tipo==='entrada'&&valorCusto>0){
-        await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,tipo:'despesa',descricao:'Reposição: '+prod.nome+(genero?' '+genero:'')+(tamanho?' /'+tamanho:'')+' ('+qtd+' un.)',valor:valorCusto*qtd,data_vencimento:new Date().toISOString().slice(0,10),data_pagamento:new Date().toISOString().slice(0,10),status:'pago',observacoes:'Criado automaticamente pela importação de estoque'})}).catch(()=>{});
+        await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,tipo:'despesa',descricao:'Reposição: '+prod.nome+(genero?' '+genero:'')+(tamanho?' /'+tamanho:'')+' ('+qtd+' un.)',valor:valorCusto*qtd,data_vencimento:hojeLocalStr(),data_pagamento:hojeLocalStr(),status:'pago',observacoes:'Criado automaticamente pela importação de estoque'})}).catch(()=>{});
       }
       ok++;log.innerHTML+='<div class="import-row-ok">✅ Linha '+linha+': '+prod.nome+' — '+tipo+' de '+qtd+' un.</div>';
     }catch(e){erro++;log.innerHTML+='<div class="import-row-err">❌ Linha '+linha+': '+e.message+'</div>';}
@@ -5847,7 +5846,7 @@ let finCategoriasCache=[];
 async function carregarFluxoCaixa(){
   const pf=currentUser.perfil||'master';
   const dtInput=document.getElementById('cx-filtro-data');
-  const data=dtInput?.value||new Date().toISOString().slice(0,10);
+  const data=dtInput?.value||hojeLocalStr();
   if(dtInput&&!dtInput.value)dtInput.value=data;
 
   // Inicializar cards com loading
@@ -5928,13 +5927,13 @@ function finAba(aba){
     // Garantir que filtro de mês está ativo (e dia está limpo)
     const dia=document.getElementById('fin-filtro-dia');if(dia)dia.value='';
     const mes=document.getElementById('fin-filtro-mes');
-    if(mes&&!mes.value)mes.value=new Date().toISOString().slice(0,7);
+    if(mes&&!mes.value)mes.value=mesLocalStr();
     carregarLancamentos();
   } else {
     if(vLan)vLan.style.display='none';if(vCx)vCx.style.display='block';
     if(btnCx){btnCx.style.borderBottomColor='var(--accent)';btnCx.style.color='var(--accent)';}
     if(btnLan){btnLan.style.borderBottomColor='transparent';btnLan.style.color='var(--text3)';}
-    const dtFiltro=document.getElementById('cx-filtro-data');if(dtFiltro&&!dtFiltro.value)dtFiltro.value=new Date().toISOString().slice(0,10);
+    const dtFiltro=document.getElementById('cx-filtro-data');if(dtFiltro&&!dtFiltro.value)dtFiltro.value=hojeLocalStr();
     carregarFluxoCaixa();
   }
 }
@@ -5948,10 +5947,10 @@ async function carregarFinanceiro(){
     setTimeout(()=>carregarFinanceiro(),200);return;
   }
   // Sempre inicializar o filtro de mês com o mês atual ao entrar no painel
-  mes.value=new Date().toISOString().slice(0,7);
+  mes.value=mesLocalStr();
   // Limpar filtro de dia para evitar conflito
   const dia=document.getElementById('fin-filtro-dia');if(dia)dia.value='';
-  const dtCx=document.getElementById('cx-filtro-data');if(dtCx&&!dtCx.value)dtCx.value=new Date().toISOString().slice(0,10);
+  const dtCx=document.getElementById('cx-filtro-data');if(dtCx&&!dtCx.value)dtCx.value=hojeLocalStr();
   try{
     await Promise.all([carregarDashboard(),carregarLancamentos()]);
   }catch(e){
@@ -6058,14 +6057,14 @@ async function carregarLancamentos(){
 }
 
 async function mudarStatusLan(id,status){
-  try{const body={status,alterado_em:new Date().toISOString()};if(status==='pago')body.data_pagamento=new Date().toISOString().slice(0,10);await api('financeiro_lancamentos?id=eq.'+id,{method:'PATCH',body:JSON.stringify(body)});carregarLancamentos();carregarDashboard();}catch(e){alert('Erro: '+e.message);}
+  try{const body={status,alterado_em:new Date().toISOString()};if(status==='pago')body.data_pagamento=hojeLocalStr();await api('financeiro_lancamentos?id=eq.'+id,{method:'PATCH',body:JSON.stringify(body)});carregarLancamentos();carregarDashboard();}catch(e){alert('Erro: '+e.message);}
 }
 
 async function carregarCaixa(){
   const tbody=document.getElementById('tbl-caixa');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="6" class="loading">Carregando...</td></tr>';
   const pf=currentUser.perfil||'master';
-  const data=document.getElementById('cx-filtro-data')?.value||new Date().toISOString().slice(0,10);
+  const data=document.getElementById('cx-filtro-data')?.value||hojeLocalStr();
   try{
     const [movsMan,lanPagos]=await Promise.all([
       api('caixa_movimentos?select=*,financeiro_categorias(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_movimento=eq.'+data+'&order=criado_em.asc'),
@@ -6132,7 +6131,7 @@ async function openModalLancamento(mode,id){
   if(mode==='new'){
     document.getElementById('modal-lan-titulo').textContent='Novo Lançamento';
     ['lan-desc','lan-valor','lan-pagamento','lan-obs'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
-    const venc=document.getElementById('lan-vencimento');if(venc)venc.value=new Date().toISOString().slice(0,10);
+    const venc=document.getElementById('lan-vencimento');if(venc)venc.value=hojeLocalStr();
     const st=document.getElementById('lan-status');if(st)st.value='pendente';
     const rad=document.querySelector('input[name="lan-tipo"][value="receita"]');if(rad)rad.checked=true;
     limparClienteLan();popularSelectCategorias('lan-categoria','receita');
@@ -6176,7 +6175,7 @@ async function openModalCaixa(){
   const msg=document.getElementById('modal-cx-msg');if(msg)msg.style.display='none';
   ['cx-desc','cx-valor','cx-obs'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
   const rad=document.querySelector('input[name="cx-tipo"][value="entrada"]');if(rad)rad.checked=true;
-  const data=document.getElementById('cx-filtro-data')?.value||new Date().toISOString().slice(0,10);
+  const data=document.getElementById('cx-filtro-data')?.value||hojeLocalStr();
   const dt=document.getElementById('cx-data');if(dt)dt.value=data;
   popularSelectCategorias('cx-categoria','');openModal('modal-caixa-mov');
 }
