@@ -6051,11 +6051,16 @@ async function carregarGastos(){
         <div><label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Data</label>
           <input type="date" id="gasto-data" value="${hojeLocalStr()}" style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;margin-bottom:12px">
         <div><label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Descrição <span style="color:var(--text3);font-weight:400">(detalhe)</span></label>
           <input type="text" id="gasto-desc" placeholder="Ex: Passagem ida e volta para São Paulo, Sacolas 50 un..." style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"></div>
         <div><label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Valor (R$)</label>
           <input type="number" id="gasto-valor" placeholder="0,00" min="0.01" step="0.01" style="width:130px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none"></div>
+        <div><label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Status</label>
+          <select id="gasto-status" style="width:130px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+            <option value="pendente">⏳ Pendente</option>
+            <option value="pago">✅ Pago</option>
+          </select></div>
       </div>
       <div id="gasto-msg" style="display:none;margin-bottom:10px"></div>
       <button onclick="salvarGasto()" class="btn-new">💾 Registrar Gasto</button>
@@ -6088,6 +6093,7 @@ async function salvarGasto(){
   const desc=document.getElementById('gasto-desc')?.value?.trim();
   const valor=parseFloat(document.getElementById('gasto-valor')?.value||'0');
   const data=document.getElementById('gasto-data')?.value;
+  const status=document.getElementById('gasto-status')?.value||'pendente';
   const msg=document.getElementById('gasto-msg');
   const showMsg=(t,tp)=>{if(msg){msg.style.display='block';msg.style.color=tp==='error'?'var(--danger)':'var(--success)';msg.style.background=tp==='error'?'rgba(224,85,85,.08)':'rgba(76,175,125,.08)';msg.style.border='1px solid '+(tp==='error'?'var(--danger)':'var(--success)');msg.style.borderRadius='6px';msg.style.padding='8px 12px';msg.style.fontSize='13px';msg.textContent=t;}};
   if(!cat){showMsg('Selecione a categoria.','error');return;}
@@ -6099,11 +6105,11 @@ async function salvarGasto(){
     await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({
       perfil_codigo:pf,
       tipo:'despesa',
-      status:'pago',
+      status,
       descricao:'💸 '+cat+' — '+desc,
       valor,
       data_vencimento:data,
-      data_pagamento:data,
+      data_pagamento:status==='pago'?data:null,
       observacoes:'GASTO_LOJA:'+cat,
       alterado_em:new Date().toISOString(),
     })});
@@ -6114,6 +6120,7 @@ async function salvarGasto(){
     if(el('gasto-desc'))el('gasto-desc').value='';
     if(el('gasto-valor'))el('gasto-valor').value='';
     if(el('gasto-data'))el('gasto-data').value=hojeLocalStr();
+    if(el('gasto-status'))el('gasto-status').value='pendente';
     // Recarregar
     setTimeout(()=>{carregarGastos();carregarDashboard();},400);
   }catch(e){showMsg('Erro: '+e.message,'error');}
@@ -6149,9 +6156,16 @@ async function editarGasto(id){
           <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:5px">Descrição</label>
           <input type="text" id="edit-gasto-desc" placeholder="Detalhe do gasto..." style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
         </div>
-        <div style="margin-bottom:20px">
+        <div style="margin-bottom:14px">
           <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:5px">Valor (R$)</label>
           <input type="number" id="edit-gasto-valor" placeholder="0,00" min="0.01" step="0.01" style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:5px">Status</label>
+          <select id="edit-gasto-status" style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+            <option value="pendente">⏳ Pendente</option>
+            <option value="pago">✅ Pago</option>
+          </select>
         </div>
         <div id="edit-gasto-msg" style="display:none;margin-bottom:14px"></div>
         <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -6176,6 +6190,7 @@ async function editarGasto(id){
     document.getElementById('edit-gasto-data').value=l.data_vencimento||hojeLocalStr();
     document.getElementById('edit-gasto-desc').value=desc;
     document.getElementById('edit-gasto-valor').value=parseFloat(l.valor||0);
+    const editSt=document.getElementById('edit-gasto-status');if(editSt)editSt.value=l.status||'pendente';
     document.getElementById('edit-gasto-msg').style.display='none';
     modal._editId=id;
     modal.style.display='flex';
@@ -6202,11 +6217,13 @@ async function salvarEdicaoGasto(){
   if(!valor||valor<=0){showMsg('Informe um valor válido.','error');return;}
   if(!data){showMsg('Informe a data.','error');return;}
   try{
+    const status=document.getElementById('edit-gasto-status')?.value||'pendente';
     await api('financeiro_lancamentos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({
       descricao:'💸 '+cat+' — '+desc,
       valor,
+      status,
       data_vencimento:data,
-      data_pagamento:data,
+      data_pagamento:status==='pago'?data:null,
       observacoes:'GASTO_LOJA:'+cat,
       alterado_em:new Date().toISOString(),
     })});
