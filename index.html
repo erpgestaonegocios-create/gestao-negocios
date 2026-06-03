@@ -6035,7 +6035,10 @@ async function carregarGastos(mesFiltro){
     const catsHtml=GASTOS_CATS.map(c=>`<option value="${c}">${c}</option>`).join('');
     const stBadge=st=>st==='pago'?'<span style="color:var(--success);font-size:11px;font-weight:600">✅ Pago</span>':'<span style="color:#f59e0b;font-size:11px;font-weight:600">⏳ Pendente</span>';
     let html=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:14px;font-weight:700;color:var(--text)">💸 Gastos da Loja</div>
+      <button onclick="abrirTaxasMP()" style="padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;transition:.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">💳 Configurar Taxas MP</button>
+    </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gastos de ${nomeMes}</div>
         <div style="font-size:24px;font-weight:700;color:#f59e0b">${fmt(totalMes)}</div>
@@ -6249,6 +6252,110 @@ async function cancelarGasto(id){
     await api('financeiro_lancamentos?id=eq.'+id,{method:'DELETE'});
     carregarGastos(window._gastosMesFiltro);carregarDashboard();
   }catch(e){alert('Erro ao excluir: '+e.message);}
+}
+// ── TAXAS MP ─────────────────────────────────────────────────────
+async function getTaxasMP(){
+  const pf=currentUser?.perfil||'master';
+  try{
+    const cfg=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=taxas_mp').catch(()=>[]);
+    if(cfg&&cfg[0]?.taxas_mp){
+      return typeof cfg[0].taxas_mp==='string'?JSON.parse(cfg[0].taxas_mp):cfg[0].taxas_mp;
+    }
+  }catch(e){}
+  return {pix:0.99,cartao:4.98,boleto:2.99}; // defaults
+}
+
+async function abrirTaxasMP(){
+  const taxas=await getTaxasMP();
+  // Criar modal se não existir
+  let modal=document.getElementById('modal-taxas-mp');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-taxas-mp';
+    modal.className='modal-overlay';
+    modal.innerHTML=`
+    <div class="modal-box" style="max-width:440px">
+      <div class="modal-header">
+        <span style="font-size:15px;font-weight:700">💳 Taxas Mercado Pago</span>
+        <button class="modal-close" onclick="closeModal('modal-taxas-mp')">×</button>
+      </div>
+      <div style="padding:24px">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6">
+          Defina as taxas cobradas pelo Mercado Pago por tipo de pagamento. 
+          Quando uma venda for feita pelo <strong>site</strong>, o sistema calculará 
+          automaticamente o valor líquido e registrará a taxa como despesa.
+        </div>
+        <div style="display:grid;gap:14px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+            <span style="font-size:22px">⚡</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--text)">PIX</div>
+              <div style="font-size:11px;color:var(--text3)">Pagamento instantâneo</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="taxa-pix" value="" min="0" max="20" step="0.01" style="width:70px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-weight:600;text-align:center;outline:none">
+              <span style="color:var(--text2);font-size:13px">%</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+            <span style="font-size:22px">💳</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--text)">Cartão de Crédito/Débito</div>
+              <div style="font-size:11px;color:var(--text3)">Processado via Mercado Pago</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="taxa-cartao" value="" min="0" max="20" step="0.01" style="width:70px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-weight:600;text-align:center;outline:none">
+              <span style="color:var(--text2);font-size:13px">%</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+            <span style="font-size:22px">📄</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--text)">Boleto Bancário</div>
+              <div style="font-size:11px;color:var(--text3)">Compensação em 2 dias úteis</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="taxa-boleto" value="" min="0" max="20" step="0.01" style="width:70px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-weight:600;text-align:center;outline:none">
+              <span style="color:var(--text2);font-size:13px">%</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:rgba(107,127,215,.06);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:16px">
+          💡 Exemplo: Produto R$ 100,00 pago com PIX (taxa 0,99%) → você recebe <strong>R$ 99,01</strong>. A diferença é registrada automaticamente como despesa "Taxa MP".
+        </div>
+        <div id="taxas-msg" style="display:none;margin-bottom:12px"></div>
+        <button onclick="salvarTaxasMP()" class="btn-new" style="width:100%;padding:12px">💾 Salvar Taxas</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click',e=>{if(e.target===modal)closeModal('modal-taxas-mp');});
+  }
+  document.getElementById('taxa-pix').value=taxas.pix??0.99;
+  document.getElementById('taxa-cartao').value=taxas.cartao??4.98;
+  document.getElementById('taxa-boleto').value=taxas.boleto??2.99;
+  document.getElementById('taxas-msg').style.display='none';
+  openModal('modal-taxas-mp');
+}
+
+async function salvarTaxasMP(){
+  const pix=parseFloat(document.getElementById('taxa-pix').value)||0;
+  const cartao=parseFloat(document.getElementById('taxa-cartao').value)||0;
+  const boleto=parseFloat(document.getElementById('taxa-boleto').value)||0;
+  const pf=currentUser?.perfil||'master';
+  const msg=document.getElementById('taxas-msg');
+  const showMsg=(t,tp)=>{msg.style.display='block';msg.style.color=tp==='error'?'var(--danger)':'var(--success)';msg.style.background=tp==='error'?'rgba(224,85,85,.08)':'rgba(76,175,125,.08)';msg.style.border='1px solid '+(tp==='error'?'var(--danger)':'var(--success)');msg.style.borderRadius='6px';msg.style.padding='8px 12px';msg.style.fontSize='13px';msg.textContent=t;};
+  try{
+    const taxasJson=JSON.stringify({pix,cartao,boleto});
+    // Verificar se empresa_config existe para este perfil
+    const existe=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id').catch(()=>[]);
+    if(existe&&existe.length){
+      await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(pf),{method:'PATCH',body:JSON.stringify({taxas_mp:taxasJson})});
+    } else {
+      await api('empresa_config',{method:'POST',body:JSON.stringify({perfil_codigo:pf,taxas_mp:taxasJson})});
+    }
+    showMsg('✅ Taxas salvas! PIX '+pix+'% · Cartão '+cartao+'% · Boleto '+boleto+'%','success');
+    setTimeout(()=>closeModal('modal-taxas-mp'),1200);
+  }catch(e){showMsg('Erro: '+e.message,'error');}
 }
 function onFinFiltroMesChange(){
   // Ao selecionar mês, limpa o filtro de dia
