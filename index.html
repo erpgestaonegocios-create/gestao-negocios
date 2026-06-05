@@ -6782,10 +6782,9 @@ async function confirmarPagamentoCompra(compraId, nomeProduto, clienteId){
       await emailPagamentoConfirmado(cli[0].nome,cli[0].email,nomeProduto);
     }
     showToast('✅ Pagamento confirmado!','success');
-    // Recarregar histórico
-    const btnHist=document.querySelector('[onclick*="loadHistoricoCompras"]');
-    if(btnHist) btnHist.click();
-    else { const el=document.getElementById('hist-compras-conteudo'); if(el) onShowHistoricoCompras(); }
+    // Recarregar histórico igual ao salvarRastreio
+    const sub=document.getElementById('hist-compras-sub')?.textContent?.replace('Cliente: ','');
+    consultarHistoricoCompras(clienteId, sub||'');
   }catch(e){ showToast('Erro: '+e.message,'error'); }
 }
 
