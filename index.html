@@ -1272,6 +1272,12 @@ async function salvarConfigEmpresa(){
 // ─── LOGIN / LOGOUT ───────────────────────────────────────────────
 async function doLogin(){
   const user=document.getElementById('inp-user').value.trim();
+  // Hash SHA-256 nativo do browser
+  async function sha256(texto){
+    const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
   const pass=document.getElementById('inp-pass').value.trim();
   const msg=document.getElementById('login-msg');
   msg.style.display='none';
@@ -1281,7 +1287,8 @@ async function doLogin(){
     const data=await api('usuarios?usuario=eq.'+encodeURIComponent(user)+'&ativo=eq.true&select=*');
     if(!data||!data.length){showMsg(msg,'Dados de login inválidos','error');return;}
     const u=data[0];
-    if(u.senha!==pass){showMsg(msg,'Dados de login inválidos','error');return;}
+    const passHash=await sha256(pass);
+    if(u.senha!==passHash){showMsg(msg,'Dados de login inválidos','error');return;}
     // Validar acesso pelo link da empresa
     const codigoEmpresaLink=new URLSearchParams(window.location.search).get('empresa')||'';
     if(codigoEmpresaLink){
@@ -1761,7 +1768,8 @@ async function salvarUsuario(){
   if(!usuario){showMM('modal-user-msg','Informe o usuário','error');return;}
   if(!senha){showMM('modal-user-msg','Informe a senha','error');return;}
   if(!perfil&&!isMasterEmpresa){showMM('modal-user-msg','Selecione o perfil','error');return;}
-  const body={usuario,nome,senha,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
+  const senhaHash=await sha256(senha);
+  const body={usuario,nome,senha:senhaHash,nivel,perfil:perfil||null,empresa:empresa||null,alterado_em:new Date().toISOString()};
   try{
     if(!editingUserId){
       // Validar: empresa só pode ter 1 master
