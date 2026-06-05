@@ -2679,19 +2679,45 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
     html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total de Compras</div><div style="font-size:22px;font-weight:700;color:var(--accent)">'+compras.length+'</div></div>';
     html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total Gasto</div><div style="font-size:22px;font-weight:700;color:var(--success)">'+fmtV(totalGasto)+'</div></div>';
     html+='</div>';
-    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
-    html+=compras.map(comp=>`<tr>
-      <td style="font-size:12px;white-space:nowrap">${fmtD(comp.data_compra)}</td>
-      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtH(comp.criado_em)}</td>
-      <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}${comp.produtos?.codigo?' <span style="color:var(--text3);font-size:11px">['+comp.produtos.codigo+']</span>':''}</td>
-      <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
-      <td style="text-align:center">${comp.quantidade}</td>
-      <td>${fmtV(comp.valor_unitario)}</td>
-      <td style="color:var(--warn)">${comp.desconto&&parseFloat(comp.desconto)>0?fmtV(comp.desconto):'—'}</td>
-      <td style="font-weight:700;color:var(--success)">${fmtV(comp.total_pago)}</td>
-      <td style="font-size:11px;color:var(--text3)">${comp.observacoes||'—'}</td>
-    </tr>`).join('');
+    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Total</th><th>Status</th><th>Rastreio / Ação</th></tr></thead><tbody>';
+    html+=compras.map(comp=>{
+      const statusBadge={
+        'pendente':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Pendente</span>',
+        'postado':'<span style="background:rgba(107,127,215,.2);color:var(--accent);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">📦 Postado</span>',
+        'pronto_retirada':'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🏪 P/ Retirada</span>',
+        'entregue':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
+      }[comp.status_entrega||'pendente']||'<span style="color:var(--text3)">—</span>';
+
+      const formaEntrega=comp.forma_entrega||'correios';
+
+      let acaoHtml='';
+      if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
+        acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
+          <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
+        </div>`;
+      } else if(formaEntrega==='correios'&&comp.codigo_rastreio&&comp.status_entrega==='postado'){
+        acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:var(--accent)">${comp.codigo_rastreio}</span>
+          <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${comp.codigo_rastreio}" target="_blank" style="padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Ver</a>
+        </div>`;
+      } else if(formaEntrega==='retirada'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
+        acaoHtml=`<button onclick="marcarProntoRetirada(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--success);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>`;
+      } else {
+        acaoHtml='<span style="color:var(--text3);font-size:12px">—</span>';
+      }
+
+      return `<tr>
+        <td style="font-size:12px;white-space:nowrap">${fmtD(comp.data_compra)}</td>
+        <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}</td>
+        <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
+        <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
+        <td style="text-align:center">${comp.quantidade}</td>
+        <td style="font-weight:700;color:var(--success)">${fmtV(comp.total_pago)}</td>
+        <td>${statusBadge}</td>
+        <td>${acaoHtml}</td>
+      </tr>`;
+    }).join('');
     html+='</tbody></table></div>';
     wrap.innerHTML=html;
   }catch(e){document.getElementById('hist-compras-conteudo').innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
@@ -3124,6 +3150,13 @@ async function salvarCompraCliente(){
     showMM('modal-compra-msg','Concluído com erros: '+erros.join('; '),'error');
   } else {
     showMM('modal-compra-msg','Compra finalizada! '+carrinhoItens.length+' item(s) registrado(s).','success');
+    // Disparar email "Pedido Recebido" se cliente tiver email
+    try{
+      const cli=await api('clientes?id=eq.'+compraClienteId+'&select=nome,email').catch(()=>[]);
+      if(cli&&cli[0]&&cli[0].email){
+        emailPedidoRecebido(cli[0].nome,cli[0].email,carrinhoItens,totalGeralVenda);
+      }
+    }catch(e){}
     carrinhoItens=[];
     setTimeout(()=>closeModal('modal-compra-cliente'),1500);
   }
@@ -3150,19 +3183,45 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
     html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total de Compras</div><div style="font-size:22px;font-weight:700;color:var(--accent)">'+compras.length+'</div></div>';
     html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total Gasto</div><div style="font-size:22px;font-weight:700;color:var(--success)">'+fmtV(totalGasto)+'</div></div>';
     html+='</div>';
-    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th><th>Obs.</th></tr></thead><tbody>';
-    html+=compras.map(comp=>`<tr>
-      <td style="font-size:12px;white-space:nowrap">${fmtD(comp.data_compra)}</td>
-      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtH(comp.criado_em)}</td>
-      <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}${comp.produtos?.codigo?' <span style="color:var(--text3);font-size:11px">['+comp.produtos.codigo+']</span>':''}</td>
-      <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
-      <td style="text-align:center">${comp.quantidade}</td>
-      <td>${fmtV(comp.valor_unitario)}</td>
-      <td style="color:var(--warn)">${comp.desconto&&parseFloat(comp.desconto)>0?fmtV(comp.desconto):'—'}</td>
-      <td style="font-weight:700;color:var(--success)">${fmtV(comp.total_pago)}</td>
-      <td style="font-size:11px;color:var(--text3)">${comp.observacoes||'—'}</td>
-    </tr>`).join('');
+    html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Total</th><th>Status</th><th>Rastreio / Ação</th></tr></thead><tbody>';
+    html+=compras.map(comp=>{
+      const statusBadge={
+        'pendente':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Pendente</span>',
+        'postado':'<span style="background:rgba(107,127,215,.2);color:var(--accent);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">📦 Postado</span>',
+        'pronto_retirada':'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🏪 P/ Retirada</span>',
+        'entregue':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
+      }[comp.status_entrega||'pendente']||'<span style="color:var(--text3)">—</span>';
+
+      const formaEntrega=comp.forma_entrega||'correios';
+
+      let acaoHtml='';
+      if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
+        acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
+          <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
+        </div>`;
+      } else if(formaEntrega==='correios'&&comp.codigo_rastreio&&comp.status_entrega==='postado'){
+        acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:var(--accent)">${comp.codigo_rastreio}</span>
+          <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${comp.codigo_rastreio}" target="_blank" style="padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Ver</a>
+        </div>`;
+      } else if(formaEntrega==='retirada'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
+        acaoHtml=`<button onclick="marcarProntoRetirada(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--success);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>`;
+      } else {
+        acaoHtml='<span style="color:var(--text3);font-size:12px">—</span>';
+      }
+
+      return `<tr>
+        <td style="font-size:12px;white-space:nowrap">${fmtD(comp.data_compra)}</td>
+        <td style="font-weight:500;color:var(--text)">${comp.produtos?.nome||'—'}</td>
+        <td style="font-size:12px;color:var(--text2)">${comp.genero?comp.genero.charAt(0).toUpperCase()+comp.genero.slice(1):'—'}</td>
+        <td style="font-size:12px;color:var(--text2)">${comp.tamanho||'—'}</td>
+        <td style="text-align:center">${comp.quantidade}</td>
+        <td style="font-weight:700;color:var(--success)">${fmtV(comp.total_pago)}</td>
+        <td>${statusBadge}</td>
+        <td>${acaoHtml}</td>
+      </tr>`;
+    }).join('');
     html+='</tbody></table></div>';
     wrap.innerHTML=html;
   }catch(e){document.getElementById('hist-compras-conteudo').innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
@@ -6595,6 +6654,119 @@ async function gerarComprovante(id){
       +'<div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 24px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">🖨️ Imprimir</button></div>'
       +'</body></html>';
     const win=window.open('','_blank');win.document.write(html);win.document.close();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+
+
+// ── EMAIL via Resend + templates do banco ────────────────────────
+const RESEND_KEY = 're_izhU8uCt_NUtfqRdmxJDfogqAhPcYCbws';
+let _emailTemplates = {};
+
+async function carregarTemplates(){
+  if(Object.keys(_emailTemplates).length) return;
+  try{
+    const pf = currentUser?.perfil||'lojista';
+    const rows = await api('email_templates?perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&select=tipo,assunto,corpo_html');
+    (rows||[]).forEach(r=>{ _emailTemplates[r.tipo]=r; });
+  }catch(e){ console.error('Erro ao carregar templates:',e); }
+}
+
+function aplicarVariaveis(texto, vars){
+  return texto.replace(/\{\{(\w+)\}\}/g, (match, chave) => vars[chave] !== undefined ? vars[chave] : match);
+}
+
+async function dispararEmail(para, assunto, html){
+  try{
+    const res = await fetch('https://api.resend.com/emails',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+RESEND_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        from:'Men Line Store <pedidos@menlinestore.com.br>',
+        to:[para],
+        subject:assunto,
+        html:html
+      })
+    });
+    const data = await res.json();
+    if(!res.ok) console.error('Resend erro:',data);
+  }catch(e){ console.error('Erro email:',e); }
+}
+
+async function emailPedidoRecebido(nomeCliente, emailCliente, itens, total){
+  await carregarTemplates();
+  const tpl = _emailTemplates['pedido_recebido'];
+  if(!tpl){ console.warn('Template pedido_recebido nao encontrado'); return; }
+  const itensHtml = itens.map(i=>`<tr><td style="padding:8px;border-bottom:1px solid #eee">${i.prodNome}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${i.genero||'—'}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${i.tamanho||'—'}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${i.qtd}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">R$ ${parseFloat(i.total).toFixed(2).replace('.',',')}</td></tr>`).join('');
+  const vars = {
+    nome_cliente: nomeCliente,
+    itens_tabela: itensHtml,
+    total_pedido: 'R$ '+parseFloat(total).toFixed(2).replace('.',',')
+  };
+  return dispararEmail(emailCliente, aplicarVariaveis(tpl.assunto, vars), aplicarVariaveis(tpl.corpo_html, vars));
+}
+
+async function emailPedidoPostado(nomeCliente, emailCliente, nomeProduto, codigoRastreio){
+  await carregarTemplates();
+  const tpl = _emailTemplates['pedido_postado'];
+  if(!tpl){ console.warn('Template pedido_postado nao encontrado'); return; }
+  const vars = {
+    nome_cliente: nomeCliente,
+    nome_produto: nomeProduto,
+    codigo_rastreio: codigoRastreio,
+    link_rastreio: 'https://rastreamento.correios.com.br/app/index.php?objetos='+codigoRastreio
+  };
+  return dispararEmail(emailCliente, aplicarVariaveis(tpl.assunto, vars), aplicarVariaveis(tpl.corpo_html, vars));
+}
+
+async function emailProntoRetirada(nomeCliente, emailCliente, nomeProduto){
+  await carregarTemplates();
+  const tpl = _emailTemplates['pronto_retirada'];
+  if(!tpl){ console.warn('Template pronto_retirada nao encontrado'); return; }
+  const vars = {
+    nome_cliente: nomeCliente,
+    nome_produto: nomeProduto
+  };
+  return dispararEmail(emailCliente, aplicarVariaveis(tpl.assunto, vars), aplicarVariaveis(tpl.corpo_html, vars));
+}
+
+async function salvarRastreio(compraId, nomeProduto, clienteId){
+  const codigo=document.getElementById('rastreio-'+compraId)?.value?.trim();
+  if(!codigo){alert('Informe o código de rastreio.');return;}
+  try{
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({
+      codigo_rastreio:codigo,
+      status_entrega:'postado',
+      rastreio_atualizado_em:new Date().toISOString()
+    })});
+    const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email').catch(()=>[]);
+    if(cli&&cli[0]&&cli[0].email){
+      await emailPedidoPostado(cli[0].nome,cli[0].email,nomeProduto,codigo);
+      alert('✅ Rastreio salvo e email enviado para '+cli[0].email);
+    } else {
+      alert('✅ Rastreio salvo! (cliente sem email cadastrado)');
+    }
+    const sub=document.getElementById('hist-compras-sub').textContent.replace('Cliente: ','');
+    consultarHistoricoCompras(clienteId,sub);
+  }catch(e){alert('Erro ao salvar: '+e.message);}
+}
+
+async function marcarProntoRetirada(compraId, nomeProduto, clienteId){
+  if(!confirm('Confirmar que o produto está pronto para retirada?'))return;
+  try{
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({
+      status_entrega:'pronto_retirada',
+      rastreio_atualizado_em:new Date().toISOString()
+    })});
+    const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email').catch(()=>[]);
+    if(cli&&cli[0]&&cli[0].email){
+      await emailProntoRetirada(cli[0].nome,cli[0].email,nomeProduto);
+      alert('✅ Status atualizado e email enviado para '+cli[0].email);
+    } else {
+      alert('✅ Status atualizado! (cliente sem email cadastrado)');
+    }
+    const sub=document.getElementById('hist-compras-sub').textContent.replace('Cliente: ','');
+    consultarHistoricoCompras(clienteId,sub);
   }catch(e){alert('Erro: '+e.message);}
 }
 
