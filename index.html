@@ -1762,9 +1762,18 @@ async function salvarUsuario(){
   const usuario=document.getElementById('m-usuario').value.trim();
   const nome=document.getElementById('m-nome').value.trim();
   const senha=document.getElementById('m-senha').value.trim();
-  const nivel=isMasterEmpresa?'usuario':document.getElementById('m-nivel').value;
   const perfil=isMasterEmpresa?currentUser.perfil:document.getElementById('m-perfil').value;
   const empresa=isMasterEmpresa?(currentUser.empresa||''):document.getElementById('m-empresa').value.trim();
+  // Determinar nivel: master_empresa só pode criar usuarios comuns,
+  // MAS se estiver editando a si mesmo, preserva o proprio nivel
+  let nivel;
+  if(!isMasterEmpresa){
+    nivel=document.getElementById('m-nivel').value;
+  } else if(editingUserId&&String(editingUserId)===String(currentUser.id)){
+    nivel=currentUser.nivel; // preserva nivel do proprio master
+  } else {
+    nivel='usuario'; // master criando/editando outros usuários
+  }
   if(!usuario){showMM('modal-user-msg','Informe o usuário','error');return;}
   if(!senha){showMM('modal-user-msg','Informe a senha','error');return;}
   if(!perfil&&!isMasterEmpresa){showMM('modal-user-msg','Selecione o perfil','error');return;}
@@ -1794,9 +1803,7 @@ async function salvarUsuario(){
         const uAnt=await api('usuarios?id=eq.'+editingUserId+'&select=empresa').catch(()=>[]);
         empresaAntigaEdit=uAnt&&uAnt[0]?uAnt[0].empresa||'':'';
       }
-      // Proteger: se está editando a si mesmo, nunca alterar o nivel
-      const bodyPatch = editingUserId===currentUser.id ? {...body, nivel:currentUser.nivel} : body;
-      await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(bodyPatch)});
+      await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(body)});
       // Se mudou o nome da empresa no master, propagar para todos os usuários do perfil
       if(nivel==='master_empresa'&&empresaAntigaEdit&&empresaAntigaEdit!==empresa&&perfil){
         await api('usuarios?empresa=eq.'+encodeURIComponent(empresaAntigaEdit)+'&perfil=eq.'+encodeURIComponent(perfil),
