@@ -2723,9 +2723,12 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
           </div>
         </div>`;
       } else if(formaEntrega==='correios'&&comp.codigo_rastreio&&comp.status_entrega==='postado'){
-        acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:700;color:var(--accent)">${comp.codigo_rastreio}</span>
-          <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${comp.codigo_rastreio}" target="_blank" style="padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Ver</a>
+        acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:700;color:var(--accent)">${comp.codigo_rastreio}</span>
+            <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${comp.codigo_rastreio}" target="_blank" style="padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Ver</a>
+          </div>
+          <button onclick="marcarEntregue(${comp.id},'${(comp.produtos?.nome||comp.observacoes||'Produto').replace(/[^a-zA-Z0-9\s\-]/g,'')}',${comp.cliente_id})" style="padding:5px 10px;background:#1e3f7a;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>
         </div>`;
       } else if((formaEntrega==='retirada'||formaEntrega==='app')&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
         acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
@@ -3239,9 +3242,12 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
           </div>
         </div>`;
       } else if(formaEntrega==='correios'&&comp.codigo_rastreio&&comp.status_entrega==='postado'){
-        acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:700;color:var(--accent)">${comp.codigo_rastreio}</span>
-          <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${comp.codigo_rastreio}" target="_blank" style="padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Ver</a>
+        acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:700;color:var(--accent)">${comp.codigo_rastreio}</span>
+            <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${comp.codigo_rastreio}" target="_blank" style="padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Ver</a>
+          </div>
+          <button onclick="marcarEntregue(${comp.id},'${(comp.produtos?.nome||comp.observacoes||'Produto').replace(/[^a-zA-Z0-9\s\-]/g,'')}',${comp.cliente_id})" style="padding:5px 10px;background:#1e3f7a;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>
         </div>`;
       } else if((formaEntrega==='retirada'||formaEntrega==='app')&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
         acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
@@ -6818,6 +6824,33 @@ async function salvarRastreio(compraId, nomeProduto, clienteId){
     const sub=document.getElementById('hist-compras-sub').textContent.replace('Cliente: ','');
     consultarHistoricoCompras(clienteId,sub);
   }catch(e){alert('Erro ao salvar: '+e.message);}
+}
+
+async function marcarEntregue(compraId, nomeProduto, clienteId){
+  if(!confirm('Confirmar entrega deste pedido? Um email será enviado ao cliente.'))return;
+  try{
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({
+      status_entrega:'entregue',
+      rastreio_atualizado_em:new Date().toISOString()
+    })});
+    const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email').catch(()=>[]);
+    if(cli&&cli[0]&&cli[0].email){
+      await emailPedidoEntregue(cli[0].nome,cli[0].email,nomeProduto);
+      alert('✅ Entrega confirmada e email enviado para '+cli[0].email);
+    } else {
+      alert('✅ Entrega confirmada! (cliente sem email cadastrado)');
+    }
+    const sub=document.getElementById('hist-compras-sub').textContent.replace('Cliente: ','');
+    consultarHistoricoCompras(clienteId,sub);
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+async function emailPedidoEntregue(nomeCliente, emailCliente, nomeProduto){
+  await carregarTemplates();
+  const tpl=_emailTemplates['pedido_entregue'];
+  if(!tpl){ console.warn('Template pedido_entregue não encontrado'); return; }
+  const vars={nome_cliente:nomeCliente,nome_produto:nomeProduto};
+  return dispararEmail(emailCliente,aplicarVariaveis(tpl.assunto,vars),aplicarVariaveis(tpl.corpo_html,vars));
 }
 
 async function marcarProntoRetirada(compraId, nomeProduto, clienteId){
