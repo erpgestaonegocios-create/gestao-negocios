@@ -1794,7 +1794,9 @@ async function salvarUsuario(){
         const uAnt=await api('usuarios?id=eq.'+editingUserId+'&select=empresa').catch(()=>[]);
         empresaAntigaEdit=uAnt&&uAnt[0]?uAnt[0].empresa||'':'';
       }
-      await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(body)});
+      // Proteger: se está editando a si mesmo, nunca alterar o nivel
+      const bodyPatch = editingUserId===currentUser.id ? {...body, nivel:currentUser.nivel} : body;
+      await api('usuarios?id=eq.'+editingUserId,{method:'PATCH',body:JSON.stringify(bodyPatch)});
       // Se mudou o nome da empresa no master, propagar para todos os usuários do perfil
       if(nivel==='master_empresa'&&empresaAntigaEdit&&empresaAntigaEdit!==empresa&&perfil){
         await api('usuarios?empresa=eq.'+encodeURIComponent(empresaAntigaEdit)+'&perfil=eq.'+encodeURIComponent(perfil),
