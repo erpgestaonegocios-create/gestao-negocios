@@ -2297,7 +2297,7 @@ const IMPORT_CONFIGS = {
     campos: [
       {col:'nome',          label:'nome',            obrig:true,  desc:'Nome completo do cliente'},
       {col:'cpf',           label:'cpf',             obrig:false, desc:'CPF (somente números ou formatado)'},
-      {col:'data_nascimento',label:'data_nascimento', obrig:false, desc:'Data de nascimento (YYYY-MM-DD ou DD/MM/YYYY)'},
+      {col:'data_nasc',label:'data_nasc', obrig:false, desc:'Data de nascimento (YYYY-MM-DD ou DD/MM/YYYY)'},
       {col:'sexo',          label:'sexo',            obrig:false, desc:'M, F ou O'},
       {col:'telefone',      label:'telefone',        obrig:false, desc:'Telefone com DDD'},
       {col:'email',         label:'email',           obrig:false, desc:'E-mail'},
@@ -3487,7 +3487,7 @@ async function carregarAlertas(){
       temAg?api('agendamentos?select=*,clientes(nome,id),servicos(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_hora=gte.'+hojeStr+'T00:00:00&data_hora=lte.'+hojeStr+'T23:59:59&status=in.(agendado,confirmado)&order=data_hora.asc'):Promise.resolve([]),
       temAg?api('financeiro_lancamentos?select=*,clientes(nome,id)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&status=in.(pendente,vencido)&data_vencimento=lte.'+hojeLocalStr(new Date(hoje.getTime()+7*86400000))+'&order=data_vencimento.asc'):Promise.resolve([]),
       api('estoque_saldo?select=quantidade,produto_id,genero,tamanho,produtos(nome,estoque_minimo,estoque_maximo,unidade,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)),
-      api('clientes?select=id,nome,data_nascimento,telefone,observacoes,aniversario_msg_ano&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+      api('clientes?select=id,nome,data_nasc,telefone,observacoes,aniversario_msg_ano&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
       api('cliente_compras?select=cliente_id,data_compra,total_pago&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc'),
       api('financeiro_lancamentos?select=tipo,status,valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data_vencimento=gte.'+iniMes+'&data_vencimento=lt.'+proxMesStr+'-01'),
     ]);
@@ -3505,8 +3505,8 @@ async function carregarAlertas(){
       return false; // simplificado — encalhe via estoque zerado já cobre
     });
     const aniversariantes=(clientes||[]).filter(cl=>{
-      if(!cl.data_nascimento)return false;
-      const d=new Date(cl.data_nascimento+'T12:00');
+      if(!cl.data_nasc)return false;
+      const d=new Date(cl.data_nasc+'T12:00');
       return d.getMonth()+1===mesAtual&&d.getDate()===diaAtual;
     });
     const soma=(arr,fn)=>(arr||[]).reduce((s,x)=>s+(fn(x)||0),0);
@@ -3837,7 +3837,7 @@ async function contarAlertas(){
   try{
     const [estoque,clientes,compras,lancamentos]=await Promise.all([
       api('estoque_saldo?select=quantidade,produto_id,produtos(nome,estoque_minimo,estoque_maximo,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)),
-      api('clientes?select=nome,data_nascimento,telefone&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
+      api('clientes?select=nome,data_nasc,telefone&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true'),
       api('cliente_compras?select=cliente_id,data_compra&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_compra.desc'),
       api('financeiro_lancamentos?select=tipo,status,valor&perfil_codigo=eq.'+encodeURIComponent(pf)),
     ]);
@@ -3851,8 +3851,8 @@ async function contarAlertas(){
     // Sem movimentação (saldo = estoque mas nunca vendeu) - simplificado: sem vendas hoje
     // Aniversariantes
     const aniversariantes=(clientes||[]).filter(cl=>{
-      if(!cl.data_nascimento)return false;
-      const d=new Date(cl.data_nascimento+'T12:00');
+      if(!cl.data_nasc)return false;
+      const d=new Date(cl.data_nasc+'T12:00');
       return d.getMonth()+1===mesAtual&&d.getDate()===diaAtual;
     });
     if(aniversariantes.length)total+=aniversariantes.length;
@@ -3912,12 +3912,12 @@ async function abrirModalWppDestinatarios(){
   const diaAtual=hoje.getDate();
   const anoAtual=hoje.getFullYear();
   // Carregar clientes
-  const clientes=await api('clientes?select=id,nome,telefone,data_nascimento,observacoes,aniversario_msg_ano&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc').catch(()=>[]);
+  const clientes=await api('clientes?select=id,nome,telefone,data_nasc,observacoes,aniversario_msg_ano&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc').catch(()=>[]);
   // Aniversariantes hoje (que ainda não receberam msg este ano)
   const aniversariantes=(clientes||[]).filter(cl=>{
-    if(!cl.data_nascimento)return false;
+    if(!cl.data_nasc)return false;
     if(cl.aniversario_msg_ano===anoAtual)return false; // já enviou este ano
-    const d=new Date(cl.data_nascimento+'T12:00');
+    const d=new Date(cl.data_nasc+'T12:00');
     return d.getMonth()+1===mesAtual&&d.getDate()===diaAtual;
   });
   // Clientes aguardando reposição
@@ -4894,7 +4894,7 @@ async function openModalCliente(mode,id){
     const data=await api('clientes?id=eq.'+id+'&select=*');
     if(!data||!data.length)return;const cl=data[0];
     const set=(i,v)=>{const el=document.getElementById(i);if(el)el.value=v||'';};
-    set('cli-nome',cl.nome);set('cli-cpf',cl.cpf);set('cli-nasc',cl.data_nascimento);
+    set('cli-nome',cl.nome);set('cli-cpf',cl.cpf);set('cli-nasc',cl.data_nasc);
     set('cli-tel',cl.telefone);set('cli-email',cl.email);set('cli-cep',cl.cep);
     set('cli-end',cl.endereco);set('cli-num',cl.numero);set('cli-comp',cl.complemento);
     set('cli-bairro',cl.bairro);set('cli-cidade',cl.cidade);set('cli-estado',cl.estado);
@@ -4914,7 +4914,7 @@ async function salvarCliente(){
     if(dup&&dup.length>0&&(!editingClienteId||dup[0].id!==editingClienteId)){showMM('modal-cli-msg','Este CPF já está cadastrado.','error');return;}
   }
   const body={nome,perfil_codigo:currentUser.perfil||'master',cpf:cpfVal,
-    data_nascimento:document.getElementById('cli-nasc')?.value||null,
+    data_nasc:document.getElementById('cli-nasc')?.value||null,
     sexo:document.getElementById('cli-sexo')?.value||null,
     telefone:document.getElementById('cli-tel')?.value?.trim()||null,
     email:document.getElementById('cli-email')?.value?.trim()||null,
