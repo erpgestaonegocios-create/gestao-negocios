@@ -2707,19 +2707,31 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
 
       const formaEntrega=comp.forma_entrega||'correios';
 
+      // Botão confirmar pagamento (temporário — será removido na integração Mercado Pago)
+      const pagConfirmado=comp.pagamento_confirmado===true;
+      const btnPagamento=(!pagConfirmado&&(comp.status_entrega==='pendente'||!comp.status_entrega))
+        ?`<button onclick="confirmarPagamentoCompra(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:#f59e0b;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:4px">💰 Confirmar Pagamento</button><br>`
+        :'';
+
       let acaoHtml='';
       if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
-        acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
-          <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
+        acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
+          ${btnPagamento}
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
+            <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
+          </div>
         </div>`;
       } else if(formaEntrega==='correios'&&comp.codigo_rastreio&&comp.status_entrega==='postado'){
         acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <span style="font-size:12px;font-weight:700;color:var(--accent)">${comp.codigo_rastreio}</span>
           <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${comp.codigo_rastreio}" target="_blank" style="padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Ver</a>
         </div>`;
-      } else if(formaEntrega==='retirada'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
-        acaoHtml=`<button onclick="marcarProntoRetirada(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--success);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>`;
+      } else if((formaEntrega==='retirada'||formaEntrega==='app')&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
+        acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
+          ${btnPagamento}
+          <button onclick="marcarProntoRetirada(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--success);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>
+        </div>`;
       } else {
         acaoHtml='<span style="color:var(--text3);font-size:12px">—</span>';
       }
@@ -3211,19 +3223,31 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
 
       const formaEntrega=comp.forma_entrega||'correios';
 
+      // Botão confirmar pagamento (temporário — será removido na integração Mercado Pago)
+      const pagConfirmado=comp.pagamento_confirmado===true;
+      const btnPagamento=(!pagConfirmado&&(comp.status_entrega==='pendente'||!comp.status_entrega))
+        ?`<button onclick="confirmarPagamentoCompra(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:#f59e0b;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:4px">💰 Confirmar Pagamento</button><br>`
+        :'';
+
       let acaoHtml='';
       if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
-        acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
-          <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
+        acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
+          ${btnPagamento}
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
+            <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
+          </div>
         </div>`;
       } else if(formaEntrega==='correios'&&comp.codigo_rastreio&&comp.status_entrega==='postado'){
         acaoHtml=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <span style="font-size:12px;font-weight:700;color:var(--accent)">${comp.codigo_rastreio}</span>
           <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${comp.codigo_rastreio}" target="_blank" style="padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Ver</a>
         </div>`;
-      } else if(formaEntrega==='retirada'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
-        acaoHtml=`<button onclick="marcarProntoRetirada(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--success);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>`;
+      } else if((formaEntrega==='retirada'||formaEntrega==='app')&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
+        acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
+          ${btnPagamento}
+          <button onclick="marcarProntoRetirada(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--success);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>
+        </div>`;
       } else {
         acaoHtml='<span style="color:var(--text3);font-size:12px">—</span>';
       }
@@ -6745,6 +6769,32 @@ async function emailProntoRetirada(nomeCliente, emailCliente, nomeProduto){
     nome_produto: nomeProduto
   };
   return dispararEmail(emailCliente, aplicarVariaveis(tpl.assunto, vars), aplicarVariaveis(tpl.corpo_html, vars));
+}
+
+// ── CONFIRMAR PAGAMENTO (temporário — remover na integração Mercado Pago) ──
+async function confirmarPagamentoCompra(compraId, nomeProduto, clienteId){
+  if(!confirm('Confirmar pagamento deste pedido?')) return;
+  try{
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({pagamento_confirmado:true})});
+    // Buscar dados do cliente para disparar email
+    const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email');
+    if(cli&&cli[0]?.email){
+      await emailPagamentoConfirmado(cli[0].nome,cli[0].email,nomeProduto);
+    }
+    showToast('✅ Pagamento confirmado!','success');
+    // Recarregar histórico
+    const btnHist=document.querySelector('[onclick*="loadHistoricoCompras"]');
+    if(btnHist) btnHist.click();
+    else { const el=document.getElementById('hist-compras-conteudo'); if(el) onShowHistoricoCompras(); }
+  }catch(e){ showToast('Erro: '+e.message,'error'); }
+}
+
+async function emailPagamentoConfirmado(nomeCliente, emailCliente, nomeProduto){
+  await carregarTemplates();
+  const tpl=_emailTemplates['pagamento_confirmado'];
+  if(!tpl){ console.warn('Template pagamento_confirmado não encontrado'); return; }
+  const vars={nome_cliente:nomeCliente,nome_produto:nomeProduto};
+  return dispararEmail(emailCliente,aplicarVariaveis(tpl.assunto,vars),aplicarVariaveis(tpl.corpo_html,vars));
 }
 
 async function salvarRastreio(compraId, nomeProduto, clienteId){
