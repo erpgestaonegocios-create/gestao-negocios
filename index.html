@@ -1514,7 +1514,7 @@ function showPanel(name){
   if(name==='servicos')     carregarServicos();
   if(name==='produtos')     carregarProdutos();
   if(name==='fornecedores') carregarFornecedores();
-  if(name==='clientes') carregarClientes();
+  if(name==='clientes'){ carregarClientes(); carregarPostagemPedidos(); }
   if(name==='labels')   carregarLabelsTabela();
   if(name==='config-empresa') carregarListaEmpresas();
 }
@@ -4661,12 +4661,22 @@ function renderClientes(){
   return '<div class="panel-header"><span class="panel-title">'+tit+' <span class="total-badge" id="cli-total"></span></span>'
     +'<div class="panel-actions"><button class="btn-secondary" onclick="openModalImportacao(\'clientes\')">📥 Importar</button>'
     +'<button class="btn-new" onclick="openModalCliente(\'new\')">+ '+novo+'</button></div></div>'
+    +'<div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px">'
+    +'<button id="cli-aba-lista" onclick="cliAba(\'lista\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">👥 Clientes</button>'
+    +'<button id="cli-aba-postagem" onclick="cliAba(\'postagem\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text3);font-size:13px;cursor:pointer">📦 Postagem de Pedidos <span id="badge-postagem" style="background:var(--danger);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>'
+    +'</div>'
+    +'<div id="cli-aba-lista-conteudo">'
     +'<div class="search-bar"><input type="text" id="cli-busca" placeholder="Buscar por nome, CPF ou e-mail..." onkeydown="if(event.key===\'Enter\')buscarClientes()">'
     +'<button class="btn-search" onclick="buscarClientes()">Buscar</button>'
     +'<button class="btn-clear" onclick="limparBuscaCli()">✕ Limpar</button></div>'
     +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead>'
-    +'<tbody id="tbl-clientes"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div>';
+    +'<tbody id="tbl-clientes"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div>'
+    +'</div>'
+    +'<div id="cli-aba-postagem-conteudo" style="display:none">'
+    +'<div id="postagem-lista"><div class="loading">Carregando...</div></div>'
+    +'</div>';
 }
+
 
 function renderFornecedores(){
   const tit=getLabel('fornecedores_titulo','Fornecedores');
@@ -4850,6 +4860,102 @@ function calcularFreteEstimado(cep){
     +'<div><div style="font-size:11px;color:var(--text3);margin-bottom:2px">Frete Estimado</div><div style="font-size:20px;font-weight:700;color:var(--success)">'+preco+'</div></div>'
     +'<div><div style="font-size:11px;color:var(--text3);margin-bottom:2px">Prazo</div><div style="font-weight:600;color:var(--accent)">'+prazo+'</div></div>'
     +'</div><div style="font-size:10px;color:var(--text3);margin-top:6px">⚠️ Estimativa por região. Valores reais podem variar.</div>';
+}
+
+function cliAba(aba){
+  const isLista=aba==='lista';
+  document.getElementById('cli-aba-lista-conteudo').style.display=isLista?'':'none';
+  document.getElementById('cli-aba-postagem-conteudo').style.display=isLista?'none':'';
+  document.getElementById('cli-aba-lista').style.cssText='padding:10px 20px;background:none;border:none;border-bottom:2px solid '+(isLista?'var(--accent)':'transparent')+';margin-bottom:-2px;color:'+(isLista?'var(--accent)':'var(--text3)')+';font-size:13px;font-weight:'+(isLista?'600':'400')+';cursor:pointer';
+  document.getElementById('cli-aba-postagem').style.cssText='padding:10px 20px;background:none;border:none;border-bottom:2px solid '+(!isLista?'var(--accent)':'transparent')+';margin-bottom:-2px;color:'+(!isLista?'var(--accent)':'var(--text3)')+';font-size:13px;font-weight:'+(!isLista?'600':'400')+';cursor:pointer';
+  if(!isLista) carregarPostagemPedidos();
+}
+
+async function carregarPostagemPedidos(){
+  const pf=currentUser?.perfil||'master';
+  const wrap=document.getElementById('postagem-lista');
+  if(!wrap)return;
+  wrap.innerHTML='<div class="loading">Carregando pedidos...</div>';
+  try{
+    const rows=await api('cliente_compras?select=*,produtos(nome),clientes(nome,telefone,cep,endereco,numero,complemento,bairro,cidade,estado,email)'
+      +'&perfil_codigo=eq.'+encodeURIComponent(pf)
+      +'&pagamento_confirmado=eq.true'
+      +'&status_entrega=in.(pendente,postado)'
+      +'&order=id.asc');
+    if(!rows||!rows.length){
+      wrap.innerHTML='<div class="empty-state" style="padding:40px;text-align:center"><div style="font-size:48px">✅</div><h3 style="margin-top:12px">Nenhum pedido pendente</h3><p style="color:var(--text3)">Todos os pedidos foram processados!</p></div>';
+      document.getElementById('badge-postagem').textContent='';
+      return;
+    }
+    const badge=document.getElementById('badge-postagem');
+    if(badge)badge.textContent=rows.length;
+    wrap.innerHTML=rows.map(c=>{
+      const cli=c.clientes||{};
+      const prod=c.produtos?.nome||'Produto';
+      const formaEntrega=c.forma_entrega||'correios';
+      const isCorreios=formaEntrega==='correios';
+      const isPostado=c.status_entrega==='postado';
+      let acaoHtml='';
+      if(isCorreios&&!isPostado){
+        acaoHtml=`
+          <button onclick="verDadosPostagem(${c.id})" style="padding:6px 12px;background:#6366f1;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">📋 Dados p/ Postagem</button>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+            <input id="rastreio-post-${c.id}" type="text" placeholder="Código de rastreio" style="flex:1;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none">
+            <button onclick="salvarRastreioPost(${c.id},'${prod.replace(/'/g,'').slice(0,40)}',${c.cliente_id})" style="padding:6px 12px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">Salvar</button>
+          </div>`;
+      } else if(isCorreios&&isPostado){
+        acaoHtml=`
+          <div style="font-size:12px;font-weight:700;color:var(--accent)">📦 ${c.codigo_rastreio}</div>
+          <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${c.codigo_rastreio}" target="_blank" style="display:inline-block;margin-top:4px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Rastrear</a>
+          <button onclick="marcarEntregue(${c.id})" style="margin-top:6px;display:block;padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>`;
+      } else {
+        acaoHtml=`<button onclick="marcarProntoRetiradaPost(${c.id},'${prod.replace(/'/g,'').slice(0,40)}',${c.cliente_id})" style="padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>`;
+      }
+      return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700;color:var(--text)">${cli.nome||'—'}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${cli.telefone||''} · ${c.data_compra||''}</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:6px">${prod}${c.genero?' · '+c.genero:''} ${c.tamanho?'· Tam.'+c.tamanho:''} · Qtd: ${c.quantidade||1}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${['correios','Correios','retirada','Retirada','app','App'][['correios','correios','retirada','retirada','app','app'].indexOf(formaEntrega)]||formaEntrega} · <strong style="color:var(--accent)">R$ ${parseFloat(c.total_pago||0).toFixed(2).replace('.',',')}</strong></div>
+          </div>
+          <div style="min-width:180px">${acaoHtml}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';}
+}
+
+async function salvarRastreioPost(compraId, nomeProduto, clienteId){
+  const codigo=document.getElementById('rastreio-post-'+compraId)?.value?.trim();
+  if(!codigo){alert('Informe o código de rastreio.');return;}
+  try{
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({codigo_rastreio:codigo,status_entrega:'postado',rastreio_atualizado_em:new Date().toISOString()})});
+    const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email');
+    if(cli&&cli[0]?.email) await emailPedidoPostado(cli[0].nome,cli[0].email,nomeProduto,codigo);
+    alert('✅ Código salvo e email enviado para o cliente!');
+    carregarPostagemPedidos();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+async function marcarProntoRetiradaPost(compraId, nomeProduto, clienteId){
+  if(!confirm('Marcar pedido como pronto para retirada?'))return;
+  try{
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({status_entrega:'pronto_retirada'})});
+    const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email');
+    if(cli&&cli[0]?.email) await emailProntoRetirada(cli[0].nome,cli[0].email,nomeProduto);
+    alert('✅ Cliente notificado!');
+    carregarPostagemPedidos();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+async function marcarEntregue(compraId){
+  if(!confirm('Confirmar entrega do pedido?'))return;
+  try{
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({status_entrega:'entregue'})});
+    alert('✅ Pedido marcado como entregue!');
+    carregarPostagemPedidos();
+  }catch(e){alert('Erro: '+e.message);}
 }
 
 async function carregarClientes(filtro=''){
@@ -6470,7 +6576,7 @@ async function carregarLancamentos(){
     const status=document.getElementById('fin-filtro-status')?.value||'';
     const mes=document.getElementById('fin-filtro-mes')?.value||'';
     const dia=document.getElementById('fin-filtro-dia')?.value||'';
-    let q='financeiro_lancamentos?select=*,clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=data_vencimento.asc,id.asc';
+    let q='financeiro_lancamentos?select=*,clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=id.desc';
     if(tipo)q+='&tipo=eq.'+tipo;if(status)q+='&status=eq.'+status;
     if(dia){q+='&data_vencimento=eq.'+dia;}
     else if(mes){
