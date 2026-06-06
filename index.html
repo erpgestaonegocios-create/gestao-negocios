@@ -6837,12 +6837,15 @@ Qtd: ${c.quantidade||1} | Tam: ${c.tamanho||'—'} | ${c.genero||''}
         <h3 style="margin:0 0 16px;font-size:16px">📦 Dados para Postagem</h3>
         <pre style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;white-space:pre-wrap;word-break:break-word;margin:0 0 16px;color:var(--text)">${msg}</pre>
         <div style="display:flex;gap:8px">
-          <button onclick="navigator.clipboard.writeText(${JSON.stringify(msg)}).then(()=>this.textContent='✅ Copiado!').catch(()=>{})" style="flex:1;padding:10px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">📋 Copiar</button>
+          <button id="btn-copiar-postagem" style="flex:1;padding:10px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">📋 Copiar</button>
           <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-weight:600;cursor:pointer">Fechar</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
     modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+    document.getElementById('btn-copiar-postagem').addEventListener('click',function(){
+      navigator.clipboard.writeText(msg).then(()=>{this.textContent='✅ Copiado!';}).catch(()=>{});
+    });
   }catch(e){alert('Erro ao buscar dados: '+e.message);}
 }
 
