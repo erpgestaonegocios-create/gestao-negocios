@@ -2699,7 +2699,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
     html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Total</th><th>Status</th><th>Rastreio / Ação</th></tr></thead><tbody>';
     html+=compras.map(comp=>{
       const statusBadge={
-        'pendente':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Pendente</span>',
+        'pendente':comp.pagamento_confirmado?'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Pag. Confirmado</span>':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Ag. Pagamento</span>',
         'postado':'<span style="background:rgba(107,127,215,.2);color:var(--accent);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">📦 Postado</span>',
         'pronto_retirada':'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🏪 P/ Retirada</span>',
         'entregue':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
@@ -3216,7 +3216,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
     html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Qtd</th><th>Total</th><th>Status</th><th>Rastreio / Ação</th></tr></thead><tbody>';
     html+=compras.map(comp=>{
       const statusBadge={
-        'pendente':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Pendente</span>',
+        'pendente':comp.pagamento_confirmado?'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Pag. Confirmado</span>':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Ag. Pagamento</span>',
         'postado':'<span style="background:rgba(107,127,215,.2);color:var(--accent);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">📦 Postado</span>',
         'pronto_retirada':'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🏪 P/ Retirada</span>',
         'entregue':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
