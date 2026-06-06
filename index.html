@@ -2714,7 +2714,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
         acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
           ${btnPagamento}
-          <button onclick="verDadosPostagem(${comp.id})" style="padding:5px 10px;background:#6366f1;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:2px">📋 Dados p/ Postagem</button>
+          ${comp.pagamento_confirmado?`<button onclick="verDadosPostagem(${comp.id})" style="padding:5px 10px;background:#6366f1;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:2px">📋 Dados p/ Postagem</button>`:''}
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
             <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
@@ -3231,7 +3231,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
         acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
           ${btnPagamento}
-          <button onclick="verDadosPostagem(${comp.id})" style="padding:5px 10px;background:#6366f1;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:2px">📋 Dados p/ Postagem</button>
+          ${comp.pagamento_confirmado?`<button onclick="verDadosPostagem(${comp.id})" style="padding:5px 10px;background:#6366f1;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:2px">📋 Dados p/ Postagem</button>`:''}
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
             <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
