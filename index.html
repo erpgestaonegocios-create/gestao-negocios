@@ -2708,10 +2708,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       const formaEntrega=comp.forma_entrega||'correios';
 
       // Botão confirmar pagamento (temporário — será removido na integração Mercado Pago)
-      const pagConfirmado=comp.pagamento_confirmado===true;
-      const btnPagamento=(!pagConfirmado&&(comp.status_entrega==='pendente'||!comp.status_entrega))
-        ?`<button onclick="confirmarPagamentoCompra(${comp.id},'${(comp.produtos?.nome||comp.observacoes||'Produto').replace(/[^a-zA-Z0-9\s\-]/g,'')}',${comp.cliente_id})" style="padding:5px 10px;background:#f59e0b;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:4px">💰 Confirmar Pagamento</button><br>`
-        :'';
+      const btnPagamento=''; // Confirmação automática via Mercado Pago
 
       let acaoHtml='';
       if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
@@ -3227,10 +3224,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       const formaEntrega=comp.forma_entrega||'correios';
 
       // Botão confirmar pagamento (temporário — será removido na integração Mercado Pago)
-      const pagConfirmado=comp.pagamento_confirmado===true;
-      const btnPagamento=(!pagConfirmado&&(comp.status_entrega==='pendente'||!comp.status_entrega))
-        ?`<button onclick="confirmarPagamentoCompra(${comp.id},'${(comp.produtos?.nome||comp.observacoes||'Produto').replace(/[^a-zA-Z0-9\s\-]/g,'')}',${comp.cliente_id})" style="padding:5px 10px;background:#f59e0b;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:4px">💰 Confirmar Pagamento</button><br>`
-        :'';
+      const btnPagamento=''; // Confirmação automática via Mercado Pago
 
       let acaoHtml='';
       if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
