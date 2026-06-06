@@ -6410,17 +6410,7 @@ async function abrirTaxasMP(){
               <span style="color:var(--text2);font-size:13px">%</span>
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
-            <span style="font-size:22px">📄</span>
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:600;color:var(--text)">Boleto Bancário</div>
-              <div style="font-size:11px;color:var(--text3)">Compensação em 2 dias úteis</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <input type="number" id="taxa-boleto" value="" min="0" max="20" step="0.01" style="width:70px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-weight:600;text-align:center;outline:none">
-              <span style="color:var(--text2);font-size:13px">%</span>
-            </div>
-          </div>
+
         </div>
         <div style="background:rgba(107,127,215,.06);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:16px">
           💡 Exemplo: Produto R$ 100,00 pago com PIX (taxa 0,99%) → você recebe <strong>R$ 99,01</strong>. A diferença é registrada automaticamente como despesa "Taxa MP".
@@ -6434,7 +6424,6 @@ async function abrirTaxasMP(){
   }
   document.getElementById('taxa-pix').value=taxas.pix??0.99;
   document.getElementById('taxa-cartao').value=taxas.cartao??4.98;
-  document.getElementById('taxa-boleto').value=taxas.boleto??2.99;
   document.getElementById('taxas-msg').style.display='none';
   openModal('modal-taxas-mp');
 }
@@ -6442,12 +6431,12 @@ async function abrirTaxasMP(){
 async function salvarTaxasMP(){
   const pix=parseFloat(document.getElementById('taxa-pix').value)||0;
   const cartao=parseFloat(document.getElementById('taxa-cartao').value)||0;
-  const boleto=parseFloat(document.getElementById('taxa-boleto').value)||0;
+  const boleto=0;
   const pf=currentUser?.perfil||'master';
   const msg=document.getElementById('taxas-msg');
   const showMsg=(t,tp)=>{msg.style.display='block';msg.style.color=tp==='error'?'var(--danger)':'var(--success)';msg.style.background=tp==='error'?'rgba(224,85,85,.08)':'rgba(76,175,125,.08)';msg.style.border='1px solid '+(tp==='error'?'var(--danger)':'var(--success)');msg.style.borderRadius='6px';msg.style.padding='8px 12px';msg.style.fontSize='13px';msg.textContent=t;};
   try{
-    const taxasJson=JSON.stringify({pix,cartao,boleto});
+    const taxasJson=JSON.stringify({pix,cartao});
     // Verificar se empresa_config existe para este perfil
     const existe=await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id').catch(()=>[]);
     if(existe&&existe.length){
@@ -6455,7 +6444,7 @@ async function salvarTaxasMP(){
     } else {
       await api('empresa_config',{method:'POST',body:JSON.stringify({perfil_codigo:pf,taxas_mp:taxasJson})});
     }
-    showMsg('✅ Taxas salvas! PIX '+pix+'% · Cartão '+cartao+'% · Boleto '+boleto+'%','success');
+    showMsg('✅ Taxas salvas! PIX '+pix+'% · Cartão '+cartao+'%','success');
     setTimeout(()=>closeModal('modal-taxas-mp'),1200);
   }catch(e){showMsg('Erro: '+e.message,'error');}
 }
