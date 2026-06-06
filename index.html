@@ -6933,24 +6933,6 @@ async function salvarRastreio(compraId, nomeProduto, clienteId){
   }catch(e){alert('Erro ao salvar: '+e.message);}
 }
 
-async function marcarEntregue(compraId, nomeProduto, clienteId){
-  if(!confirm('Confirmar entrega deste pedido? Um email será enviado ao cliente.'))return;
-  try{
-    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({
-      status_entrega:'entregue',
-      rastreio_atualizado_em:new Date().toISOString()
-    })});
-    const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email').catch(()=>[]);
-    if(cli&&cli[0]&&cli[0].email){
-      await emailPedidoEntregue(cli[0].nome,cli[0].email,nomeProduto);
-      alert('✅ Entrega confirmada e email enviado para '+cli[0].email);
-    } else {
-      alert('✅ Entrega confirmada! (cliente sem email cadastrado)');
-    }
-    const sub=document.getElementById('hist-compras-sub').textContent.replace('Cliente: ','');
-    consultarHistoricoCompras(clienteId,sub);
-  }catch(e){alert('Erro: '+e.message);}
-}
 
 async function emailPedidoEntregue(nomeCliente, emailCliente, nomeProduto){
   await carregarTemplates();
