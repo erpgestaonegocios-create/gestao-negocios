@@ -2714,6 +2714,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
         acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
           ${btnPagamento}
+          <button onclick="verDadosPostagem(${comp.id})" style="padding:5px 10px;background:#6366f1;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:2px">📋 Dados p/ Postagem</button>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
             <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
@@ -3230,6 +3231,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       if(formaEntrega==='correios'&&(comp.status_entrega==='pendente'||!comp.status_entrega)){
         acaoHtml=`<div style="display:flex;flex-direction:column;gap:4px">
           ${btnPagamento}
+          <button onclick="verDadosPostagem(${comp.id})" style="padding:5px 10px;background:#6366f1;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:2px">📋 Dados p/ Postagem</button>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             <input id="rastreio-${comp.id}" type="text" value="${comp.codigo_rastreio||''}" placeholder="Código rastreio" style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;width:140px;outline:none">
             <button onclick="salvarRastreio(${comp.id},'${comp.produtos?.nome||''}',${comp.cliente_id})" style="padding:5px 10px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;font-weight:600">Salvar</button>
@@ -6797,6 +6799,51 @@ async function emailPagamentoConfirmado(nomeCliente, emailCliente, nomeProduto){
   if(!tpl){ console.warn('Template pagamento_confirmado não encontrado'); return; }
   const vars={nome_cliente:nomeCliente,nome_produto:nomeProduto};
   return dispararEmail(emailCliente,aplicarVariaveis(tpl.assunto,vars),aplicarVariaveis(tpl.corpo_html,vars));
+}
+
+async function verDadosPostagem(compraId){
+  try{
+    const rows=await api('cliente_compras?id=eq.'+compraId+'&select=*,produtos(nome),clientes(nome,telefone,cep,endereco,numero,complemento,bairro,cidade,estado)');
+    if(!rows||!rows.length){alert('Compra não encontrada.');return;}
+    const c=rows[0];
+    const cli=c.clientes||{};
+    const prod=c.produtos?.nome||'—';
+    const end=[
+      cli.endereco,
+      cli.numero?'Nº '+cli.numero:'',
+      cli.complemento||'',
+      cli.bairro||'',
+      cli.cidade&&cli.estado?cli.cidade+' - '+cli.estado:'',
+      cli.cep?'CEP: '+cli.cep:''
+    ].filter(Boolean).join(', ');
+    const msg=`📦 DADOS PARA POSTAGEM
+━━━━━━━━━━━━━━━━━━━━
+DESTINATÁRIO:
+${cli.nome||'—'}
+${cli.telefone||''}
+
+ENDEREÇO:
+${end}
+
+PRODUTO:
+${prod}
+Qtd: ${c.quantidade||1} | Tam: ${c.tamanho||'—'} | ${c.genero||''}
+━━━━━━━━━━━━━━━━━━━━`;
+    // Mostrar em modal de alerta com opção de copiar
+    const modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML=`
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:440px;width:100%">
+        <h3 style="margin:0 0 16px;font-size:16px">📦 Dados para Postagem</h3>
+        <pre style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;white-space:pre-wrap;word-break:break-word;margin:0 0 16px;color:var(--text)">${msg}</pre>
+        <div style="display:flex;gap:8px">
+          <button onclick="navigator.clipboard.writeText(${JSON.stringify(msg)}).then(()=>this.textContent='✅ Copiado!').catch(()=>{})" style="flex:1;padding:10px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">📋 Copiar</button>
+          <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-weight:600;cursor:pointer">Fechar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+  }catch(e){alert('Erro ao buscar dados: '+e.message);}
 }
 
 async function salvarRastreio(compraId, nomeProduto, clienteId){
