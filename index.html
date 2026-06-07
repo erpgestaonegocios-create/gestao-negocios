@@ -4631,7 +4631,7 @@ function renderClientes(){
     +'<button class="btn-new" onclick="openModalCliente(\'new\')">+ '+novo+'</button></div></div>'
     +'<div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px">'
     +'<button id="cli-aba-lista" onclick="cliAba(\'lista\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">👥 Clientes</button>'
-    +'<button id="cli-aba-postagem" onclick="cliAba(\'postagem\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text3);font-size:13px;cursor:pointer">📦 Postagem de Pedidos <span id="badge-postagem" style="background:var(--danger);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>'
+    +'<button id="cli-aba-postagem" onclick="cliAba(\'postagem\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text3);font-size:13px;cursor:pointer">📦 Postagem/Entrega de Pedidos <span id="badge-postagem" style="background:var(--danger);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>'
     +'</div>'
     +'<div id="cli-aba-lista-conteudo">'
     +'<div class="search-bar"><input type="text" id="cli-busca" placeholder="Buscar por nome, CPF ou e-mail..." onkeydown="if(event.key===\'Enter\')buscarClientes()">'
@@ -4848,7 +4848,7 @@ async function carregarPostagemPedidos(){
     const rows=await api('cliente_compras?select=*,produtos(nome),clientes(nome,telefone,cep,endereco,numero,complemento,bairro,cidade,estado,email)'
       +'&perfil_codigo=eq.'+encodeURIComponent(pf)
       +'&pagamento_confirmado=eq.true'
-      +'&status_entrega=in.(pendente,postado)'
+      +'&status_entrega=in.(pendente,postado,pronto_retirada)'
       +'&order=id.asc');
     if(!rows||!rows.length){
       wrap.innerHTML='<div class="empty-state" style="padding:40px;text-align:center"><div style="font-size:48px">✅</div><h3 style="margin-top:12px">Nenhum pedido pendente</h3><p style="color:var(--text3)">Todos os pedidos foram processados!</p></div>';
@@ -4876,6 +4876,11 @@ async function carregarPostagemPedidos(){
           <div style="font-size:12px;font-weight:700;color:var(--accent)">📦 ${c.codigo_rastreio}</div>
           <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${c.codigo_rastreio}" target="_blank" style="display:inline-block;margin-top:4px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Rastrear</a>
           <button onclick="marcarEntregue(${c.id})" style="margin-top:6px;display:block;padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>`;
+      } else if(c.status_entrega==='pronto_retirada'){
+        acaoHtml=`<div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:12px;font-weight:700;color:var(--success)">🏪 Pronto p/ Retirada</span>
+          <button onclick="marcarEntregue(${c.id})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>
+        </div>`;
       } else {
         acaoHtml=`<button onclick="marcarProntoRetiradaPost(${c.id},'${prod.replace(/'/g,'').slice(0,40)}',${c.cliente_id})" style="padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>`;
       }
