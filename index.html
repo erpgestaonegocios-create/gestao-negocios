@@ -2778,7 +2778,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
     // Totalizador
     const totalGasto=compras.reduce((s,c)=>s+parseFloat(c.total_pago||0),0);
     // ── PAINEL TEMPORÁRIO DE TESTE DE EMAILS (remover após validação) ──
-    const painelTeste=isMasterSistema?`<div style="background:#2d1f00;border:1px solid #f59e0b;border-radius:8px;padding:16px;margin-bottom:16px">
+    const painelTeste=(isMasterSistema||currentUser?.nivel==='master_empresa')?`<div style="background:#2d1f00;border:1px solid #f59e0b;border-radius:8px;padding:16px;margin-bottom:16px">
       <div style="font-size:12px;font-weight:700;color:#f59e0b;margin-bottom:10px">⚠️ PAINEL DE TESTE — Disparar emails manualmente (remover após validação)</div>
       <div style="font-size:12px;color:#f5c542;margin-bottom:10px">Cliente: ${cliNomeStr} · ${cliEmail}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
