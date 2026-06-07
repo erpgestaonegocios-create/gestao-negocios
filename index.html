@@ -1276,9 +1276,13 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
     const cliRows=await api('clientes?id=eq.'+clienteId+'&select=nome,email');
     const cli=cliRows?.[0];
     if(!cli?.email){alert('Cliente sem email cadastrado.');return;}
-    await carregarTemplates();
-    const tpl=_emailTemplates[tipo];
+    // Buscar template diretamente do banco (sem depender de cache)
+    const tplRows=await api('email_templates?tipo=eq.'+tipo+'&perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil||'lojista')+'&ativo=eq.true&select=assunto,corpo_html&limit=1');
+    const tpl=tplRows?.[0];
     if(!tpl){alert('Template "'+tipo+'" não encontrado no banco.');return;}
+    // Também garantir cache atualizado para venda_realizada
+    const tplLojaRows=await api('email_templates?tipo=eq.venda_realizada&perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil||'lojista')+'&ativo=eq.true&select=assunto,corpo_html&limit=1');
+    const tplLojaCache=tplLojaRows?.[0];
     const compras=await api('cliente_compras?cliente_id=eq.'+clienteId+'&order=id.desc&limit=1&select=*,produtos(nome)');
     const nomeProd=compras?.[0]?.produtos?.nome||'Produto';
     const total=compras?.[0]?.total_pago||0;
@@ -1293,7 +1297,7 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
     await dispararEmail(cli.email,assunto,html);
     // Disparar venda_realizada para a loja junto com pedido_recebido
     if(tipo==='pedido_recebido_correios'||tipo==='pedido_recebido_retirada'){
-      const tplLoja=_emailTemplates['venda_realizada'];
+      const tplLoja=tplLojaCache;
       if(tplLoja){
         // Usar forma de entrega baseada no tipo do template clicado
         const formaDoTipo=formaEntregaOverride||(tipo==='pedido_recebido_correios'?'correios':'retirada');
