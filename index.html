@@ -2789,6 +2789,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
         <button onclick="testeEmail('pagamento_confirmado',${clienteId})" style="padding:6px 12px;background:#4caf7d;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pagamento Confirmado</button>
         <button onclick="testeEmailRastreio(${clienteId})" style="padding:6px 12px;background:#6366f1;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Postado (c/ rastreio)</button>
         <button onclick="testeEmail('pronto_retirada',${clienteId})" style="padding:6px 12px;background:#f59e0b;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pronto p/ Retirada</button>
+        <button onclick="testeEmail('pedido_entregue',${clienteId})" style="padding:6px 12px;background:#4caf7d;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Entregue</button>
       </div>
     </div>`:'';
     let html=painelTeste+'<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">';
@@ -3304,6 +3305,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
         <button onclick="testeEmail('pagamento_confirmado',${clienteId})" style="padding:6px 12px;background:#4caf7d;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pagamento Confirmado</button>
         <button onclick="testeEmailRastreio(${clienteId})" style="padding:6px 12px;background:#6366f1;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Postado (c/ rastreio)</button>
         <button onclick="testeEmail('pronto_retirada',${clienteId})" style="padding:6px 12px;background:#f59e0b;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pronto p/ Retirada</button>
+        <button onclick="testeEmail('pedido_entregue',${clienteId})" style="padding:6px 12px;background:#4caf7d;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Entregue</button>
       </div>
     </div>`:'';
     let html=painelTeste2+'<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">';
