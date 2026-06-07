@@ -1271,7 +1271,7 @@ async function salvarConfigEmpresa(){
 
 // ─── LOGIN / LOGOUT ───────────────────────────────────────────────
 // ── FUNÇÕES TEMPORÁRIAS DE TESTE DE EMAIL (remover após validação) ────
-async function testeEmail(tipo, clienteId){
+async function testeEmail(tipo, clienteId, formaEntregaOverride){
   try{
     const cliRows=await api('clientes?id=eq.'+clienteId+'&select=nome,email');
     const cli=cliRows?.[0];
@@ -1296,7 +1296,7 @@ async function testeEmail(tipo, clienteId){
       const tplLoja=_emailTemplates['venda_realizada'];
       if(tplLoja){
         // Usar forma de entrega baseada no tipo do template clicado
-        const formaDoTipo=tipo==='pedido_recebido_correios'?'correios':'retirada';
+        const formaDoTipo=formaEntregaOverride||(tipo==='pedido_recebido_correios'?'correios':'retirada');
         const entregaLabel={'correios':'📦 Correios','retirada':'🏪 Retirada presencial','app':'🛵 Via aplicativo'}[formaDoTipo]||'—';
         const varsLoja={
           nome_cliente:cli.nome,
@@ -2785,7 +2785,8 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       <div style="font-size:12px;color:#f5c542;margin-bottom:10px">Cliente: ${cliNomeStr} · ${cliEmail}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="testeEmail('pedido_recebido_correios',${clienteId})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Correios)</button>
-        <button onclick="testeEmail('pedido_recebido_retirada',${clienteId})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Retirada/App)</button>
+        <button onclick="testeEmail('pedido_recebido_retirada',${clienteId},'retirada')" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Retirada)</button>
+        <button onclick="testeEmail('pedido_recebido_retirada',${clienteId},'app')" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (App)</button>
         <button onclick="testeEmail('pagamento_confirmado',${clienteId})" style="padding:6px 12px;background:#4caf7d;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pagamento Confirmado</button>
         <button onclick="testeEmailRastreio(${clienteId})" style="padding:6px 12px;background:#6366f1;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Postado (c/ rastreio)</button>
         <button onclick="testeEmail('pronto_retirada',${clienteId})" style="padding:6px 12px;background:#f59e0b;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pronto p/ Retirada</button>
@@ -3301,7 +3302,8 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       <div style="font-size:12px;color:#f5c542;margin-bottom:10px">Cliente: ${cliNomeStr2} · ${cliEmail2}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="testeEmail('pedido_recebido_correios',${clienteId})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Correios)</button>
-        <button onclick="testeEmail('pedido_recebido_retirada',${clienteId})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Retirada/App)</button>
+        <button onclick="testeEmail('pedido_recebido_retirada',${clienteId},'retirada')" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Retirada)</button>
+        <button onclick="testeEmail('pedido_recebido_retirada',${clienteId},'app')" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (App)</button>
         <button onclick="testeEmail('pagamento_confirmado',${clienteId})" style="padding:6px 12px;background:#4caf7d;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pagamento Confirmado</button>
         <button onclick="testeEmailRastreio(${clienteId})" style="padding:6px 12px;background:#6366f1;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Postado (c/ rastreio)</button>
         <button onclick="testeEmail('pronto_retirada',${clienteId})" style="padding:6px 12px;background:#f59e0b;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pronto p/ Retirada</button>
