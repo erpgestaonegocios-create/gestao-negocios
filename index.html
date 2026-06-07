@@ -1295,7 +1295,9 @@ async function testeEmail(tipo, clienteId){
     if(tipo==='pedido_recebido_correios'||tipo==='pedido_recebido_retirada'){
       const tplLoja=_emailTemplates['venda_realizada'];
       if(tplLoja){
-        const entregaLabel={'correios':'📦 Correios','retirada':'🏪 Retirada presencial','app':'🛵 Via aplicativo'}[compras?.[0]?.forma_entrega||'correios']||'—';
+        // Usar forma de entrega baseada no tipo do template clicado
+        const formaDoTipo=tipo==='pedido_recebido_correios'?'correios':'retirada';
+        const entregaLabel={'correios':'📦 Correios','retirada':'🏪 Retirada presencial','app':'🛵 Via aplicativo'}[formaDoTipo]||'—';
         const varsLoja={
           nome_cliente:cli.nome,
           codigo_cliente:String(clienteId),
