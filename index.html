@@ -3647,7 +3647,7 @@ function renderRelatorios(){
 
 function relAba(aba){
   relAbaAtual=aba;
-  ['alertas','relatorios','whatsapp','ia'].forEach(a=>{
+  ['alertas','relatorios','whatsapp','ia','site'].forEach(a=>{
     const btn=document.getElementById('rel-aba-'+a);
     if(!btn)return;
     if(a===aba){btn.style.borderBottomColor='var(--accent)';btn.style.color='var(--accent)';btn.style.fontWeight='600';}
@@ -3660,6 +3660,7 @@ function relAba(aba){
   else if(aba==='relatorios')carregarRelatoriosDados();
   else if(aba==='whatsapp')carregarWhatsApp();
   else if(aba==='ia')carregarAnaliseIA();
+  else if(aba==='site'){wrap.innerHTML='<div id="site-manutencao-wrap"></div>';renderManutencaoSite();}
 }
 
 async function carregarRelatorios(){
