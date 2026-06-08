@@ -1299,9 +1299,7 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
     // Disparar venda_realizada para a loja junto com pedido_recebido (todos os tipos)
     if(tipo==='pedido_recebido_correios'||tipo==='pedido_recebido_retirada'||formaEntregaOverride==='app'){
       const tplLoja=tplLojaCache;
-      if(!tplLoja){alert('Template venda_realizada não encontrado no banco!');}
       if(tplLoja){
-        // Usar forma de entrega baseada no tipo do template clicado
         const formaDoTipo=formaEntregaOverride||(tipo==='pedido_recebido_correios'?'correios':'retirada');
         const entregaLabel={'correios':'📦 Correios','retirada':'🏪 Retirada presencial','app':'🛵 Via aplicativo'}[formaDoTipo]||'—';
         const varsLoja={
@@ -1311,8 +1309,8 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
           itens_tabela:vars.itens_tabela,
           total_pedido:vars.total_pedido
         };
-        await dispararEmail('storemenline@gmail.com',aplicarVariaveis(tplLoja.assunto,varsLoja),aplicarVariaveis(tplLoja.corpo_html,varsLoja));
-        alert('📨 Email loja disparado para storemenline@gmail.com');
+        const assuntoLoja=aplicarVariaveis(tplLoja.assunto,varsLoja)+' ['+entregaLabel+']';
+        await dispararEmail('storemenline@gmail.com',assuntoLoja,aplicarVariaveis(tplLoja.corpo_html,varsLoja));
       }
     }
     alert('✅ Email "'+tipo+'" enviado para '+cli.email+(tipo.includes('pedido_recebido')?' + notificação para a loja':''));
