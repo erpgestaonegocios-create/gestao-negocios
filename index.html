@@ -1312,6 +1312,7 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
           total_pedido:vars.total_pedido
         };
         await dispararEmail('storemenline@gmail.com',aplicarVariaveis(tplLoja.assunto,varsLoja),aplicarVariaveis(tplLoja.corpo_html,varsLoja));
+        alert('📨 Email loja disparado para storemenline@gmail.com');
       }
     }
     alert('✅ Email "'+tipo+'" enviado para '+cli.email+(tipo.includes('pedido_recebido')?' + notificação para a loja':''));
