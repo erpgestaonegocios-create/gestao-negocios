@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+=<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1293,7 +1293,7 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
       total_pedido:'R$ '+parseFloat(total).toFixed(2).replace('.',','),
       itens_tabela:itensHtml
     };
-    const assunto=aplicarVariaveis(tpl.assunto,vars);
+    const assunto=aplicarVariaveis(tpl.assunto,vars)+' [teste '+new Date().toLocaleTimeString('pt-BR')+']';
     const html=aplicarVariaveis(tpl.corpo_html,vars);
     await dispararEmail(cli.email,assunto,html);
     // Disparar venda_realizada para a loja junto com pedido_recebido (todos os tipos)
