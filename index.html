@@ -1281,7 +1281,7 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
     const tpl=tplRows?.[0];
     if(!tpl){alert('Template "'+tipo+'" não encontrado no banco.');return;}
     // Também garantir cache atualizado para venda_realizada
-    const tplLojaRows=await api('email_templates?tipo=eq.venda_realizada&perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil||'lojista')+'&ativo=eq.true&select=assunto,corpo_html&limit=1');
+    const tplLojaRows=await api('email_templates?tipo=eq.venda_realizada&perfil_codigo=eq.lojista&ativo=eq.true&select=assunto,corpo_html&limit=1');
     const tplLojaCache=tplLojaRows?.[0];
     const compras=await api('cliente_compras?cliente_id=eq.'+clienteId+'&order=id.desc&limit=1&select=*,produtos(nome)');
     const nomeProd=compras?.[0]?.produtos?.nome||'Produto';
@@ -1299,6 +1299,7 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
     // Disparar venda_realizada para a loja junto com pedido_recebido (todos os tipos)
     if(tipo==='pedido_recebido_correios'||tipo==='pedido_recebido_retirada'||formaEntregaOverride==='app'){
       const tplLoja=tplLojaCache;
+      if(!tplLoja){alert('Template venda_realizada não encontrado no banco!');}
       if(tplLoja){
         // Usar forma de entrega baseada no tipo do template clicado
         const formaDoTipo=formaEntregaOverride||(tipo==='pedido_recebido_correios'?'correios':'retirada');
@@ -1325,7 +1326,7 @@ async function testeEmailMultiplos(clienteId){
     const tplRows=await api('email_templates?tipo=eq.pedido_recebido_correios&perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil||'lojista')+'&ativo=eq.true&select=assunto,corpo_html&limit=1');
     const tpl=tplRows?.[0];
     if(!tpl){alert('Template não encontrado.');return;}
-    const tplLojaRows=await api('email_templates?tipo=eq.venda_realizada&perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil||'lojista')+'&ativo=eq.true&select=assunto,corpo_html&limit=1');
+    const tplLojaRows=await api('email_templates?tipo=eq.venda_realizada&perfil_codigo=eq.lojista&ativo=eq.true&select=assunto,corpo_html&limit=1');
     const tplLoja=tplLojaRows?.[0];
     // Simular 3 produtos
     const itensSim=[
