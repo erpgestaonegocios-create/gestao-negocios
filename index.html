@@ -672,6 +672,7 @@
       </div>
       <div class="form-section">Informações Adicionais</div>
       <div class="mfield col-2"><label>Observações</label><textarea id="prod-obs" placeholder="Observações..."></textarea></div>
+      <div class="mfield col-2"><label>Observações Site <span style="font-size:10px;color:var(--accent)">(exibido no site na página do produto — promoções, avisos, etc.)</span></label><textarea id="prod-obs-site" placeholder="Ex: Produto em promoção! 10% off até domingo..."></textarea></div>
     </div>
     <div class="modal-msg" id="modal-prod-msg"></div>
     <div class="modal-actions">
@@ -5445,7 +5446,7 @@ async function openModalProduto(mode,id){
   const pf=currentUser.perfil||'master';
   const selForn=document.getElementById('prod-fornecedor');
   try{const forns=await api('fornecedores?select=id,nome&perfil_codigo=eq.'+encodeURIComponent(pf)+'&ativo=eq.true&order=nome.asc');if(selForn)selForn.innerHTML='<option value="">Nenhum</option>'+(forns||[]).map(f=>'<option value="'+f.id+'">'+f.nome+'</option>').join('');}catch(e){if(selForn)selForn.innerHTML='<option value="">Nenhum</option>';}
-  const campos=['prod-codigo','prod-nome','prod-desc','prod-categoria','prod-custo','prod-venda','prod-est-min','prod-est-max','prod-obs'];
+  const campos=['prod-codigo','prod-nome','prod-desc','prod-categoria','prod-custo','prod-venda','prod-est-min','prod-est-max','prod-obs','prod-obs-site'];
   if(mode==='new'){
     document.getElementById('modal-prod-titulo').textContent=getLabel('produtos_novo','Novo Produto');
     campos.forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
@@ -5458,7 +5459,7 @@ async function openModalProduto(mode,id){
     const set=(i,v)=>{const el=document.getElementById(i);if(el)el.value=v!=null?v:'';};
     set('prod-codigo',p.codigo);set('prod-nome',p.nome);set('prod-desc',p.descricao);set('prod-categoria',p.categoria);
     const pu=document.getElementById('prod-unidade');if(pu)pu.value=p.unidade||'un';
-    set('prod-custo',p.preco_custo);set('prod-venda',p.preco_venda);set('prod-est-min',p.estoque_minimo);set('prod-est-max',p.estoque_maximo);set('prod-obs',p.observacoes);
+    set('prod-custo',p.preco_custo);set('prod-venda',p.preco_venda);set('prod-est-min',p.estoque_minimo);set('prod-est-max',p.estoque_maximo);set('prod-obs',p.observacoes);set('prod-obs-site',p.obs_site);
     if(selForn)selForn.value=p.fornecedor_id||'';
     // Mostrar estoque atual (leitura de estoque_saldo para garantir dado atualizado)
     const wrapEst=document.getElementById('prod-estoque-atual-wrap');
@@ -5517,6 +5518,7 @@ async function salvarProduto(){
     imagem_base64:imagens?imagens[0]:null,
     imagens_base64:imagens,
     observacoes:document.getElementById('prod-obs')?.value?.trim()||null,
+    obs_site:document.getElementById('prod-obs-site')?.value?.trim()||null,
     alterado_em:new Date().toISOString()};
   try{
     if(!editingProdutoId){await api('produtos',{method:'POST',body:JSON.stringify({...body,ativo:true})});showMM('modal-prod-msg','Produto cadastrado!','success');}
