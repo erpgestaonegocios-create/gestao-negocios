@@ -1286,17 +1286,18 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
     const compras=await api('cliente_compras?cliente_id=eq.'+clienteId+'&order=id.desc&limit=1&select=*,produtos(nome)');
     const nomeProd=compras?.[0]?.produtos?.nome||'Produto';
     const total=compras?.[0]?.total_pago||0;
+    const itensHtml=`<tr><td style="padding:8px;border-bottom:1px solid #eee">${nomeProd}</td><td style="padding:8px;text-align:center">—</td><td style="padding:8px;text-align:center">—</td><td style="padding:8px;text-align:center">1</td><td style="padding:8px;text-align:right">R$ ${parseFloat(total).toFixed(2).replace('.',',')}</td></tr>`;
     const vars={
       nome_cliente:cli.nome,
       nome_produto:nomeProd,
       total_pedido:'R$ '+parseFloat(total).toFixed(2).replace('.',','),
-      itens_tabela:`<tr><td style="padding:8px;border-bottom:1px solid #eee">${nomeProd}</td><td style="padding:8px;text-align:center">—</td><td style="padding:8px;text-align:center">—</td><td style="padding:8px;text-align:center">1</td><td style="padding:8px;text-align:right">R$ ${parseFloat(total).toFixed(2).replace('.',',')}</td></tr>`
+      itens_tabela:itensHtml
     };
     const assunto=aplicarVariaveis(tpl.assunto,vars);
     const html=aplicarVariaveis(tpl.corpo_html,vars);
     await dispararEmail(cli.email,assunto,html);
-    // Disparar venda_realizada para a loja junto com pedido_recebido
-    if(tipo==='pedido_recebido_correios'||tipo==='pedido_recebido_retirada'){
+    // Disparar venda_realizada para a loja junto com pedido_recebido (todos os tipos)
+    if(tipo==='pedido_recebido_correios'||tipo==='pedido_recebido_retirada'||formaEntregaOverride==='app'){
       const tplLoja=tplLojaCache;
       if(tplLoja){
         // Usar forma de entrega baseada no tipo do template clicado
@@ -1313,6 +1314,40 @@ async function testeEmail(tipo, clienteId, formaEntregaOverride){
       }
     }
     alert('✅ Email "'+tipo+'" enviado para '+cli.email+(tipo.includes('pedido_recebido')?' + notificação para a loja':''));
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+async function testeEmailMultiplos(clienteId){
+  try{
+    const cliRows=await api('clientes?id=eq.'+clienteId+'&select=nome,email');
+    const cli=cliRows?.[0];
+    if(!cli?.email){alert('Cliente sem email.');return;}
+    const tplRows=await api('email_templates?tipo=eq.pedido_recebido_correios&perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil||'lojista')+'&ativo=eq.true&select=assunto,corpo_html&limit=1');
+    const tpl=tplRows?.[0];
+    if(!tpl){alert('Template não encontrado.');return;}
+    const tplLojaRows=await api('email_templates?tipo=eq.venda_realizada&perfil_codigo=eq.'+encodeURIComponent(currentUser.perfil||'lojista')+'&ativo=eq.true&select=assunto,corpo_html&limit=1');
+    const tplLoja=tplLojaRows?.[0];
+    // Simular 3 produtos
+    const itensSim=[
+      {nome:'Camisa Cruzeiro I 26/27 Adidas Masculina - Azul Royal',genero:'Masculino',tamanho:'G',qty:1,preco:219.00},
+      {nome:'Camisa Cruzeiro I 26/27 Adidas Masculina - Azul Royal',genero:'Masculino',tamanho:'M',qty:2,preco:219.00},
+      {nome:'Camisa Cruzeiro I 26/27 Adidas Masculina - Azul Royal',genero:'Masculino',tamanho:'P',qty:1,preco:219.00}
+    ];
+    const totalSim=itensSim.reduce((s,i)=>s+i.preco*i.qty,0);
+    const itensHtml=itensSim.map(i=>`<tr>
+      <td style="padding:8px;border-bottom:1px solid #eee">${i.nome}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${i.genero}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${i.tamanho}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${i.qty}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">R$ ${(i.preco*i.qty).toFixed(2).replace('.',',')}</td>
+    </tr>`).join('');
+    const vars={nome_cliente:cli.nome,itens_tabela:itensHtml,total_pedido:'R$ '+totalSim.toFixed(2).replace('.',',')};
+    await dispararEmail(cli.email,aplicarVariaveis(tpl.assunto,vars),aplicarVariaveis(tpl.corpo_html,vars));
+    if(tplLoja){
+      const varsLoja={nome_cliente:cli.nome,codigo_cliente:String(clienteId),forma_entrega:'📦 Correios',itens_tabela:itensHtml,total_pedido:vars.total_pedido};
+      await dispararEmail('storemenline@gmail.com',aplicarVariaveis(tplLoja.assunto,varsLoja),aplicarVariaveis(tplLoja.corpo_html,varsLoja));
+    }
+    alert('✅ Email com 3 produtos enviado para '+cli.email+' + loja');
   }catch(e){alert('Erro: '+e.message);}
 }
 
@@ -2789,6 +2824,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       <div style="font-size:12px;color:#f5c542;margin-bottom:10px">Cliente: ${cliNomeStr} · ${cliEmail}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="testeEmail('pedido_recebido_correios',${clienteId})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Correios)</button>
+        <button onclick="testeEmailMultiplos(${clienteId})" style="padding:6px 12px;background:#0f766e;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Correios (3 produtos)</button>
         <button onclick="testeEmail('pedido_recebido_retirada',${clienteId},'retirada')" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Retirada)</button>
         <button onclick="testeEmail('pedido_recebido_retirada',${clienteId},'app')" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (App)</button>
         <button onclick="testeEmail('pagamento_confirmado',${clienteId})" style="padding:6px 12px;background:#4caf7d;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pagamento Confirmado</button>
@@ -3306,6 +3342,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
       <div style="font-size:12px;color:#f5c542;margin-bottom:10px">Cliente: ${cliNomeStr2} · ${cliEmail2}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="testeEmail('pedido_recebido_correios',${clienteId})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Correios)</button>
+        <button onclick="testeEmailMultiplos(${clienteId})" style="padding:6px 12px;background:#0f766e;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Correios (3 produtos)</button>
         <button onclick="testeEmail('pedido_recebido_retirada',${clienteId},'retirada')" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (Retirada)</button>
         <button onclick="testeEmail('pedido_recebido_retirada',${clienteId},'app')" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pedido Recebido (App)</button>
         <button onclick="testeEmail('pagamento_confirmado',${clienteId})" style="padding:6px 12px;background:#4caf7d;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">📧 Pagamento Confirmado</button>
