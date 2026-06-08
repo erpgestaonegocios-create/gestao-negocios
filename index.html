@@ -1392,6 +1392,76 @@ async function testeEmailRastreio(clienteId){
   }catch(e){alert('Erro: '+e.message);}
 }
 
+// ── MANUTENÇÃO DO SITE ──────────────────────────────────────────
+async function renderManutencaoSite(){
+  const wrap=document.getElementById('site-manutencao-wrap');
+  if(!wrap)return;
+  // Buscar status atual do banco
+  const rows=await api('configuracoes_sistema?chave=eq.manutencao_site&perfil_codigo=eq.lojista&select=valor').catch(()=>[]);
+  const cfg=rows?.[0]?.valor?JSON.parse(rows[0].valor):null;
+  const ativo=cfg?.ativo===true;
+  const retorno=cfg?.retorno||'';
+  wrap.innerHTML=`
+    <div style="max-width:600px">
+      <h3 style="margin:0 0 20px;font-size:16px">🌐 Controle do Site</h3>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:12px;height:12px;border-radius:50%;background:${ativo?'var(--danger)':'var(--success)'}"></div>
+          <span style="font-size:14px;font-weight:600">${ativo?'🔴 Site em manutenção':'🟢 Site no ar'}</span>
+        </div>
+        ${ativo&&retorno?`<div style="font-size:13px;color:var(--text2);margin-bottom:16px">Previsão de retorno: <strong>${new Date(retorno).toLocaleString('pt-BR')}</strong></div>`:''}
+        ${ativo?`<button onclick="desativarManutencao()" style="padding:10px 20px;background:var(--success);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:13px">✅ Reativar o site agora</button>`:''}
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:20px">
+        <h4 style="margin:0 0 16px;font-size:14px">Colocar site em manutenção</h4>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:6px">Previsão de retorno</label>
+          <input type="datetime-local" id="manutencao-retorno" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text2)">
+          <strong>Prévia da mensagem no site:</strong><br><br>
+          😔 Desculpe! Estamos em manutenção e a previsão de retorno é em <span id="prev-data" style="font-weight:700;color:var(--accent)">??/??/???? por volta das ??:??</span> horas.
+        </div>
+        <button onclick="ativarManutencao()" style="width:100%;padding:12px;background:var(--danger);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:14px">🔴 Colocar site em manutenção</button>
+      </div>
+    </div>`;
+  // Atualizar prévia em tempo real
+  const inp=document.getElementById('manutencao-retorno');
+  if(inp){
+    inp.addEventListener('input',()=>{
+      const d=inp.value?new Date(inp.value).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'??/??/???? por volta das ??:??';
+      document.getElementById('prev-data').textContent=d;
+    });
+  }
+}
+
+async function ativarManutencao(){
+  const retorno=document.getElementById('manutencao-retorno').value;
+  if(!retorno){alert('Selecione a data e hora de retorno.');return;}
+  if(!confirm('Confirma? O site ficará inacessível para os clientes até '+new Date(retorno).toLocaleString('pt-BR')))return;
+  const valor=JSON.stringify({ativo:true,retorno});
+  await salvarConfigSistema('manutencao_site',valor);
+  alert('✅ Site em manutenção até '+new Date(retorno).toLocaleString('pt-BR'));
+  renderManutencaoSite();
+}
+
+async function desativarManutencao(){
+  if(!confirm('Reativar o site agora?'))return;
+  await salvarConfigSistema('manutencao_site',JSON.stringify({ativo:false,retorno:''}));
+  alert('✅ Site reativado!');
+  renderManutencaoSite();
+}
+
+async function salvarConfigSistema(chave,valor){
+  const pf=currentUser?.perfil||'lojista';
+  const exist=await api('configuracoes_sistema?chave=eq.'+chave+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id').catch(()=>[]);
+  if(exist&&exist.length){
+    await api('configuracoes_sistema?chave=eq.'+chave+'&perfil_codigo=eq.'+encodeURIComponent(pf),{method:'PATCH',body:JSON.stringify({valor})});
+  } else {
+    await api('configuracoes_sistema',{method:'POST',body:JSON.stringify({perfil_codigo:pf,chave,valor})});
+  }
+}
+
 // ── SHA-256 global (usado no login e no cadastro de usuários) ────
 async function sha256(texto){
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(texto));
@@ -1594,7 +1664,7 @@ function addMenuPanel(sidebar,contentArea,item){
 
 function renderPanel(id){
   const icons={clientes:'🧑‍🤝‍🧑',fornecedores:'🚚',produtos:'📦',servicos:'🛠️',estoque:'🏭',agendamentos:'📅',financeiro:'💰',relatorios:'📊'};
-  const defLabels={clientes:'Clientes',fornecedores:'Fornecedores',produtos:'Produtos',servicos:'Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
+  const defLabels={clientes:'Clientes',fornecedores:'Fornecedores',produtos:'Produtos',servicos:'Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios/Manutenções'};
   switch(id){
     case 'usuarios': return renderUsuarios();
     case 'acessos':  return renderAcessos();
@@ -2149,7 +2219,7 @@ const ELEMENTOS_LABEL = [
   {func:'financeiro',   chave:'financeiro_menu',      modulo:'Financeiro',    elemento:'Nome no menu lateral',           padrao:'Financeiro',        icone:'📋'},
   {func:'financeiro',   chave:'financeiro_titulo',     modulo:'Financeiro',    elemento:'Título da página',               padrao:'Financeiro',        icone:'📄'},
   // ── Relatórios
-  {func:'relatorios',   chave:'relatorios_menu',       modulo:'Relatórios',    elemento:'Nome no menu lateral',           padrao:'Relatórios',        icone:'📋'},
+  {func:'relatorios',   chave:'relatorios_menu',       modulo:'Relatórios',    elemento:'Nome no menu lateral',           padrao:'Relatórios/Manutenções',        icone:'📋'},
   {func:'relatorios',   chave:'relatorios_titulo',      modulo:'Relatórios',    elemento:'Título da página',               padrao:'Relatórios',        icone:'📄'},
 ];
 
@@ -3570,6 +3640,7 @@ function renderRelatorios(){
     +'<button id="rel-aba-relatorios" onclick="relAba(\'relatorios\')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">📊 Relatórios</button>'
     +'<button id="rel-aba-whatsapp" onclick="relAba(\'whatsapp\')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">💬 WhatsApp</button>'
     +'<button id="rel-aba-ia" onclick="relAba(\'ia\')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">🤖 Análise IA</button>'
+    +'<button id="rel-aba-site" onclick="relAba(\'site\')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">🌐 Site</button>'
     +'</div>'
     +'<div id="rel-conteudo" style="padding:20px 0"><div class="loading">Carregando...</div></div>';
 }
@@ -4247,7 +4318,7 @@ async function openModalAcessos(userId, perfil, nomeUsuario){
     const acessosUsuario=await api('usuario_acessos?usuario_id=eq.'+userId+'&ativo=eq.true&select=funcionalidade')||[];
     const acessosSet=new Set(acessosUsuario.map(a=>a.funcionalidade));
     // Labels via labelsCache ou padrão
-    const labelsFunc={clientes:'Clientes',fornecedores:'Fornecedores',produtos:'Produtos',servicos:'Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios'};
+    const labelsFunc={clientes:'Clientes',fornecedores:'Fornecedores',produtos:'Produtos',servicos:'Serviços',estoque:'Controle de Estoque',agendamentos:'Agendamentos',financeiro:'Financeiro',relatorios:'Relatórios/Manutenções'};
     if(!funcsNoPerfil.length){
       if(lista)lista.innerHTML='<div class="empty">Nenhuma funcionalidade disponível para este perfil.</div>';
       return;
