@@ -5505,6 +5505,9 @@ async function openModalProduto(mode,id){
 async function salvarProduto(){
   const nome=document.getElementById('prod-nome')?.value?.trim();
   if(!nome){showMM('modal-prod-msg','Informe o nome','error');return;}
+  const obsSite=document.getElementById('prod-obs-site')?.value?.trim();
+  const descontoPix=parseFloat(document.getElementById('prod-desconto-pix')?.value||0)||0;
+  if(obsSite&&descontoPix<=0){showMM('modal-prod-msg','Informe o valor do Desconto PIX quando "Observações Site" estiver preenchido.','error');return;}
   const fornId=document.getElementById('prod-fornecedor')?.value;
   const imagens=prodFotosArray.length?prodFotosArray:null;
   const body={nome,perfil_codigo:currentUser.perfil||'master',
