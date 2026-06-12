@@ -452,7 +452,11 @@
         <div id="cli-frete-box" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--text3)">
           Preencha o CEP acima para calcular o frete estimado automaticamente.
         </div>
-        <input type="hidden" id="cli-frete-valor" value="">
+      </div>
+      <div class="mfield col-2">
+        <label>Valor do Frete (R$) <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">— preenchido automaticamente pelo CEP; edite para frete negociado</span></label>
+        <input type="number" id="cli-frete-valor" placeholder="0,00" min="0" step="0.01" style="max-width:180px" oninput="this.dataset.editadoManualmente='1'">
+        <div class="field-hint">Este valor é usado no site para calcular o frete do cliente no checkout.</div>
       </div>
     </div>
     <div class="modal-msg" id="modal-cli-msg"></div>
@@ -2874,9 +2878,9 @@ async function calcularFreteEstimado(cep){
     +'<div style="font-weight:600;color:var(--accent)">'+r.prazo+'</div></div>'
     +'</div>'
     +'<div style="font-size:10px;color:var(--text3);margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">⚠️ Estimativa baseada na região. Valores reais podem variar conforme transportadora, peso e dimensões. Este valor é gravado no cadastro do cliente para uso no site.</div>';
-  // Guarda o valor numérico calculado em campo oculto, para ser salvo no cadastro do cliente
+  // Preenche o campo de frete com o valor calculado; respeita edição manual do admin
   const hid=document.getElementById('cli-frete-valor');
-  if(hid)hid.value=r.valor!=null?r.valor.toFixed(2):'';
+  if(hid&&!hid.dataset.editadoManualmente)hid.value=r.valor!=null?r.valor.toFixed(2):'';
 }
 
 // ── Histórico de compras do cliente ──────────────────────────────
@@ -5192,7 +5196,7 @@ async function openModalCliente(mode,id){
     campos.forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     const ps=document.getElementById('cli-sexo');if(ps)ps.value='';
     const pp=document.getElementById('cli-pais');if(pp)pp.value='Brasil';
-    const fv=document.getElementById('cli-frete-valor');if(fv)fv.value='';
+    const fv=document.getElementById('cli-frete-valor');if(fv){fv.value='';delete fv.dataset.editadoManualmente;}
   } else {
     document.getElementById('modal-cli-titulo').textContent='Editar Cliente';
     editingClienteId=id;
@@ -5205,6 +5209,9 @@ async function openModalCliente(mode,id){
     set('cli-bairro',cl.bairro);set('cli-cidade',cl.cidade);set('cli-estado',cl.estado);
     set('cli-pais',cl.pais||'Brasil');set('cli-obs',cl.observacoes);
     const ps=document.getElementById('cli-sexo');if(ps)ps.value=cl.sexo||'';
+    // Carrega valor_frete salvo no banco; limpa flag de edição manual
+    const fvEdit=document.getElementById('cli-frete-valor');
+    if(fvEdit){fvEdit.value=cl.valor_frete!=null?parseFloat(cl.valor_frete).toFixed(2):'';delete fvEdit.dataset.editadoManualmente;}
     if(cl.cep)calcularFreteEstimado(cl.cep);
   }
   openModal('modal-cliente');
