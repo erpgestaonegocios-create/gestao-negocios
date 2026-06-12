@@ -452,6 +452,7 @@
         <div id="cli-frete-box" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--text3)">
           Preencha o CEP acima para calcular o frete estimado automaticamente.
         </div>
+        <input type="hidden" id="cli-frete-valor" value="">
       </div>
     </div>
     <div class="modal-msg" id="modal-cli-msg"></div>
@@ -2817,55 +2818,71 @@ async function executarImportacao(){
 
 
 // ── Frete estimado por CEP ────────────────────────────────────────
+// Tabela única de faixas por região baseada no CEP — usada tanto no
+// cadastro de clientes quanto no site (calculadora pública de frete).
+function tabelaFretePorCep(cep){
+  const num=String(cep||'').replace(/\D/g,'');
+  if(num.length!==8)return null;
+  const prefix=parseInt(num.slice(0,5));
+  let regiao,valor,prazo;
+  if(prefix>=1000&&prefix<=19999){regiao='São Paulo Capital';valor=12.00;prazo='1-2 dias úteis';}
+  else if(prefix>=20000&&prefix<=28999){regiao='Rio de Janeiro';valor=15.00;prazo='2-3 dias úteis';}
+  else if(prefix>=29000&&prefix<=29999){regiao='Espírito Santo';valor=16.00;prazo='2-3 dias úteis';}
+  else if(prefix>=30000&&prefix<=39999){regiao='Minas Gerais';valor=14.00;prazo='1-3 dias úteis';}
+  else if(prefix>=40000&&prefix<=48999){regiao='Bahia';valor=22.00;prazo='3-5 dias úteis';}
+  else if(prefix>=49000&&prefix<=49999){regiao='Sergipe';valor=24.00;prazo='3-5 dias úteis';}
+  else if(prefix>=50000&&prefix<=56999){regiao='Pernambuco';valor=25.00;prazo='4-6 dias úteis';}
+  else if(prefix>=57000&&prefix<=57999){regiao='Alagoas';valor=26.00;prazo='4-6 dias úteis';}
+  else if(prefix>=58000&&prefix<=58999){regiao='Paraíba';valor=27.00;prazo='4-6 dias úteis';}
+  else if(prefix>=59000&&prefix<=59999){regiao='Rio Grande do Norte';valor=28.00;prazo='4-7 dias úteis';}
+  else if(prefix>=60000&&prefix<=63999){regiao='Ceará';valor=29.00;prazo='5-7 dias úteis';}
+  else if(prefix>=64000&&prefix<=64999){regiao='Piauí';valor=30.00;prazo='5-8 dias úteis';}
+  else if(prefix>=65000&&prefix<=65999){regiao='Maranhão';valor=32.00;prazo='5-8 dias úteis';}
+  else if(prefix>=66000&&prefix<=68899){regiao='Pará';valor=35.00;prazo='6-10 dias úteis';}
+  else if(prefix>=68900&&prefix<=68999){regiao='Amapá';valor=38.00;prazo='7-12 dias úteis';}
+  else if(prefix>=69000&&prefix<=69299){regiao='Amazonas';valor=40.00;prazo='7-12 dias úteis';}
+  else if(prefix>=69300&&prefix<=69399){regiao='Roraima';valor=42.00;prazo='8-14 dias úteis';}
+  else if(prefix>=69400&&prefix<=69899){regiao='Acre';valor=45.00;prazo='8-14 dias úteis';}
+  else if(prefix>=69900&&prefix<=69999){regiao='Rondônia';valor=38.00;prazo='6-10 dias úteis';}
+  else if(prefix>=70000&&prefix<=73699){regiao='Distrito Federal';valor=18.00;prazo='2-4 dias úteis';}
+  else if(prefix>=73700&&prefix<=76799){regiao='Goiás';valor=19.00;prazo='2-4 dias úteis';}
+  else if(prefix>=76800&&prefix<=77999){regiao='Tocantins';valor=28.00;prazo='4-7 dias úteis';}
+  else if(prefix>=78000&&prefix<=78899){regiao='Mato Grosso';valor=25.00;prazo='3-6 dias úteis';}
+  else if(prefix>=78900&&prefix<=79999){regiao='Mato Grosso do Sul';valor=22.00;prazo='3-5 dias úteis';}
+  else if(prefix>=80000&&prefix<=87999){regiao='Paraná';valor=16.00;prazo='2-3 dias úteis';}
+  else if(prefix>=88000&&prefix<=89999){regiao='Santa Catarina';valor=18.00;prazo='2-4 dias úteis';}
+  else if(prefix>=90000&&prefix<=99999){regiao='Rio Grande do Sul';valor=20.00;prazo='2-4 dias úteis';}
+  else{regiao='Região não identificada';valor=null;prazo='—';}
+  return {regiao,valor,prazo};
+}
+
 async function calcularFreteEstimado(cep){
   const box=document.getElementById('cli-frete-box');
   if(!box)return;
   const num=cep.replace(/\D/g,'');
-  if(num.length!==8){box.innerHTML='<span style="color:var(--text3)">Preencha o CEP para calcular o frete estimado.</span>';return;}
-  const prefix=parseInt(num.slice(0,5));
-  // Tabela de faixas por região baseada no CEP
-  let regiao,preco,prazo;
-  if(prefix>=1000&&prefix<=19999){regiao='São Paulo Capital';preco='R$ 12,00';prazo='1-2 dias úteis';}
-  else if(prefix>=20000&&prefix<=28999){regiao='Rio de Janeiro';preco='R$ 15,00';prazo='2-3 dias úteis';}
-  else if(prefix>=29000&&prefix<=29999){regiao='Espírito Santo';preco='R$ 16,00';prazo='2-3 dias úteis';}
-  else if(prefix>=30000&&prefix<=39999){regiao='Minas Gerais';preco='R$ 14,00';prazo='1-3 dias úteis';}
-  else if(prefix>=40000&&prefix<=48999){regiao='Bahia';preco='R$ 22,00';prazo='3-5 dias úteis';}
-  else if(prefix>=49000&&prefix<=49999){regiao='Sergipe';preco='R$ 24,00';prazo='3-5 dias úteis';}
-  else if(prefix>=50000&&prefix<=56999){regiao='Pernambuco';preco='R$ 25,00';prazo='4-6 dias úteis';}
-  else if(prefix>=57000&&prefix<=57999){regiao='Alagoas';preco='R$ 26,00';prazo='4-6 dias úteis';}
-  else if(prefix>=58000&&prefix<=58999){regiao='Paraíba';preco='R$ 27,00';prazo='4-6 dias úteis';}
-  else if(prefix>=59000&&prefix<=59999){regiao='Rio Grande do Norte';preco='R$ 28,00';prazo='4-7 dias úteis';}
-  else if(prefix>=60000&&prefix<=63999){regiao='Ceará';preco='R$ 29,00';prazo='5-7 dias úteis';}
-  else if(prefix>=64000&&prefix<=64999){regiao='Piauí';preco='R$ 30,00';prazo='5-8 dias úteis';}
-  else if(prefix>=65000&&prefix<=65999){regiao='Maranhão';preco='R$ 32,00';prazo='5-8 dias úteis';}
-  else if(prefix>=66000&&prefix<=68899){regiao='Pará';preco='R$ 35,00';prazo='6-10 dias úteis';}
-  else if(prefix>=68900&&prefix<=68999){regiao='Amapá';preco='R$ 38,00';prazo='7-12 dias úteis';}
-  else if(prefix>=69000&&prefix<=69299){regiao='Amazonas';preco='R$ 40,00';prazo='7-12 dias úteis';}
-  else if(prefix>=69300&&prefix<=69399){regiao='Roraima';preco='R$ 42,00';prazo='8-14 dias úteis';}
-  else if(prefix>=69400&&prefix<=69899){regiao='Acre';preco='R$ 45,00';prazo='8-14 dias úteis';}
-  else if(prefix>=69900&&prefix<=69999){regiao='Rondônia';preco='R$ 38,00';prazo='6-10 dias úteis';}
-  else if(prefix>=70000&&prefix<=73699){regiao='Distrito Federal';preco='R$ 18,00';prazo='2-4 dias úteis';}
-  else if(prefix>=73700&&prefix<=76799){regiao='Goiás';preco='R$ 19,00';prazo='2-4 dias úteis';}
-  else if(prefix>=76800&&prefix<=77999){regiao='Tocantins';preco='R$ 28,00';prazo='4-7 dias úteis';}
-  else if(prefix>=78000&&prefix<=78899){regiao='Mato Grosso';preco='R$ 25,00';prazo='3-6 dias úteis';}
-  else if(prefix>=78900&&prefix<=79999){regiao='Mato Grosso do Sul';preco='R$ 22,00';prazo='3-5 dias úteis';}
-  else if(prefix>=80000&&prefix<=87999){regiao='Paraná';preco='R$ 16,00';prazo='2-3 dias úteis';}
-  else if(prefix>=88000&&prefix<=89999){regiao='Santa Catarina';preco='R$ 18,00';prazo='2-4 dias úteis';}
-  else if(prefix>=90000&&prefix<=99999){regiao='Rio Grande do Sul';preco='R$ 20,00';prazo='2-4 dias úteis';}
-  else{regiao='Região não identificada';preco='Consultar';prazo='—';}
+  if(num.length!==8){box.innerHTML='<span style="color:var(--text3)">Preencha o CEP para calcular o frete estimado.</span>';
+    const hid=document.getElementById('cli-frete-valor');if(hid)hid.value='';
+    return;}
+  const r=tabelaFretePorCep(num);
+  const precoFmt=r.valor!=null?('R$ '+r.valor.toFixed(2).replace('.',',')):'Consultar';
   box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
     +'<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Destino</div>'
-    +'<div style="font-weight:600;color:var(--text)">'+regiao+'</div></div>'
+    +'<div style="font-weight:600;color:var(--text)">'+r.regiao+'</div></div>'
     +'<div style="text-align:center"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Frete Estimado</div>'
-    +'<div style="font-size:20px;font-weight:700;color:var(--success)">'+preco+'</div></div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--success)">'+precoFmt+'</div></div>'
     +'<div style="text-align:right"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Prazo</div>'
-    +'<div style="font-weight:600;color:var(--accent)">'+prazo+'</div></div>'
+    +'<div style="font-weight:600;color:var(--accent)">'+r.prazo+'</div></div>'
     +'</div>'
-    +'<div style="font-size:10px;color:var(--text3);margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">⚠️ Estimativa baseada na região. Valores reais podem variar conforme transportadora, peso e dimensões.</div>';
+    +'<div style="font-size:10px;color:var(--text3);margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">⚠️ Estimativa baseada na região. Valores reais podem variar conforme transportadora, peso e dimensões. Este valor é gravado no cadastro do cliente para uso no site.</div>';
+  // Guarda o valor numérico calculado em campo oculto, para ser salvo no cadastro do cliente
+  const hid=document.getElementById('cli-frete-valor');
+  if(hid)hid.value=r.valor!=null?r.valor.toFixed(2):'';
 }
 
 // ── Histórico de compras do cliente ──────────────────────────────
 let compraClienteId=null;
+
+
 
 
 async function consultarHistoricoCompras(clienteId,clienteNome){
@@ -4970,9 +4987,10 @@ function renderAgendamentos(){
 
 function renderFinanceiro(){
   const temAg=perfilTemFunc('agendamentos');
-  const dashLojista='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
+  const dashLojista='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Compra de Produtos</div><div id="fin-total-compra" style="font-size:22px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reposição de estoque</div></div>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;cursor:pointer" onclick="finAba(\'gastos\')" title="Clique para gerenciar gastos operacionais"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Despesas Operacionais</div><div id="fin-total-gastos" style="font-size:22px;font-weight:700;color:#f59e0b">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Viagem, hotel, embalagens…</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;cursor:pointer" onclick="finAba(\'fretes\')" title="Clique para ver os fretes das vendas"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Fretes</div><div id="fin-total-fretes" style="font-size:22px;font-weight:700;color:#6b7fd7">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Frete pago nas vendas do site</div></div>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Vendas</div><div id="fin-total-venda" style="font-size:22px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Total recebido</div></div>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Lucro</div><div id="fin-lucro" style="font-size:22px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Todas despesas</div></div>'
     +'</div>';
@@ -4993,6 +5011,7 @@ function renderFinanceiro(){
     +'<button id="fin-aba-lan" onclick="finAba(\'lancamentos\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">📋 Lançamentos</button>'
     +'<button id="fin-aba-cx" onclick="finAba(\'caixa\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">📊 Fluxo de Caixa</button>'
     +'<button id="fin-aba-gastos" onclick="finAba(\'gastos\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">💸 Gastos da Loja</button>'
+    +'<button id="fin-aba-fretes" onclick="finAba(\'fretes\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;cursor:pointer">🚚 Fretes</button>'
     +'</div>'
     +'<div id="fin-vista-lancamentos">'
     +'<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
@@ -5004,7 +5023,8 @@ function renderFinanceiro(){
     +'<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th>Data</th><th>Hora</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>'
     +'<tbody id="tbl-lancamentos"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div></div>'
     +'<div id="fin-vista-caixa" style="display:none">'  +'<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">'  +'<label style="font-size:13px;color:var(--text2);font-weight:600">Data:</label>'  +'<input type="date" id="cx-filtro-data" onchange="carregarFluxoCaixa()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">'  +'<button onclick="carregarFluxoCaixa()" style="padding:8px 14px;background:var(--accent);border:none;color:#fff;border-radius:6px;font-size:12px;cursor:pointer">Atualizar</button>'  +'</div>'  +'<div id="cx-dashboard" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gasto no Dia</div><div id="cx-gasto" style="font-size:24px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reposições do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Vendido no Dia</div><div id="cx-vendido" style="font-size:24px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Receitas do dia</div></div>'  +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Lucro do Dia</div><div id="cx-lucro" style="font-size:24px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Compras</div></div>'  +'</div>'  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📦 Reposições do Dia</div>'  +'<div id="cx-lista-despesas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'<div>'  +'<div style="font-size:12px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🛒 Vendas do Dia</div>'  +'<div id="cx-lista-receitas" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div class="loading">Carregando...</div></div>'  +'</div>'  +'</div>'  +'</div>'
-    +'<div id="fin-vista-gastos" style="display:none"><div id="gastos-conteudo"><div class="loading">Carregando...</div></div></div>';
+    +'<div id="fin-vista-gastos" style="display:none"><div id="gastos-conteudo"><div class="loading">Carregando...</div></div></div>'
+    +'<div id="fin-vista-fretes" style="display:none"><div id="fretes-conteudo"><div class="loading">Carregando...</div></div></div>';
 }
 
 // ─── MÓDULO: CLIENTES ────────────────────────────────────────────
@@ -5031,35 +5051,6 @@ async function buscarCEP(){
     if(hint){hint.className='field-hint ok';hint.textContent='✓ CEP encontrado';}
     calcularFreteEstimado(cep);
   }catch(e){if(hint){hint.className='field-hint err';hint.textContent='Erro ao buscar CEP';}}
-}
-
-function calcularFreteEstimado(cep){
-  const box=document.getElementById('cli-frete-box');if(!box)return;
-  const num=cep.replace(/\D/g,'');if(num.length!==8){box.innerHTML='<span style="color:var(--text3)">Preencha o CEP para calcular.</span>';return;}
-  const p=parseInt(num.slice(0,5));
-  let regiao,preco,prazo;
-  if(p>=1000&&p<=19999){regiao='São Paulo Capital';preco='R$ 12,00';prazo='1-2 dias úteis';}
-  else if(p>=20000&&p<=28999){regiao='Rio de Janeiro';preco='R$ 15,00';prazo='2-3 dias úteis';}
-  else if(p>=30000&&p<=39999){regiao='Minas Gerais';preco='R$ 14,00';prazo='1-3 dias úteis';}
-  else if(p>=40000&&p<=48999){regiao='Bahia';preco='R$ 22,00';prazo='3-5 dias úteis';}
-  else if(p>=50000&&p<=56999){regiao='Pernambuco';preco='R$ 25,00';prazo='4-6 dias úteis';}
-  else if(p>=60000&&p<=63999){regiao='Ceará';preco='R$ 29,00';prazo='5-7 dias úteis';}
-  else if(p>=70000&&p<=73999){regiao='Distrito Federal';preco='R$ 18,00';prazo='2-4 dias úteis';}
-  else if(p>=74000&&p<=76999){regiao='Goiás';preco='R$ 19,00';prazo='2-4 dias úteis';}
-  else if(p>=78000&&p<=78999){regiao='Mato Grosso';preco='R$ 25,00';prazo='3-6 dias úteis';}
-  else if(p>=79000&&p<=79999){regiao='Mato Grosso do Sul';preco='R$ 22,00';prazo='3-5 dias úteis';}
-  else if(p>=80000&&p<=87999){regiao='Paraná';preco='R$ 16,00';prazo='2-3 dias úteis';}
-  else if(p>=88000&&p<=89999){regiao='Santa Catarina';preco='R$ 18,00';prazo='2-4 dias úteis';}
-  else if(p>=90000&&p<=99999){regiao='Rio Grande do Sul';preco='R$ 20,00';prazo='2-4 dias úteis';}
-  else if(p>=65000&&p<=65999){regiao='Maranhão';preco='R$ 32,00';prazo='5-8 dias úteis';}
-  else if(p>=66000&&p<=68899){regiao='Pará';preco='R$ 35,00';prazo='6-10 dias úteis';}
-  else if(p>=69000&&p<=69999){regiao='Amazônia/Roraima/Acre';preco='R$ 42,00';prazo='8-14 dias úteis';}
-  else{regiao='Região identificada';preco='Consultar';prazo='—';}
-  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
-    +'<div><div style="font-size:11px;color:var(--text3);margin-bottom:2px">Destino</div><div style="font-weight:600;color:var(--text)">'+regiao+'</div></div>'
-    +'<div><div style="font-size:11px;color:var(--text3);margin-bottom:2px">Frete Estimado</div><div style="font-size:20px;font-weight:700;color:var(--success)">'+preco+'</div></div>'
-    +'<div><div style="font-size:11px;color:var(--text3);margin-bottom:2px">Prazo</div><div style="font-weight:600;color:var(--accent)">'+prazo+'</div></div>'
-    +'</div><div style="font-size:10px;color:var(--text3);margin-top:6px">⚠️ Estimativa por região. Valores reais podem variar.</div>';
 }
 
 function cliAba(aba){
@@ -5201,6 +5192,7 @@ async function openModalCliente(mode,id){
     campos.forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     const ps=document.getElementById('cli-sexo');if(ps)ps.value='';
     const pp=document.getElementById('cli-pais');if(pp)pp.value='Brasil';
+    const fv=document.getElementById('cli-frete-valor');if(fv)fv.value='';
   } else {
     document.getElementById('modal-cli-titulo').textContent='Editar Cliente';
     editingClienteId=id;
@@ -5240,6 +5232,7 @@ async function salvarCliente(){
     estado:document.getElementById('cli-estado')?.value?.trim()||null,
     pais:document.getElementById('cli-pais')?.value?.trim()||'Brasil',
     observacoes:document.getElementById('cli-obs')?.value?.trim()||null,
+    valor_frete:(()=>{const v=document.getElementById('cli-frete-valor')?.value;return v?parseFloat(v):null;})(),
     alterado_em:new Date().toISOString()};
   try{
     if(!editingClienteId){await api('clientes',{method:'POST',body:JSON.stringify({...body,ativo:true})});showMM('modal-cli-msg','Cliente cadastrado!','success');}
@@ -6342,10 +6335,12 @@ function finAba(aba){
   const vLan=document.getElementById('fin-vista-lancamentos');
   const vCx=document.getElementById('fin-vista-caixa');
   const vGastos=document.getElementById('fin-vista-gastos');
+  const vFretes=document.getElementById('fin-vista-fretes');
   const btnLan=document.getElementById('fin-aba-lan');
   const btnCx=document.getElementById('fin-aba-cx');
   const btnGastos=document.getElementById('fin-aba-gastos');
-  const abas=[{v:vLan,b:btnLan},{v:vCx,b:btnCx},{v:vGastos,b:btnGastos}];
+  const btnFretes=document.getElementById('fin-aba-fretes');
+  const abas=[{v:vLan,b:btnLan},{v:vCx,b:btnCx},{v:vGastos,b:btnGastos},{v:vFretes,b:btnFretes}];
   abas.forEach(({v,b})=>{if(v)v.style.display='none';if(b){b.style.borderBottomColor='transparent';b.style.color='var(--text3)';}});
   if(aba==='lancamentos'){
     if(vLan)vLan.style.display='block';
@@ -6362,6 +6357,10 @@ function finAba(aba){
     if(vGastos)vGastos.style.display='block';
     if(btnGastos){btnGastos.style.borderBottomColor='#f59e0b';btnGastos.style.color='#f59e0b';btnGastos.style.fontWeight='600';}
     carregarGastos();
+  } else if(aba==='fretes'){
+    if(vFretes)vFretes.style.display='block';
+    if(btnFretes){btnFretes.style.borderBottomColor='#6b7fd7';btnFretes.style.color='#6b7fd7';btnFretes.style.fontWeight='600';}
+    carregarFretes();
   }
 }
 
@@ -6389,9 +6388,10 @@ async function carregarDashboard(){
   const temAg=perfilTemFunc('agendamentos');
   try{
     if(!temAg){
-      const [despesas,vendas]=await Promise.all([
+      const [despesas,vendas,fretes]=await Promise.all([
         api('financeiro_lancamentos?select=valor,observacoes&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago'),
         api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pago'),
+        api('fretes_pedidos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)).catch(()=>[]),
       ]);
       const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
       const gastosOp=(despesas||[]).filter(l=>String(l.observacoes||'').startsWith('GASTO_LOJA:'));
@@ -6399,10 +6399,12 @@ async function carregarDashboard(){
       const totalGastosOp=soma(gastosOp);
       const totalCompra=soma(comprasProd);
       const totalVenda=soma(vendas);
+      const totalFretes=soma(fretes);
       const lucro=totalVenda-totalCompra-totalGastosOp;
       const el=id=>document.getElementById(id);
       if(el('fin-total-compra'))el('fin-total-compra').textContent=fmt(totalCompra);
       if(el('fin-total-gastos')){el('fin-total-gastos').textContent=fmt(totalGastosOp);el('fin-total-gastos').style.color=totalGastosOp>0?'#f59e0b':'var(--text3)';}
+      if(el('fin-total-fretes')){el('fin-total-fretes').textContent=fmt(totalFretes);el('fin-total-fretes').style.color=totalFretes>0?'#6b7fd7':'var(--text3)';}
       if(el('fin-total-venda'))el('fin-total-venda').textContent=fmt(totalVenda);
       if(el('fin-lucro')){el('fin-lucro').textContent=fmt(lucro);el('fin-lucro').style.color=lucro>=0?'var(--success)':'var(--danger)';}
     } else {
@@ -6670,6 +6672,76 @@ async function cancelarGasto(id){
     carregarGastos(window._gastosMesFiltro);carregarDashboard();
   }catch(e){alert('Erro ao excluir: '+e.message);}
 }
+
+// ── FRETES (controle de gastos com frete por venda do site) ────────
+// Apenas registro/soma para controle — não gera movimentação financeira.
+async function carregarFretes(mesFiltro){
+  const wrap=document.getElementById('fretes-conteudo');if(!wrap)return;
+  const pf=currentUser.perfil||'master';
+  wrap.innerHTML='<div class="loading">Carregando fretes...</div>';
+  try{
+    const mes=mesFiltro||mesLocalStr();
+    const {ini,proxMes}=faixaMes(mes);
+    const nomeMes=new Date(mes+'-15').toLocaleString('pt-BR',{month:'long',year:'numeric'});
+    const [fretesMes,fretesTodos]=await Promise.all([
+      api('fretes_pedidos?select=id,descricao,valor,data,cliente_id,clientes(nome)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&data=gte.'+ini+'&data=lt.'+proxMes+'-01&order=id.desc').catch(()=>[]),
+      api('fretes_pedidos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)).catch(()=>[]),
+    ]);
+    const totalMes=(fretesMes||[]).reduce((s,l)=>s+parseFloat(l.valor||0),0);
+    const totalGeral=(fretesTodos||[]).reduce((s,l)=>s+parseFloat(l.valor||0),0);
+    const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'-';
+    let html=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:14px;font-weight:700;color:var(--text)">🚚 Fretes das Vendas do Site</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Frete de ${nomeMes}</div>
+        <div style="font-size:24px;font-weight:700;color:#6b7fd7">${fmt(totalMes)}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Acumulado</div>
+        <div style="font-size:24px;font-weight:700;color:#6b7fd7">${fmt(totalGeral)}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">📋 Fretes de ${nomeMes}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--text3)">Filtrar mês:</label>
+        <input type="month" id="fretes-filtro-mes" value="${mes}" onchange="carregarFretes(this.value)"
+          style="padding:7px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">
+        <button onclick="carregarFretes()" style="padding:7px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:12px;cursor:pointer" title="Voltar ao mês atual">Mês atual</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">ℹ️ Os valores de frete são lançados automaticamente quando um pedido com entrega pelos Correios é confirmado no site. Aqui o controle é apenas somatório, sem gerar movimentação no caixa.</div>`;
+    if(!fretesMes||!fretesMes.length){
+      html+='<div class="empty">Nenhum frete registrado em '+nomeMes+'.</div>';
+    } else {
+      html+='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Cliente</th><th>Descrição</th><th>Valor</th><th>Ações</th></tr></thead><tbody>'
+        +fretesMes.map(l=>{
+          return '<tr>'
+            +'<td style="font-size:12px;white-space:nowrap">'+fmtD(l.data)+'</td>'
+            +'<td style="font-size:13px;color:var(--text)">'+(l.clientes?.nome||'—')+'</td>'
+            +'<td style="font-size:13px;color:var(--text2)">'+(l.descricao||'—')+'</td>'
+            +'<td style="font-weight:700;color:#6b7fd7;white-space:nowrap">'+fmt(l.valor)+'</td>'
+            +'<td><button class="btn-sm btn-deact" onclick="cancelarFrete('+l.id+')">Excluir</button></td>'
+            +'</tr>';
+        }).join('')
+        +'</tbody></table></div>';
+    }
+    wrap.innerHTML=html;
+    window._fretesMesFiltro=mes;
+  }catch(e){wrap.innerHTML='<div class="empty" style="color:var(--danger)">Erro: '+e.message+'</div>';}
+}
+
+async function cancelarFrete(id){
+  if(!confirm('Excluir este registro de frete?'))return;
+  try{
+    await api('fretes_pedidos?id=eq.'+id,{method:'DELETE'});
+    carregarFretes(window._fretesMesFiltro);carregarDashboard();
+  }catch(e){alert('Erro ao excluir: '+e.message);}
+}
+
 // ── TAXAS MP ─────────────────────────────────────────────────────
 async function getTaxasMP(){
   const pf=currentUser?.perfil||'master';
