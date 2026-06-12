@@ -5209,9 +5209,9 @@ async function openModalCliente(mode,id){
     set('cli-bairro',cl.bairro);set('cli-cidade',cl.cidade);set('cli-estado',cl.estado);
     set('cli-pais',cl.pais||'Brasil');set('cli-obs',cl.observacoes);
     const ps=document.getElementById('cli-sexo');if(ps)ps.value=cl.sexo||'';
-    // Carrega valor_frete salvo no banco; limpa flag de edição manual
+    // Carrega valor_frete salvo no banco; seta flag para o calcularFreteEstimado não sobrescrever
     const fvEdit=document.getElementById('cli-frete-valor');
-    if(fvEdit){fvEdit.value=cl.valor_frete!=null?parseFloat(cl.valor_frete).toFixed(2):'';delete fvEdit.dataset.editadoManualmente;}
+    if(fvEdit){fvEdit.value=cl.valor_frete!=null?parseFloat(cl.valor_frete).toFixed(2):'';fvEdit.dataset.editadoManualmente='1';}
     if(cl.cep)calcularFreteEstimado(cl.cep);
   }
   openModal('modal-cliente');
