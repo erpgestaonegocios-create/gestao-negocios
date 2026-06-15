@@ -678,6 +678,12 @@
       <div class="form-section">Informações Adicionais</div>
       <div class="mfield col-2"><label>Observações Site <span style="font-size:10px;color:var(--accent)">(exibido no site na página do produto — promoções, avisos, etc.)</span></label><textarea id="prod-obs-site" placeholder="Ex: Produto em promoção! 10% off até domingo..."></textarea></div>
       <div class="mfield col-1"><label>Desconto PIX (R$) <span style="font-size:10px;color:var(--accent)">(aplicado somente se "Observações Site" estiver preenchido)</span></label><input type="number" id="prod-desconto-pix" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="form-section">Métricas do Site</div>
+      <div class="mfield col-1" id="prod-visualizacoes-wrap" style="display:none">
+        <label>👁️ Visualizações no Site <span style="font-size:11px;color:var(--text3);font-weight:400">(somente leitura)</span></label>
+        <div id="prod-visualizacoes-display" style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;min-height:42px;display:flex;align-items:center;gap:8px">—</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Contabiliza acessos únicos por sessão. Atualizado em tempo real pelo site.</div>
+      </div>
     </div>
     <div class="modal-msg" id="modal-prod-msg"></div>
     <div class="modal-actions">
@@ -5304,6 +5310,7 @@ async function openModalProduto(mode,id){
     const pu=document.getElementById('prod-unidade');if(pu)pu.value='un';
     if(selForn)selForn.value='';
     const wrapEst=document.getElementById('prod-estoque-atual-wrap');if(wrapEst)wrapEst.style.display='none';
+    const wrapViews=document.getElementById('prod-visualizacoes-wrap');if(wrapViews)wrapViews.style.display='none';
   } else {
     document.getElementById('modal-prod-titulo').textContent='Editar Produto';editingProdutoId=id;
     const data=await api('produtos?id=eq.'+id+'&select=*');if(!data||!data.length)return;const p=data[0];
@@ -5347,6 +5354,17 @@ async function openModalProduto(mode,id){
     if(p.imagens_base64&&p.imagens_base64.length){prodFotosArray=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');}
     else if(p.imagem_base64){prodFotosArray=[p.imagem_base64];}
     renderProdFotosGrid();
+    // Visualizações no site (somente leitura)
+    const wrapViews=document.getElementById('prod-visualizacoes-wrap');
+    const dispViews=document.getElementById('prod-visualizacoes-display');
+    if(wrapViews) wrapViews.style.display='block';
+    if(dispViews){
+      const v=parseInt(p.visualizacoes||0);
+      const cor=v>=10?'var(--gold)':(v>0?'var(--text2)':'var(--text3)');
+      const icone=v>=10?'🔥':'👁️';
+      dispViews.innerHTML='<span style="font-size:20px;font-weight:700;color:'+cor+'">'+v+'</span>'
+        +'<span style="font-size:13px;color:'+cor+'">'+icone+' '+(v===1?'visualização':'visualizações')+(v>=10?' — em destaque no site':'')+'</span>';
+    }
   }
   openModal('modal-produto');
 }
