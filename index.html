@@ -2920,7 +2920,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
         'pendente':comp.pagamento_confirmado?'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Pag. Confirmado</span>':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Ag. Pagamento</span>',
         'postado':'<span style="background:rgba(107,127,215,.2);color:var(--accent);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">📦 Postado</span>',
         'pronto_retirada':'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🏪 P/ Retirada</span>',
-        'entregue':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
+        'entregue':comp.origem==='manual'?'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue (presencial)</span>':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
       }[comp.status_entrega||'pendente']||'<span style="color:var(--text3)">—</span>';
 
       const formaEntrega=comp.forma_entrega||'correios';
@@ -3350,7 +3350,9 @@ async function salvarCompraCliente(){
         perfil_codigo:pf,cliente_id:compraClienteId,produto_id:parseInt(item.prodId),
         quantidade:item.qtd,valor_unitario:item.valorUnit,desconto:item.desconto||null,
         total_pago:item.total,data_compra:data,genero:item.genero,tamanho:item.tamanho,
-        observacoes:item.obs||obsGeral||null
+        observacoes:item.obs||obsGeral||null,
+        origem:'manual',status_entrega:'entregue',pagamento_confirmado:true,
+        forma_entrega:'retirada',forma_pagamento:'presencial'
       })});
       // 2. Registrar saída no estoque
       await api('estoque_movimentos',{method:'POST',body:JSON.stringify({
@@ -3388,13 +3390,6 @@ async function salvarCompraCliente(){
     showMM('modal-compra-msg','Concluído com erros: '+erros.join('; '),'error');
   } else {
     showMM('modal-compra-msg','Compra finalizada! '+carrinhoItens.length+' item(s) registrado(s).','success');
-    // Disparar email "Pedido Recebido" se cliente tiver email
-    try{
-      const cli=await api('clientes?id=eq.'+compraClienteId+'&select=nome,email').catch(()=>[]);
-      if(cli&&cli[0]&&cli[0].email){
-        emailPedidoRecebido(cli[0].nome,cli[0].email,carrinhoItens,totalGeralVenda);
-      }
-    }catch(e){}
     carrinhoItens=[];
     setTimeout(()=>closeModal('modal-compra-cliente'),1500);
   }
@@ -3430,7 +3425,7 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
         'pendente':comp.pagamento_confirmado?'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Pag. Confirmado</span>':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Ag. Pagamento</span>',
         'postado':'<span style="background:rgba(107,127,215,.2);color:var(--accent);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">📦 Postado</span>',
         'pronto_retirada':'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🏪 P/ Retirada</span>',
-        'entregue':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
+        'entregue':comp.origem==='manual'?'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue (presencial)</span>':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
       }[comp.status_entrega||'pendente']||'<span style="color:var(--text3)">—</span>';
 
       const formaEntrega=comp.forma_entrega||'correios';
