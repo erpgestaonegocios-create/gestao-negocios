@@ -3089,9 +3089,15 @@ async function adicionarAoCarrinho(){
   const prodNome=document.getElementById('compra-prod-nome')?.textContent||'';
   const qtd=parseFloat(document.getElementById('compra-qtd').value)||0;
   if(!prodId){showMM('modal-compra-msg','Selecione o produto antes de adicionar.','error');return;}
-  if(!qtd||qtd<=0){showMM('modal-compra-msg','Informe a quantidade.','error');return;}
   const genero=document.getElementById('compra-genero')?.value||null;
   const tamanho=document.getElementById('compra-tamanho')?.value||null;
+  const generoWrap=document.getElementById('compra-genero-wrap');
+  const tamanhoWrap=document.getElementById('compra-tamanho-wrap');
+  const generoVisivel=generoWrap&&generoWrap.style.display!=='none';
+  const tamanhoVisivel=tamanhoWrap&&tamanhoWrap.style.display!=='none';
+  if(generoVisivel&&!genero){showMM('modal-compra-msg','Selecione o gênero.','error');return;}
+  if(tamanhoVisivel&&!tamanho){showMM('modal-compra-msg','Selecione o tamanho.','error');return;}
+  if(!qtd||qtd<=0){showMM('modal-compra-msg','Informe a quantidade.','error');return;}
   const valorUnit=parseFloat(document.getElementById('compra-valor-unit').value)||0;
   const desconto=parseFloat(document.getElementById('compra-desconto').value)||0;
   const total=parseFloat(document.getElementById('compra-total').value)||0;
