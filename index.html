@@ -3011,7 +3011,9 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
         'pendente':comp.pagamento_confirmado?'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Pag. Confirmado</span>':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Ag. Pagamento</span>',
         'postado':'<span style="background:rgba(107,127,215,.2);color:var(--accent);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">📦 Postado</span>',
         'pronto_retirada':'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🏪 P/ Retirada</span>',
-        'entregue':comp.origem==='manual'?'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue (presencial)</span>':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
+        'entregue':comp.origem==='manual'?'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue (presencial)</span>':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>',
+        'cancelamento_solicitado':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🔄 Cancel. em análise</span>',
+        'cancelado':'<span style="background:rgba(224,85,85,.2);color:var(--danger);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">❌ Cancelado</span>'
       }[comp.status_entrega||'pendente']||'<span style="color:var(--text3)">—</span>';
 
       const formaEntrega=comp.forma_entrega||'correios';
@@ -3028,6 +3030,10 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
         </div>`;
       } else {
         acaoHtml='<span style="color:var(--text3);font-size:12px">—</span>';
+      }
+      // Botão de cancelamento manual para pedidos entregues
+      if(comp.status_entrega==='entregue'){
+        acaoHtml+=' <button onclick="abrirCancelamentoManual('+comp.id+')" style="margin-top:4px;padding:3px 8px;background:none;border:1px solid var(--danger);border-radius:5px;color:var(--danger);font-size:11px;cursor:pointer">🔄 Cancelar</button>';
       }
 
       return `<tr>
@@ -3555,7 +3561,9 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
         'pendente':comp.pagamento_confirmado?'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Pag. Confirmado</span>':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">⏳ Ag. Pagamento</span>',
         'postado':'<span style="background:rgba(107,127,215,.2);color:var(--accent);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">📦 Postado</span>',
         'pronto_retirada':'<span style="background:rgba(76,175,125,.2);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🏪 P/ Retirada</span>',
-        'entregue':comp.origem==='manual'?'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue (presencial)</span>':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>'
+        'entregue':comp.origem==='manual'?'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue (presencial)</span>':'<span style="background:rgba(76,175,125,.3);color:var(--success);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">✅ Entregue</span>',
+        'cancelamento_solicitado':'<span style="background:rgba(212,168,67,.2);color:var(--warn);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">🔄 Cancel. em análise</span>',
+        'cancelado':'<span style="background:rgba(224,85,85,.2);color:var(--danger);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">❌ Cancelado</span>'
       }[comp.status_entrega||'pendente']||'<span style="color:var(--text3)">—</span>';
 
       const formaEntrega=comp.forma_entrega||'correios';
@@ -3572,6 +3580,10 @@ async function consultarHistoricoCompras(clienteId,clienteNome){
         </div>`;
       } else {
         acaoHtml='<span style="color:var(--text3);font-size:12px">—</span>';
+      }
+      // Botão de cancelamento manual para pedidos entregues
+      if(comp.status_entrega==='entregue'){
+        acaoHtml+=' <button onclick="abrirCancelamentoManual('+comp.id+')" style="margin-top:4px;padding:3px 8px;background:none;border:1px solid var(--danger);border-radius:5px;color:var(--danger);font-size:11px;cursor:pointer">🔄 Cancelar</button>';
       }
 
       return `<tr>
@@ -4991,6 +5003,7 @@ function renderClientes(){
     +'<div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px">'
     +'<button id="cli-aba-lista" onclick="cliAba(\'lista\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">👥 Clientes</button>'
     +'<button id="cli-aba-postagem" onclick="cliAba(\'postagem\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text3);font-size:13px;cursor:pointer">📦 Postagem/Entrega de Pedidos <span id="badge-postagem" style="background:var(--danger);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>'
+    +'<button id="cli-aba-cancelamentos" onclick="cliAba(\'cancelamentos\')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text3);font-size:13px;cursor:pointer">🔄 Cancelamentos/Devoluções <span id="badge-cancelamentos" style="background:var(--danger);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>'
     +'</div>'
     +'<div id="cli-aba-lista-conteudo">'
     +'<div class="search-bar"><input type="text" id="cli-busca" placeholder="Buscar por nome, CPF ou e-mail..." onkeydown="if(event.key===\'Enter\')buscarClientes()">'
@@ -5001,6 +5014,9 @@ function renderClientes(){
     +'</div>'
     +'<div id="cli-aba-postagem-conteudo" style="display:none">'
     +'<div id="postagem-lista"><div class="loading">Carregando...</div></div>'
+    +'</div>'
+    +'<div id="cli-aba-cancelamentos-conteudo" style="display:none">'
+    +'<div id="cancelamentos-lista"><div class="loading">Carregando...</div></div>'
     +'</div>';
 }
 
@@ -5164,12 +5180,18 @@ async function buscarCEP(){
 }
 
 function cliAba(aba){
-  const isLista=aba==='lista';
-  document.getElementById('cli-aba-lista-conteudo').style.display=isLista?'':'none';
-  document.getElementById('cli-aba-postagem-conteudo').style.display=isLista?'none':'';
-  document.getElementById('cli-aba-lista').style.cssText='padding:10px 20px;background:none;border:none;border-bottom:2px solid '+(isLista?'var(--accent)':'transparent')+';margin-bottom:-2px;color:'+(isLista?'var(--accent)':'var(--text3)')+';font-size:13px;font-weight:'+(isLista?'600':'400')+';cursor:pointer';
-  document.getElementById('cli-aba-postagem').style.cssText='padding:10px 20px;background:none;border:none;border-bottom:2px solid '+(!isLista?'var(--accent)':'transparent')+';margin-bottom:-2px;color:'+(!isLista?'var(--accent)':'var(--text3)')+';font-size:13px;font-weight:'+(!isLista?'600':'400')+';cursor:pointer';
-  if(!isLista) carregarPostagemPedidos();
+  const abas=['lista','postagem','cancelamentos'];
+  abas.forEach(a=>{
+    const cont=document.getElementById('cli-aba-'+a+'-conteudo');
+    if(cont)cont.style.display=(a===aba)?'':'none';
+    const btn=document.getElementById('cli-aba-'+a);
+    if(btn){
+      const ativo=(a===aba);
+      btn.style.cssText='padding:10px 20px;background:none;border:none;border-bottom:2px solid '+(ativo?'var(--accent)':'transparent')+';margin-bottom:-2px;color:'+(ativo?'var(--accent)':'var(--text3)')+';font-size:13px;font-weight:'+(ativo?'600':'400')+';cursor:pointer';
+    }
+  });
+  if(aba==='postagem') carregarPostagemPedidos();
+  else if(aba==='cancelamentos') carregarCancelamentos();
 }
 
 async function carregarPostagemPedidos(){
@@ -5261,6 +5283,139 @@ async function marcarEntregue(compraId){
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({status_entrega:'entregue'})});
     alert('✅ Pedido marcado como entregue!');
     carregarPostagemPedidos();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+// ─── CANCELAMENTOS / DEVOLUÇÕES ───────────────────────────────────
+async function carregarCancelamentos(){
+  const pf=currentUser?.perfil||'master';
+  const wrap=document.getElementById('cancelamentos-lista');
+  if(!wrap)return;
+  wrap.innerHTML='<div class="loading">Carregando solicitações...</div>';
+  try{
+    const rows=await api('cliente_compras?select=*,produtos(nome,unidade),clientes(nome,telefone,email)'
+      +'&perfil_codigo=eq.'+encodeURIComponent(pf)
+      +'&status_entrega=eq.cancelamento_solicitado'
+      +'&order=cancelamento_solicitado_em.asc');
+    const badge=document.getElementById('badge-cancelamentos');
+    if(!rows||!rows.length){
+      wrap.innerHTML='<div class="empty-state" style="padding:40px;text-align:center"><div style="font-size:48px">✅</div><h3 style="margin-top:12px">Nenhum cancelamento pendente</h3><p style="color:var(--text3)">Não há devoluções aguardando conferência.</p></div>';
+      if(badge)badge.textContent='';
+      return;
+    }
+    if(badge)badge.textContent=rows.length;
+    const fmtDt=s=>{try{return s?new Date(s).toLocaleDateString('pt-BR')+' '+new Date(s).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';}catch(e){return '—';}};
+    wrap.innerHTML=rows.map(c=>{
+      const cli=c.clientes||{};
+      const prod=c.produtos?.nome||'Produto';
+      const variacao=[c.genero,c.tamanho,c.cor].filter(Boolean).join(' · ');
+      const valor=parseFloat(c.total_pago||0).toFixed(2).replace('.',',');
+      return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:14px;font-weight:700;color:var(--text)">${cli.nome||'—'}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${cli.telefone||''} ${cli.email?'· '+cli.email:''}</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:6px">${prod}${variacao?' · '+variacao:''} · Qtd: ${c.quantidade||1}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">Solicitado em ${fmtDt(c.cancelamento_solicitado_em)} · <strong style="color:var(--accent)">R$ ${valor}</strong></div>
+            ${c.motivo_cancelamento?`<div style="font-size:12px;color:var(--text2);margin-top:8px;padding:8px 10px;background:var(--surface);border-radius:6px;border:1px solid var(--border)"><strong>Motivo:</strong> ${c.motivo_cancelamento}</div>`:''}
+          </div>
+          <div style="min-width:200px;display:flex;flex-direction:column;gap:8px">
+            <button onclick="confirmarDevolucaoRecebida(${c.id})" style="padding:8px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Confirmar devolução recebida</button>
+            <button onclick="recusarCancelamento(${c.id})" style="padding:8px 12px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer">↩️ Reverter (não cancelar)</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    if((e.message||'').toLowerCase().includes('cancelamento_solicitado_em')||(e.message||'').toLowerCase().includes('motivo_cancelamento')){
+      wrap.innerHTML='<div class="empty">⚠️ O banco ainda não tem as colunas de cancelamento. Rode o SQL de alterações no Supabase.</div>';
+    } else {
+      wrap.innerHTML='<div class="empty">Erro: '+e.message+'</div>';
+    }
+  }
+}
+
+async function confirmarDevolucaoRecebida(compraId){
+  const pf=currentUser?.perfil||'master';
+  if(!confirm('Confirmar que o produto foi DEVOLVIDO e conferido?\n\nIsso vai:\n• Devolver o produto ao estoque\n• Estornar o valor no financeiro (reduz o lucro)\n\nO estorno do dinheiro ao cliente deve ser feito por você no painel do Mercado Pago.'))return;
+  try{
+    // 1. Buscar dados da compra
+    const compras=await api('cliente_compras?id=eq.'+compraId+'&select=*,produtos(nome)');
+    if(!compras||!compras.length){alert('Compra não encontrada.');return;}
+    const c=compras[0];
+    const prodId=c.produto_id;
+    const qtd=parseFloat(c.quantidade||0);
+    const gN=c.genero||null, tN=c.tamanho||null, cN=c.cor||null;
+    const nomeProd=c.produtos?.nome||'Produto';
+
+    // 2. Devolver ao estoque (somar de volta no saldo da variação)
+    const todosRows=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho,cor').catch(()=>[]);
+    const reg=(todosRows||[]).find(r=>(r.genero||null)===gN&&(r.tamanho||null)===tN&&(r.cor||null)===cN);
+    const saldoAtual=reg?parseFloat(reg.quantidade||0):0;
+    const novoSaldo=saldoAtual+qtd;
+    if(reg){
+      await api('estoque_saldo?id=eq.'+reg.id,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});
+    } else {
+      await api('estoque_saldo',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:prodId,quantidade:novoSaldo,genero:gN,tamanho:tN,cor:cN})});
+    }
+    // 2b. Registrar movimento de entrada (devolução) para o histórico
+    await api('estoque_movimentos',{method:'POST',body:JSON.stringify({
+      perfil_codigo:pf,produto_id:prodId,tipo:'entrada',
+      quantidade:qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,
+      motivo:'Devolução / Cancelamento — Pedido #'+compraId,
+      genero:gN,tamanho:tN,cor:cN,criado_por:currentUser.usuario
+    })}).catch(()=>{});
+    // 2c. Atualizar estoque_atual do produto
+    try{
+      const todosReg=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade');
+      const total=(todosReg||[]).reduce((s,r)=>s+parseFloat(r.quantidade||0),0);
+      await api('produtos?id=eq.'+prodId,{method:'PATCH',body:JSON.stringify({estoque_atual:total})}).catch(()=>{});
+    }catch(e2){}
+
+    // 3. Estornar no financeiro: lança uma DESPESA de estorno no valor da venda (reduz o lucro)
+    const valorEstorno=parseFloat(c.total_pago||0);
+    if(valorEstorno>0){
+      await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({
+        perfil_codigo:pf,tipo:'despesa',
+        descricao:'Estorno (cancelamento) — '+nomeProd+(gN?' '+gN:'')+(tN?' /'+tN:'')+(cN?' /'+cN:'')+' · Pedido #'+compraId,
+        valor:valorEstorno,
+        data_vencimento:hojeLocalStr(),data_pagamento:hojeLocalStr(),status:'pago',
+        cliente_id:c.cliente_id||null,
+        observacoes:'Estorno automático por cancelamento/devolução de pedido. Lembrar de devolver o valor ao cliente no Mercado Pago.'
+      })}).catch(()=>{});
+    }
+
+    // 4. Marcar pedido como cancelado
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({
+      status_entrega:'cancelado',
+      cancelamento_concluido_em:new Date().toISOString()
+    })});
+
+    alert('✅ Devolução concluída!\n\n• Estoque devolvido (+'+qtd+' un.)\n• Estorno de R$ '+valorEstorno.toFixed(2).replace('.',',')+' lançado no financeiro\n\n⚠️ NÃO ESQUEÇA: faça a devolução do valor ao cliente no painel do Mercado Pago.');
+    carregarCancelamentos();
+  }catch(e){alert('Erro ao processar devolução: '+e.message);}
+}
+
+async function recusarCancelamento(compraId){
+  if(!confirm('Reverter este cancelamento? O pedido voltará para o status "entregue".'))return;
+  try{
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({status_entrega:'entregue'})});
+    carregarCancelamentos();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+// Abrir cancelamento manualmente (a partir do histórico de compras do cliente)
+async function abrirCancelamentoManual(compraId){
+  const motivo=prompt('Motivo do cancelamento (registro interno):');
+  if(motivo===null)return;
+  try{
+    await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({
+      status_entrega:'cancelamento_solicitado',
+      motivo_cancelamento:(motivo.trim()||'Aberto pelo sistema'),
+      cancelamento_solicitado_em:new Date().toISOString()
+    })});
+    alert('✅ Solicitação de cancelamento aberta. Veja na aba "Cancelamentos/Devoluções".');
+    if(typeof carregarHistoricoCompras==='function'){} // não força reload do modal
   }catch(e){alert('Erro: '+e.message);}
 }
 
