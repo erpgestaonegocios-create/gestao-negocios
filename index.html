@@ -5690,9 +5690,9 @@ function configurarVariacaoPorUnidade(unidade,medidaSalva,generoSalvo,produtoId,
     _toggleBotoesMedida(false);
     popularSelectTamanhos('est-tamanho',(generoSalvo==='infantil'?'infantil':'adulto'),medidaSalva||'');
   } else {
-    // Esconde gênero (não se aplica a perfume, etc.) e mostra botões de medida
-    if(generoWrap)generoWrap.style.display='none';
-    if(selGenero)selGenero.value='';
+    // Mantém o gênero (perfume tem masculino/feminino) e mostra botões de medida
+    if(generoWrap)generoWrap.style.display='';
+    if(selGenero)selGenero.value=generoSalvo||'';
     if(tamLabel)tamLabel.textContent='Medida ('+unidadeLabelCurto(_estUnidadeAtual)+')';
     _toggleBotoesMedida(true);
     popularSelectMedidas('est-tamanho',_estUnidadeAtual,medidaSalva||'');
@@ -6091,7 +6091,7 @@ async function salvarMovimento(){
   const estTamanho=document.getElementById('est-tamanho')?.value||'';
   const estMotivo=document.getElementById('est-motivo')?.value?.trim()||'';
   const ehVest=unidadeEhVestuario(_estUnidadeAtual);
-  if(ehVest&&!estGenero){showMM('modal-est-msg','Informe o Gênero','error');return;}
+  if(!estGenero){showMM('modal-est-msg','Informe o Gênero','error');return;}
   if(!estTamanho){showMM('modal-est-msg',ehVest?'Informe o Tamanho':'Informe a Medida','error');return;}
   if(!estMotivo){showMM('modal-est-msg','Informe o Motivo / Descrição','error');return;}
   const pf=currentUser.perfil||'master';
