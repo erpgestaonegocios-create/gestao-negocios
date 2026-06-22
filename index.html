@@ -642,7 +642,7 @@
       <div class="mfield col-2"><label>Descrição</label><textarea id="prod-desc" placeholder="Descrição do produto..." style="min-height:60px"></textarea></div>
       <div class="mfield col-1"><label>Categoria / Grupo</label><input type="text" id="prod-categoria" placeholder="ex: Vestuário, Calçados..."></div>
       <div class="mfield col-1"><label>Unidade de Medida</label>
-        <select id="prod-unidade">
+        <select id="prod-unidade" onchange="onProdUnidadeChange()">
           <option value="un">un — Unidade</option>
           <option value="kg">kg — Quilograma</option>
           <option value="g">g — Grama</option>
@@ -655,6 +655,16 @@
           <option value="par">par — Par</option>
           <option value="outro">outro</option>
         </select>
+      </div>
+      <div class="mfield col-2" id="prod-medidas-wrap" style="display:none">
+        <label>Medidas disponíveis <span id="prod-medidas-unidade" style="color:var(--text3);font-weight:400"></span></label>
+        <div style="display:flex;gap:6px;align-items:stretch;margin-bottom:8px">
+          <select id="prod-medida-nova" style="flex:1"></select>
+          <input type="text" id="prod-medida-livre" placeholder="ou digite (ex: 2 ml)" style="flex:1">
+          <button type="button" onclick="adicionarMedidaProduto()" style="flex-shrink:0;padding:0 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">+ Incluir</button>
+        </div>
+        <div id="prod-medidas-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        <div class="field-hint">Inclua aqui as medidas deste produto (ex: 50 ml, 100 ml). Na movimentação você só seleciona entre elas.</div>
       </div>
 
       <div class="form-section">Preços</div>
@@ -734,6 +744,40 @@
     </div>
   </div>
 </div>
+
+<!-- MODAL CANCELAMENTO DE PEDIDO -->
+<div class="modal-overlay" id="modal-cancelar-pedido" style="z-index:300">
+  <div class="modal modal-sm" style="max-width:460px">
+    <div class="modal-title">🔄 Cancelar / Devolver pedido</div>
+    <div class="modal-sub" id="modal-cancelar-sub">Informe o motivo do cancelamento.</div>
+    <div class="form-grid">
+      <div class="mfield col-2"><label>Motivo do cancelamento <span class="req">*</span></label>
+        <textarea id="cancelar-motivo" rows="3" placeholder="ex: Cliente desistiu, produto com defeito, tamanho errado..." style="resize:vertical"></textarea>
+        <div class="field-hint">Este motivo fica registrado internamente e o cliente recebe um e-mail com as instruções de devolução.</div>
+      </div>
+    </div>
+    <div class="modal-msg" id="modal-cancelar-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-cancelar-pedido')">Voltar</button>
+      <button class="btn-save" id="btn-confirmar-cancelamento" onclick="confirmarCancelamentoManual()">Solicitar cancelamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAÇÃO GENÉRICO (padrão do sistema) -->
+<div class="modal-overlay" id="modal-confirmacao" style="z-index:400">
+  <div class="modal modal-sm" style="max-width:440px">
+    <div class="modal-title" id="confirm-titulo">Confirmar</div>
+    <div id="confirm-corpo" style="font-size:14px;color:var(--text2);line-height:1.7;margin:10px 0 4px;white-space:pre-line"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="confirm-btn-nao" onclick="_resolverConfirm(false)">Cancelar</button>
+      <button class="btn-save" id="confirm-btn-sim" onclick="_resolverConfirm(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST / NOTIFICAÇÃO (padrão do sistema) -->
+<div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:10px;pointer-events:none"></div>
 
 <!-- MODAL GALERIA PRODUTO -->
 <div class="modal-overlay" id="modal-galeria-produto">
@@ -838,27 +882,15 @@
       </div>
       <div class="mfield col-1" id="est-tamanho-wrap">
         <label id="est-tamanho-label">Tamanho</label>
-        <div style="display:flex;gap:6px;align-items:stretch">
-          <select id="est-tamanho" onchange="onEstTamanhoChange()" style="flex:1">
-            <option value="">Não especificado</option>
-          </select>
-          <button type="button" id="est-medida-add" onclick="abrirAddMedida()" title="Incluir medida para este produto"
-            style="display:none;flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">+</button>
-          <button type="button" id="est-medida-del" onclick="excluirMedidaSelecionada()" title="Excluir a medida selecionada deste produto"
-            style="display:none;flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--danger);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">−</button>
-        </div>
+        <select id="est-tamanho" onchange="onEstTamanhoChange()">
+          <option value="">Não especificado</option>
+        </select>
       </div>
       <div class="mfield col-2" id="est-cor-wrap">
         <label>Cor</label>
-        <div style="display:flex;gap:6px;align-items:stretch">
-          <select id="est-cor" onchange="onEstCorChange()" style="flex:1">
-            <option value="">Não especificado</option>
-          </select>
-          <button type="button" id="est-cor-add" onclick="abrirAddCor()" title="Incluir cor para este produto"
-            style="flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">+</button>
-          <button type="button" id="est-cor-del" onclick="excluirCorSelecionada()" title="Excluir a cor selecionada deste produto"
-            style="flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--danger);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">−</button>
-        </div>
+        <select id="est-cor" onchange="onEstCorChange()">
+          <option value="">Não especificado</option>
+        </select>
       </div>
       <div class="mfield col-2">
         <label id="est-qtd-label">Quantidade <span class="req">*</span></label>
@@ -1184,6 +1216,44 @@ throw new Error(msg);
 // ─── HELPERS ─────────────────────────────────────────────────────
 function showMsg(el,txt,type){el.textContent=txt;el.className='msg '+type;el.style.display='block';}
 function showMM(id,txt,type){const el=document.getElementById(id);el.textContent=txt;el.className='modal-msg '+type;el.style.display='block';}
+
+// ── Confirmação no padrão do sistema (substitui o confirm() do navegador) ──
+let _confirmResolver=null;
+function confirmarAcao(mensagem,opcoes){
+  opcoes=opcoes||{};
+  return new Promise(resolve=>{
+    _confirmResolver=resolve;
+    const tit=document.getElementById('confirm-titulo');
+    const corpo=document.getElementById('confirm-corpo');
+    const btnSim=document.getElementById('confirm-btn-sim');
+    const btnNao=document.getElementById('confirm-btn-nao');
+    if(tit)tit.textContent=opcoes.titulo||'Confirmar';
+    if(corpo)corpo.textContent=mensagem||'Deseja continuar?';
+    if(btnSim){btnSim.textContent=opcoes.textoSim||'Confirmar';btnSim.style.background=opcoes.perigo?'var(--danger)':'';}
+    if(btnNao)btnNao.textContent=opcoes.textoNao||'Cancelar';
+    openModal('modal-confirmacao');
+  });
+}
+function _resolverConfirm(valor){
+  closeModal('modal-confirmacao');
+  if(_confirmResolver){const r=_confirmResolver;_confirmResolver=null;r(valor);}
+}
+
+// ── Toast / notificação no padrão do sistema (substitui o alert() de sucesso) ──
+function toast(mensagem,tipo){
+  const cont=document.getElementById('toast-container');
+  if(!cont){alert(mensagem);return;}
+  const cores={success:'var(--success)',error:'var(--danger)',info:'var(--accent)',warn:'#f59e0b'};
+  const cor=cores[tipo||'info']||cores.info;
+  const icones={success:'✅',error:'⚠️',info:'ℹ️',warn:'⚠️'};
+  const div=document.createElement('div');
+  div.style.cssText='pointer-events:auto;min-width:260px;max-width:380px;background:var(--surface);border:1px solid '+cor+';border-left:4px solid '+cor+';border-radius:8px;padding:14px 16px;color:var(--text);font-size:13px;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;transform:translateY(10px);transition:opacity .25s,transform .25s;white-space:pre-line';
+  div.innerHTML='<span style="margin-right:8px">'+(icones[tipo||'info']||'ℹ️')+'</span>'+mensagem;
+  cont.appendChild(div);
+  requestAnimationFrame(()=>{div.style.opacity='1';div.style.transform='translateY(0)';});
+  const dur=(tipo==='error'||(mensagem||'').length>120)?6000:4000;
+  setTimeout(()=>{div.style.opacity='0';div.style.transform='translateY(10px)';setTimeout(()=>div.remove(),300);},dur);
+}
 function closeModal(id){
   document.getElementById(id).classList.remove('open');
   // Desbloquear campos que podem ter sido bloqueados
@@ -2982,6 +3052,7 @@ let compraClienteId=null;
 
 
 async function consultarHistoricoCompras(clienteId,clienteNome){
+  window._histClienteId=clienteId;window._histClienteNome=clienteNome;
   document.getElementById('hist-compras-titulo').textContent='Histórico de Compras';
   document.getElementById('hist-compras-sub').textContent='Cliente: '+clienteNome;
   document.getElementById('hist-compras-conteudo').innerHTML='<div class="loading">Carregando...</div>';
@@ -3532,6 +3603,7 @@ async function salvarCompraCliente(){
 }
 
 async function consultarHistoricoCompras(clienteId,clienteNome){
+  window._histClienteId=clienteId;window._histClienteNome=clienteNome;
   document.getElementById('hist-compras-titulo').textContent='Histórico de Compras';
   document.getElementById('hist-compras-sub').textContent='Cliente: '+clienteNome;
   document.getElementById('hist-compras-conteudo').innerHTML='<div class="loading">Carregando...</div>';
@@ -5113,12 +5185,13 @@ function renderAgendamentos(){
 
 function renderFinanceiro(){
   const temAg=perfilTemFunc('agendamentos');
-  const dashLojista='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
+  const dashLojista='<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Compra de Produtos</div><div id="fin-total-compra" style="font-size:22px;font-weight:700;color:var(--danger)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reposição de estoque</div></div>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;cursor:pointer" onclick="finAba(\'gastos\')" title="Clique para gerenciar gastos operacionais"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Despesas Operacionais</div><div id="fin-total-gastos" style="font-size:22px;font-weight:700;color:#f59e0b">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Viagem, hotel, embalagens…</div></div>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;cursor:pointer" onclick="finAba(\'fretes\')" title="Clique para ver os fretes das vendas"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Fretes</div><div id="fin-total-fretes" style="font-size:22px;font-weight:700;color:#6b7fd7">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Frete pago nas vendas do site</div></div>'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Vendas</div><div id="fin-total-venda" style="font-size:22px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Total recebido</div></div>'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Lucro</div><div id="fin-lucro" style="font-size:22px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − Todas despesas</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Vendas</div><div id="fin-total-venda" style="font-size:22px;font-weight:700;color:var(--success)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Total recebido (bruto)</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Devoluções</div><div id="fin-total-devolucoes" style="font-size:22px;font-weight:700;color:#e0a050">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Pedidos cancelados</div></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Lucro</div><div id="fin-lucro" style="font-size:22px;font-weight:700;color:var(--accent)">—</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Vendas − devoluções − despesas</div></div>'
     +'</div>';
   const dashCompleto='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="fin-dashboard">'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Saldo Atual</div><div id="fin-saldo" style="font-size:24px;font-weight:700;color:var(--text)">—</div></div>'
@@ -5278,12 +5351,13 @@ async function marcarProntoRetiradaPost(compraId, nomeProduto, clienteId){
 }
 
 async function marcarEntregue(compraId){
-  if(!confirm('Confirmar entrega do pedido?'))return;
+  const ok=await confirmarAcao('Confirmar entrega do pedido?',{titulo:'Confirmar entrega',textoSim:'Sim, entregue',textoNao:'Voltar'});
+  if(!ok)return;
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({status_entrega:'entregue'})});
-    alert('✅ Pedido marcado como entregue!');
+    toast('Pedido marcado como entregue!','success');
     carregarPostagemPedidos();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 // ─── CANCELAMENTOS / DEVOLUÇÕES ───────────────────────────────────
@@ -5337,11 +5411,15 @@ async function carregarCancelamentos(){
 
 async function confirmarDevolucaoRecebida(compraId){
   const pf=currentUser?.perfil||'master';
-  if(!confirm('Confirmar que o produto foi DEVOLVIDO e conferido?\n\nIsso vai:\n• Devolver o produto ao estoque\n• Estornar o valor no financeiro (reduz o lucro)\n\nO estorno do dinheiro ao cliente deve ser feito por você no painel do Mercado Pago.'))return;
+  const ok=await confirmarAcao(
+    'Confirmar que o produto foi DEVOLVIDO e conferido?\n\nIsso vai:\n• Devolver o produto ao estoque\n• Estornar o valor no financeiro (reduz o lucro)\n\nO estorno do dinheiro ao cliente deve ser feito por você no painel do Mercado Pago.',
+    {titulo:'Confirmar devolução recebida',textoSim:'Sim, confirmar',textoNao:'Voltar'}
+  );
+  if(!ok)return;
   try{
     // 1. Buscar dados da compra
     const compras=await api('cliente_compras?id=eq.'+compraId+'&select=*,produtos(nome)');
-    if(!compras||!compras.length){alert('Compra não encontrada.');return;}
+    if(!compras||!compras.length){toast('Compra não encontrada.','error');return;}
     const c=compras[0];
     const prodId=c.produto_id;
     const qtd=parseFloat(c.quantidade||0);
@@ -5399,27 +5477,42 @@ async function confirmarDevolucaoRecebida(compraId){
       }
     }catch(eMail){console.warn('email finalizado:',eMail);}
 
-    alert('✅ Devolução concluída!\n\n• Estoque devolvido (+'+qtd+' un.)\n• Estorno de R$ '+valorEstorno.toFixed(2).replace('.',',')+' lançado no financeiro\n• E-mail de finalização enviado ao cliente\n\n⚠️ NÃO ESQUEÇA: faça a devolução do valor ao cliente no painel do Mercado Pago.');
+    toast('Devolução concluída!\n• Estoque devolvido (+'+qtd+' un.)\n• Estorno de R$ '+valorEstorno.toFixed(2).replace('.',',')+' lançado no financeiro\n• E-mail enviado ao cliente\n\n⚠️ Lembre-se de devolver o valor ao cliente no Mercado Pago.','success');
     carregarCancelamentos();
-  }catch(e){alert('Erro ao processar devolução: '+e.message);}
+  }catch(e){toast('Erro ao processar devolução: '+e.message,'error');}
 }
 
 async function recusarCancelamento(compraId){
-  if(!confirm('Reverter este cancelamento? O pedido voltará para o status "entregue".'))return;
+  const ok=await confirmarAcao('Reverter este cancelamento? O pedido voltará para o status "entregue".',{titulo:'Reverter cancelamento',textoSim:'Sim, reverter',textoNao:'Voltar'});
+  if(!ok)return;
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({status_entrega:'entregue'})});
+    toast('Cancelamento revertido. Pedido voltou para "entregue".','info');
     carregarCancelamentos();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 // Abrir cancelamento manualmente (a partir do histórico de compras do cliente)
-async function abrirCancelamentoManual(compraId){
-  const motivo=prompt('Motivo do cancelamento (registro interno):');
-  if(motivo===null)return;
+function abrirCancelamentoManual(compraId){
+  window._cancelarCompraId=compraId;
+  const mot=document.getElementById('cancelar-motivo');if(mot)mot.value='';
+  const msg=document.getElementById('modal-cancelar-msg');if(msg)msg.style.display='none';
+  const btn=document.getElementById('btn-confirmar-cancelamento');if(btn){btn.disabled=false;btn.textContent='Solicitar cancelamento';}
+  openModal('modal-cancelar-pedido');
+  setTimeout(()=>{const el=document.getElementById('cancelar-motivo');if(el)el.focus();},50);
+}
+
+async function confirmarCancelamentoManual(){
+  const compraId=window._cancelarCompraId;
+  if(!compraId){closeModal('modal-cancelar-pedido');return;}
+  const motivo=(document.getElementById('cancelar-motivo')?.value||'').trim();
+  if(!motivo){showMM('modal-cancelar-msg','Informe o motivo do cancelamento.','error');return;}
+  const btn=document.getElementById('btn-confirmar-cancelamento');
+  if(btn){btn.disabled=true;btn.textContent='Processando...';}
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({
       status_entrega:'cancelamento_solicitado',
-      motivo_cancelamento:(motivo.trim()||'Aberto pelo sistema'),
+      motivo_cancelamento:motivo,
       cancelamento_solicitado_em:new Date().toISOString()
     })});
     // Disparar e-mail de cancelamento recebido + instruções (conforme forma de entrega)
@@ -5433,8 +5526,16 @@ async function abrirCancelamentoManual(compraId){
         if(cli&&cli[0]?.email) await emailCancelamentoRecebido(cli[0].nome,cli[0].email,nomeProd,forma,codR);
       }
     }catch(eMail){console.warn('email cancelamento:',eMail);}
-    alert('✅ Solicitação de cancelamento aberta e e-mail enviado ao cliente. Veja na aba "Cancelamentos/Devoluções".');
-  }catch(e){alert('Erro: '+e.message);}
+    closeModal('modal-cancelar-pedido');
+    // Recarregar o histórico para refletir o novo status
+    if(window._histClienteId){ await consultarHistoricoCompras(window._histClienteId,window._histClienteNome||''); }
+    // Atualizar o contador da aba de cancelamentos, se estiver na tela
+    if(typeof carregarCancelamentos==='function'){ try{carregarCancelamentos();}catch(e){} }
+    toast('Solicitação de cancelamento registrada e e-mail enviado ao cliente.','success');
+  }catch(e){
+    showMM('modal-cancelar-msg','Erro: '+e.message,'error');
+    if(btn){btn.disabled=false;btn.textContent='Solicitar cancelamento';}
+  }
 }
 
 async function carregarClientes(filtro=''){
@@ -5638,6 +5739,65 @@ function _coresDisponiveisProduto(){
   return lista;
 }
 
+// ── Medidas no cadastro do produto ────────────────────────────────
+function onProdUnidadeChange(){
+  const wrap=document.getElementById('prod-medidas-wrap');
+  const unidade=(document.getElementById('prod-unidade')?.value||'un').toLowerCase();
+  const ehMedida=!unidadeEhVestuario(unidade)&&MEDIDAS_POR_UNIDADE[unidade];
+  if(wrap)wrap.style.display=ehMedida?'':'none';
+  if(ehMedida){
+    const lbl=document.getElementById('prod-medidas-unidade');if(lbl)lbl.textContent='('+unidadeLabelCurto(unidade)+')';
+    renderProdMedidas();
+  }
+}
+function _medidasDisponiveisProduto(){
+  const unidade=(document.getElementById('prod-unidade')?.value||'un').toLowerCase();
+  return medidasDisponiveis(unidade,window._prodMedidasCustomAtual||null);
+}
+function renderProdMedidas(){
+  const unidade=(document.getElementById('prod-unidade')?.value||'un').toLowerCase();
+  const lista=_medidasDisponiveisProduto();
+  // Preenche o select de sugestões com medidas padrão ainda não incluídas
+  const sel=document.getElementById('prod-medida-nova');
+  if(sel){
+    const base=MEDIDAS_POR_UNIDADE[unidade]||[];
+    const naoIncluidas=base.filter(m=>!lista.includes(m));
+    sel.innerHTML='<option value="">Sugestões...</option>'+naoIncluidas.map(m=>'<option value="'+m+'">'+m+'</option>').join('');
+    sel.style.display=naoIncluidas.length?'':'none';
+  }
+  // Renderiza os "chips" das medidas já incluídas, com botão de excluir
+  const chips=document.getElementById('prod-medidas-chips');
+  if(chips){
+    if(!lista.length){chips.innerHTML='<span style="font-size:12px;color:var(--text3)">Nenhuma medida incluída ainda.</span>';}
+    else chips.innerHTML=lista.map(m=>'<span style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:4px 6px 4px 12px;font-size:12px">'+m+'<button type="button" onclick="removerMedidaProduto(\''+m.replace(/'/g,"\\'")+'\')" title="Excluir" style="background:none;border:none;color:var(--danger);font-size:14px;cursor:pointer;line-height:1;padding:0 2px">×</button></span>').join('');
+  }
+}
+function adicionarMedidaProduto(){
+  const unidade=(document.getElementById('prod-unidade')?.value||'un').toLowerCase();
+  const sel=document.getElementById('prod-medida-nova');
+  const livre=document.getElementById('prod-medida-livre');
+  let valor=(livre&&livre.value.trim())||(sel&&sel.value)||'';
+  valor=valor.trim();
+  if(!valor){showMM('modal-prod-msg','Escolha uma sugestão ou digite uma medida.','error');return;}
+  const lista=_medidasDisponiveisProduto();
+  if(lista.some(m=>m.toLowerCase()===valor.toLowerCase())){showMM('modal-prod-msg','Esta medida já está incluída.','error');return;}
+  const c=normalizarMedidasCustom(window._prodMedidasCustomAtual||null);
+  c.remove=(c.remove||[]).filter(x=>x.toLowerCase()!==valor.toLowerCase());
+  if(!c.add.some(x=>x.toLowerCase()===valor.toLowerCase()))c.add.push(valor);
+  window._prodMedidasCustomAtual=c;
+  if(livre)livre.value='';
+  renderProdMedidas();
+}
+function removerMedidaProduto(valor){
+  const unidade=(document.getElementById('prod-unidade')?.value||'un').toLowerCase();
+  const c=normalizarMedidasCustom(window._prodMedidasCustomAtual||null);
+  c.add=(c.add||[]).filter(x=>x.toLowerCase()!==valor.toLowerCase());
+  const base=MEDIDAS_POR_UNIDADE[unidade]||[];
+  if(base.some(m=>m.toLowerCase()===valor.toLowerCase())&&!c.remove.some(x=>x.toLowerCase()===valor.toLowerCase()))c.remove.push(valor);
+  window._prodMedidasCustomAtual=c;
+  renderProdMedidas();
+}
+
 function onProdFotosChange(event){
   const files=Array.from(event.target.files);const restante=10-prodFotosArray.length;
   if(restante<=0){alert('Limite de 10 fotos atingido.');return;}
@@ -5653,7 +5813,10 @@ function renderProdFotosGrid(){
   grid.innerHTML=prodFotosArray.map((foto,i)=>{
     const src=typeof foto==='string'?foto:foto.src;
     const corAtual=typeof foto==='string'?'':(foto.cor||'');
-    const opts='<option value="">Sem cor</option>'+cores.map(c=>'<option value="'+c+'"'+(corAtual===c?' selected':'')+'>'+c+'</option>').join('')+(corAtual&&!cores.includes(corAtual)?'<option value="'+corAtual+'" selected>'+corAtual+'</option>':'');
+    const opts='<option value="">Sem cor</option>'
+      +cores.map(c=>'<option value="'+c+'"'+(corAtual===c?' selected':'')+'>'+c+'</option>').join('')
+      +(corAtual&&!cores.includes(corAtual)?'<option value="'+corAtual+'" selected>'+corAtual+'</option>':'')
+      +'<option value="__nova__">➕ Nova cor...</option>';
     return '<div style="position:relative;width:90px;border-radius:8px;border:2px solid '+(i===0?'var(--accent)':'var(--border)')+';padding:0;overflow:hidden">'
       +'<div style="position:relative;width:100%;height:80px">'
       +'<img src="'+src+'" style="width:100%;height:100%;object-fit:cover">'
@@ -5665,10 +5828,23 @@ function renderProdFotosGrid(){
   }).join('');
 }
 function setProdFotoCor(idx,cor){
-  if(prodFotosArray[idx]){
-    if(typeof prodFotosArray[idx]==='string')prodFotosArray[idx]={src:prodFotosArray[idx],cor:cor};
-    else prodFotosArray[idx].cor=cor;
+  if(!prodFotosArray[idx])return;
+  // Opção "Nova cor..." → pede o nome e cadastra
+  if(cor==='__nova__'){
+    const nova=prompt('Nome da nova cor:');
+    if(!nova||!nova.trim()){renderProdFotosGrid();return;}
+    const valor=nova.trim().replace(/\s+/g,' ').replace(/\b\p{L}/gu,c=>c.toUpperCase());
+    // Adiciona às cores personalizadas do produto (em memória; salva junto com o produto)
+    const c=normalizarMedidasCustom(window._prodCoresCustomAtual||null);
+    c.remove=(c.remove||[]).filter(x=>x.toLowerCase()!==valor.toLowerCase());
+    const jaExiste=_coresDisponiveisProduto().some(x=>x.toLowerCase()===valor.toLowerCase());
+    if(!jaExiste && !c.add.some(x=>x.toLowerCase()===valor.toLowerCase())) c.add.push(valor);
+    window._prodCoresCustomAtual=c;
+    cor=valor;
   }
+  if(typeof prodFotosArray[idx]==='string')prodFotosArray[idx]={src:prodFotosArray[idx],cor:cor};
+  else prodFotosArray[idx].cor=cor;
+  renderProdFotosGrid();
 }
 function removeProdFoto(idx){prodFotosArray.splice(idx,1);renderProdFotosGrid();}
 
@@ -5759,6 +5935,8 @@ async function openModalProduto(mode,id){
     const pu=document.getElementById('prod-unidade');if(pu)pu.value='un';
     if(selForn)selForn.value='';
     window._prodCoresCustomAtual=null;
+    window._prodMedidasCustomAtual=null;
+    onProdUnidadeChange();
     const wrapEst=document.getElementById('prod-estoque-atual-wrap');if(wrapEst)wrapEst.style.display='none';
     const wrapViews=document.getElementById('prod-visualizacoes-wrap');if(wrapViews)wrapViews.style.display='none';
   } else {
@@ -5801,8 +5979,10 @@ async function openModalProduto(mode,id){
         dispEst.innerHTML='<span style="color:var(--text3)">'+(p.estoque_atual!=null?p.estoque_atual+' '+(p.unidade||'un'):'—')+'</span>';
       }
     }
-    // Guarda cores_custom do produto para popular o seletor de cor das fotos
+    // Guarda cores_custom e medidas_custom do produto
     window._prodCoresCustomAtual=p.cores_custom||null;
+    window._prodMedidasCustomAtual=p.medidas_custom||null;
+    onProdUnidadeChange();
     // Monta fotos como {src,cor} cruzando imagens_base64 com imagens_cores
     let fotosSrc=[];
     if(p.imagens_base64&&p.imagens_base64.length){fotosSrc=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');}
@@ -5849,6 +6029,8 @@ async function salvarProduto(){
     imagem_base64:imagensSrc?imagensSrc[0]:null,
     imagens_base64:imagensSrc,
     imagens_cores:imagensCores,
+    cores_custom:normalizarMedidasCustom(window._prodCoresCustomAtual||null),
+    medidas_custom:normalizarMedidasCustom(window._prodMedidasCustomAtual||null),
     obs_site:document.getElementById('prod-obs-site')?.value?.trim()||null,
     desconto_pix:parseFloat(document.getElementById('prod-desconto-pix')?.value||0)||0,
     alterado_em:new Date().toISOString()};
@@ -6932,23 +7114,28 @@ async function carregarDashboard(){
   try{
     if(!temAg){
       const [despesas,vendas,fretes]=await Promise.all([
-        api('financeiro_lancamentos?select=valor,observacoes&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago'),
+        api('financeiro_lancamentos?select=valor,observacoes,descricao&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.despesa&status=eq.pago'),
         api('financeiro_lancamentos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)+'&tipo=eq.receita&status=eq.pago'),
         api('fretes_pedidos?select=valor&perfil_codigo=eq.'+encodeURIComponent(pf)).catch(()=>[]),
       ]);
       const soma=arr=>(arr||[]).reduce((s,r)=>s+parseFloat(r.valor||0),0);
+      const ehEstorno=l=>String(l.descricao||'').startsWith('Estorno (cancelamento)');
       const gastosOp=(despesas||[]).filter(l=>String(l.observacoes||'').startsWith('GASTO_LOJA:'));
-      const comprasProd=(despesas||[]).filter(l=>!String(l.observacoes||'').startsWith('GASTO_LOJA:'));
+      const estornos=(despesas||[]).filter(l=>ehEstorno(l));
+      const comprasProd=(despesas||[]).filter(l=>!String(l.observacoes||'').startsWith('GASTO_LOJA:')&&!ehEstorno(l));
       const totalGastosOp=soma(gastosOp);
       const totalCompra=soma(comprasProd);
+      const totalDevolucoes=soma(estornos);
       const totalVenda=soma(vendas);
       const totalFretes=soma(fretes);
-      const lucro=totalVenda-totalCompra-totalGastosOp;
+      // Lucro = vendas − compras − despesas operacionais − devoluções
+      const lucro=totalVenda-totalCompra-totalGastosOp-totalDevolucoes;
       const el=id=>document.getElementById(id);
       if(el('fin-total-compra'))el('fin-total-compra').textContent=fmt(totalCompra);
       if(el('fin-total-gastos')){el('fin-total-gastos').textContent=fmt(totalGastosOp);el('fin-total-gastos').style.color=totalGastosOp>0?'#f59e0b':'var(--text3)';}
       if(el('fin-total-fretes')){el('fin-total-fretes').textContent=fmt(totalFretes);el('fin-total-fretes').style.color=totalFretes>0?'#6b7fd7':'var(--text3)';}
       if(el('fin-total-venda'))el('fin-total-venda').textContent=fmt(totalVenda);
+      if(el('fin-total-devolucoes')){el('fin-total-devolucoes').textContent=totalDevolucoes>0?'− '+fmt(totalDevolucoes):fmt(0);el('fin-total-devolucoes').style.color=totalDevolucoes>0?'#e0a050':'var(--text3)';}
       if(el('fin-lucro')){el('fin-lucro').textContent=fmt(lucro);el('fin-lucro').style.color=lucro>=0?'var(--success)':'var(--danger)';}
     } else {
       const [recPagas,despPagas,recPend,despPend,vencidos]=await Promise.all([
