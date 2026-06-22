@@ -512,7 +512,11 @@
       </div>
       <div class="mfield col-1" id="compra-tamanho-wrap">
         <label>Tamanho</label>
-        <select id="compra-tamanho"><option value="">Não especificado</option></select>
+        <select id="compra-tamanho" onchange="onCompraTamanhoChange()"><option value="">Não especificado</option></select>
+      </div>
+      <div class="mfield col-1" id="compra-cor-wrap">
+        <label>Cor</label>
+        <select id="compra-cor"><option value="">Não especificado</option></select>
       </div>
       <div class="mfield col-1">
         <label>Quantidade <span class="req">*</span></label>
@@ -712,6 +716,25 @@
   </div>
 </div>
 
+<!-- MODAL INCLUIR COR (na movimentação de estoque) -->
+<div class="modal-overlay" id="modal-add-cor" style="z-index:300">
+  <div class="modal modal-sm" style="max-width:420px">
+    <div class="modal-title">Incluir Cor</div>
+    <div class="modal-sub">Adicione uma cor para este produto.</div>
+    <div class="form-grid">
+      <div class="mfield col-2"><label>Cor <span class="req">*</span></label>
+        <input type="text" id="add-cor-valor" placeholder="ex: Turquesa" maxlength="30">
+        <div class="field-hint">Digite o nome da cor que não esteja na lista.</div>
+      </div>
+    </div>
+    <div class="modal-msg" id="modal-add-cor-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-add-cor')">Cancelar</button>
+      <button class="btn-save" onclick="confirmarAddCor()">Incluir</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL GALERIA PRODUTO -->
 <div class="modal-overlay" id="modal-galeria-produto">
   <div class="modal" style="max-width:700px">
@@ -823,6 +846,18 @@
             style="display:none;flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">+</button>
           <button type="button" id="est-medida-del" onclick="excluirMedidaSelecionada()" title="Excluir a medida selecionada deste produto"
             style="display:none;flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--danger);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">−</button>
+        </div>
+      </div>
+      <div class="mfield col-2" id="est-cor-wrap">
+        <label>Cor</label>
+        <div style="display:flex;gap:6px;align-items:stretch">
+          <select id="est-cor" onchange="onEstCorChange()" style="flex:1">
+            <option value="">Não especificado</option>
+          </select>
+          <button type="button" id="est-cor-add" onclick="abrirAddCor()" title="Incluir cor para este produto"
+            style="flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">+</button>
+          <button type="button" id="est-cor-del" onclick="excluirCorSelecionada()" title="Excluir a cor selecionada deste produto"
+            style="flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--danger);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">−</button>
         </div>
       </div>
       <div class="mfield col-2">
@@ -1106,6 +1141,9 @@ function unidadeLabelCurto(u){
   const map={un:'un',kg:'kg',g:'g',lt:'lt',ml:'ml',m:'m',m2:'m²',cx:'cx',pc:'pc',par:'par'};
   return map[u]||u;
 }
+// Cores comuns oferecidas por padrão na movimentação de estoque.
+// O usuário pode incluir/excluir cores por produto (salvas em produtos.cores_custom).
+const CORES_PADRAO=['Branco','Preto','Cinza','Azul','Azul Marinho','Vermelho','Verde','Amarelo','Rosa','Roxo','Laranja','Marrom','Bege','Vinho','Dourado','Prata'];
 
 // ── Constantes e helpers globais ──────────────────────────────────
 const fmt=v=>v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',','):'-';
@@ -1156,13 +1194,15 @@ function closeModal(id){
   if(id==='modal-estoque-mov'){
     const sg=document.getElementById('est-genero');
     const st=document.getElementById('est-tamanho');
+    const sc=document.getElementById('est-cor');
     if(sg)sg.disabled=false;
     if(st)st.disabled=false;
+    if(sc)sc.disabled=false;
     const gw=document.getElementById('est-genero-wrap');if(gw)gw.style.display='';
     const tl=document.getElementById('est-tamanho-label');if(tl)tl.textContent='Tamanho';
     const ba=document.getElementById('est-medida-add');if(ba)ba.style.display='none';
     const bd=document.getElementById('est-medida-del');if(bd)bd.style.display='none';
-    _estUnidadeAtual='un';_estProdutoId=null;_estMedidasCustom={add:[],remove:[]};
+    _estUnidadeAtual='un';_estProdutoId=null;_estMedidasCustom={add:[],remove:[]};_estCoresCustom={add:[],remove:[]};
   }
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
@@ -3112,7 +3152,8 @@ function renderCarrinho(){
     listaEl.innerHTML=carrinhoItens.map((item,idx)=>{
       const g=item.genero?item.genero.charAt(0).toUpperCase()+item.genero.slice(1):'';
       const t=item.tamanho?'/ '+item.tamanho:'';
-      const variacao=g||t?'<span style="color:var(--text3);font-size:11px"> '+g+' '+t+'</span>':'';
+      const c=item.cor?'/ '+item.cor:'';
+      const variacao=(g||t||c)?'<span style="color:var(--text3);font-size:11px"> '+[g,t,c].filter(Boolean).join(' ')+'</span>':'';
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;gap:8px">'
         +'<div style="flex:1;min-width:0">'
         +'<div style="font-weight:600;font-size:13px;color:var(--text)">'+item.prodNome+variacao+'</div>'
@@ -3142,12 +3183,18 @@ async function adicionarAoCarrinho(){
   if(!prodId){showMM('modal-compra-msg','Selecione o produto antes de adicionar.','error');return;}
   const genero=document.getElementById('compra-genero')?.value||null;
   const tamanho=document.getElementById('compra-tamanho')?.value||null;
+  const cor=document.getElementById('compra-cor')?.value||null;
   const generoWrap=document.getElementById('compra-genero-wrap');
   const tamanhoWrap=document.getElementById('compra-tamanho-wrap');
+  const corWrap=document.getElementById('compra-cor-wrap');
   const generoVisivel=generoWrap&&generoWrap.style.display!=='none';
   const tamanhoVisivel=tamanhoWrap&&tamanhoWrap.style.display!=='none';
   if(generoVisivel&&!genero){showMM('modal-compra-msg','Selecione o gênero.','error');return;}
   if(tamanhoVisivel&&!tamanho){showMM('modal-compra-msg','Selecione o tamanho.','error');return;}
+  // Cor obrigatória apenas se houver opções de cor disponíveis para escolher
+  const selCor=document.getElementById('compra-cor');
+  const temOpcoesCor=selCor&&Array.from(selCor.options).some(o=>o.value);
+  if(temOpcoesCor&&!cor){showMM('modal-compra-msg','Selecione a cor.','error');return;}
   if(!qtd||qtd<=0){showMM('modal-compra-msg','Informe a quantidade.','error');return;}
   const valorUnit=parseFloat(document.getElementById('compra-valor-unit').value)||0;
   const desconto=parseFloat(document.getElementById('compra-desconto').value)||0;
@@ -3155,23 +3202,24 @@ async function adicionarAoCarrinho(){
   const obs=document.getElementById('compra-obs-item')?.value?.trim()||'';
   // Validar estoque
   const pf=currentUser.perfil||'master';
-  const todosRows=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho').catch(()=>[]);
+  const todosRows=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho,cor').catch(()=>[]);
   const generoNorm=genero||null;
   const tamanhoNorm=tamanho||null;
-  const reg=(todosRows||[]).find(r=>(r.genero||null)===generoNorm&&(r.tamanho||null)===tamanhoNorm);
+  const corNorm=cor||null;
+  const reg=(todosRows||[]).find(r=>(r.genero||null)===generoNorm&&(r.tamanho||null)===tamanhoNorm&&(r.cor||null)===corNorm);
   const saldoDisp=reg?parseFloat(reg.quantidade||0):0;
   // Descontar itens já no carrinho para este mesmo produto/variação
-  const jaNoCarrinho=carrinhoItens.filter(i=>i.prodId===prodId&&(i.genero||null)===generoNorm&&(i.tamanho||null)===tamanhoNorm).reduce((s,i)=>s+i.qtd,0);
+  const jaNoCarrinho=carrinhoItens.filter(i=>i.prodId===prodId&&(i.genero||null)===generoNorm&&(i.tamanho||null)===tamanhoNorm&&(i.cor||null)===corNorm).reduce((s,i)=>s+i.qtd,0);
   const saldoReal=saldoDisp-jaNoCarrinho;
   if(saldoReal<=0){
-    const varDesc=(genero||'')+(tamanho?' / '+tamanho:'');
+    const varDesc=[genero||'',tamanho||'',cor||''].filter(Boolean).join(' / ');
     showMM('modal-compra-msg','Sem estoque disponível'+(varDesc?' para '+varDesc:'')+'.','error');return;
   }
   if(qtd>saldoReal){
     showMM('modal-compra-msg','Quantidade solicitada ('+qtd+') maior que o estoque disponível ('+saldoReal+').','error');return;
   }
   // Adicionar ao carrinho
-  carrinhoItens.push({prodId:String(prodId),prodNome,genero,tamanho,qtd,valorUnit,desconto,total,obs,saldoId:reg?.id||null});
+  carrinhoItens.push({prodId:String(prodId),prodNome,genero,tamanho,cor,qtd,valorUnit,desconto,total,obs,saldoId:reg?.id||null});
   renderCarrinho();
   // Resetar campos do item
   limparProdutoCompra();
@@ -3257,13 +3305,14 @@ async function carregarEstoqueDisponivel(prodId){
   if(!infoBox)return;
   try{
     // Buscar todos os saldos deste produto com saldo > 0
-    const saldos=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&quantidade=gt.0&select=genero,tamanho,quantidade&order=genero.asc,tamanho.asc');
+    const saldos=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&quantidade=gt.0&select=genero,tamanho,cor,quantidade&order=genero.asc,tamanho.asc');
     // Descontar itens já no carrinho para este produto
     const saldosAjustados=(saldos||[]).map(s=>{
       const jaCarrinho=(carrinhoItens||[]).filter(i=>
         String(i.prodId)===String(prodId)&&
         (i.genero||null)===(s.genero||null)&&
-        (i.tamanho||null)===(s.tamanho||null)
+        (i.tamanho||null)===(s.tamanho||null)&&
+        (i.cor||null)===(s.cor||null)
       ).reduce((acc,i)=>acc+i.qtd,0);
       return {...s,quantidade:Math.max(0,parseFloat(s.quantidade||0)-jaCarrinho),_estoque_real:parseFloat(s.quantidade||0),_no_carrinho:jaCarrinho};
     }).filter(s=>true); // manter todos, inclusive zerados (para mostrar info)
@@ -3289,9 +3338,10 @@ async function carregarEstoqueDisponivel(prodId){
     const linhas=saldosAjustados.map(s=>{
       const g=s.genero?s.genero.charAt(0).toUpperCase()+s.genero.slice(1):'';
       const t=s.tamanho||'';
-      const label=(g?g+' ':'')+t;
+      const c=s.cor||'';
+      const label=[(g||''),(t||''),(c||'')].filter(Boolean).join(' ');
       const noCarrinhoStr=s._no_carrinho>0?' ('+s._no_carrinho+' no carrinho)':'';
-      return label+': '+s.quantidade+' un.'+noCarrinhoStr;
+      return (label||'Único')+': '+s.quantidade+' un.'+noCarrinhoStr;
     });
     infoBox.style.display='block';
     infoBox.style.background='rgba(76,175,125,.08)';
@@ -3327,25 +3377,52 @@ function onCompraGeneroChange(){
   if(!saldos.length){
     // Sem dados de estoque carregados — usar lista padrão de tamanhos
     popularSelectTamanhos('compra-tamanho',genero||'adulto','');
+    _resetCompraCor();
     return;
   }
   // Filtrar tamanhos disponíveis para este gênero, descontando o carrinho
   const selTam=document.getElementById('compra-tamanho');
   if(!selTam)return;
-  const prodId=document.getElementById('compra-prod-id')?.value||'';
-  const tamanhosDisp=saldos.filter(s=>(s.genero||'')===(genero||'')&&parseFloat(s.quantidade||0)>0);
-  if(!tamanhosDisp.length){
+  const tamanhosUnicos=[...new Set(saldos.filter(s=>(s.genero||'')===(genero||'')&&parseFloat(s.quantidade||0)>0).map(s=>s.tamanho||''))];
+  if(!tamanhosUnicos.length){
     selTam.innerHTML='<option value="" disabled>Sem estoque neste gênero</option>';
+    _resetCompraCor();
     return;
   }
   selTam.innerHTML='<option value="">Selecione o tamanho...</option>';
-  tamanhosDisp.forEach(s=>{
+  tamanhosUnicos.forEach(tam=>{
+    const qtdTam=saldos.filter(s=>(s.genero||'')===(genero||'')&&(s.tamanho||'')===tam&&parseFloat(s.quantidade||0)>0).reduce((a,s)=>a+parseFloat(s.quantidade||0),0);
     const opt=document.createElement('option');
-    opt.value=s.tamanho||'';
-    opt.textContent=(s.tamanho||'Sem tamanho')+' ('+s.quantidade+' disponíveis)';
+    opt.value=tam;
+    opt.textContent=(tam||'Sem tamanho')+' ('+qtdTam+' disponíveis)';
     selTam.appendChild(opt);
   });
   selTam.disabled=false;
+  _resetCompraCor();
+}
+function _resetCompraCor(){
+  const selCor=document.getElementById('compra-cor');
+  if(selCor){selCor.innerHTML='<option value="">Não especificado</option>';selCor.disabled=false;}
+}
+function onCompraTamanhoChange(){
+  const genero=document.getElementById('compra-genero')?.value||'';
+  const tamanho=document.getElementById('compra-tamanho')?.value||'';
+  const saldos=window._compraEstoqueSaldos||[];
+  const selCor=document.getElementById('compra-cor');
+  if(!selCor)return;
+  const coresDisp=saldos.filter(s=>(s.genero||'')===(genero||'')&&(s.tamanho||'')===tamanho&&parseFloat(s.quantidade||0)>0);
+  if(!coresDisp.length){selCor.innerHTML='<option value="">Não especificado</option>';return;}
+  // Se só há registros sem cor, mantém "Não especificado"
+  const temCor=coresDisp.some(s=>s.cor);
+  if(!temCor){selCor.innerHTML='<option value="">Não especificado</option>';return;}
+  selCor.innerHTML='<option value="">Selecione a cor...</option>';
+  coresDisp.forEach(s=>{
+    const opt=document.createElement('option');
+    opt.value=s.cor||'';
+    opt.textContent=(s.cor||'Sem cor')+' ('+s.quantidade+' disponíveis)';
+    selCor.appendChild(opt);
+  });
+  selCor.disabled=false;
 }
 
 function limparProdutoCompra(){
@@ -3364,6 +3441,7 @@ function limparProdutoCompra(){
   const st=document.getElementById('compra-tamanho');
   if(sg){sg.disabled=false;sg.innerHTML='<option value="">Não especificado</option><option value="masculino">Masculino</option><option value="feminino">Feminino</option><option value="infantil">Infantil</option><option value="unissex">Unissex</option>';}
   if(st){st.disabled=false;popularSelectTamanhos('compra-tamanho','adulto','');}
+  const sc=document.getElementById('compra-cor');if(sc){sc.disabled=false;sc.innerHTML='<option value="">Não especificado</option>';}
 }
 
 function calcularTotalCompra(){
@@ -3388,10 +3466,11 @@ async function salvarCompraCliente(){
   for(const item of carrinhoItens){
     try{
       // Buscar saldo atual desta variação
-      const todosRows=await api('estoque_saldo?produto_id=eq.'+item.prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho').catch(()=>[]);
+      const todosRows=await api('estoque_saldo?produto_id=eq.'+item.prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho,cor').catch(()=>[]);
       const generoNorm=item.genero||null;
       const tamanhoNorm=item.tamanho||null;
-      const reg=(todosRows||[]).find(r=>(r.genero||null)===generoNorm&&(r.tamanho||null)===tamanhoNorm);
+      const corNorm=item.cor||null;
+      const reg=(todosRows||[]).find(r=>(r.genero||null)===generoNorm&&(r.tamanho||null)===tamanhoNorm&&(r.cor||null)===corNorm);
       const saldoAtual=reg?parseFloat(reg.quantidade||0):0;
       const saldoId=reg?reg.id:null;
       if(saldoAtual<item.qtd){erros.push(item.prodNome+': estoque insuficiente (disponível: '+saldoAtual+')');continue;}
@@ -3400,7 +3479,7 @@ async function salvarCompraCliente(){
       await api('cliente_compras',{method:'POST',body:JSON.stringify({
         perfil_codigo:pf,cliente_id:compraClienteId,produto_id:parseInt(item.prodId),
         quantidade:item.qtd,valor_unitario:item.valorUnit,desconto:item.desconto||null,
-        total_pago:item.total,data_compra:data,genero:item.genero,tamanho:item.tamanho,
+        total_pago:item.total,data_compra:data,genero:item.genero,tamanho:item.tamanho,cor:item.cor||null,
         observacoes:item.obs||obsGeral||null,
         origem:'manual',status_entrega:'entregue',pagamento_confirmado:true,
         forma_entrega:'retirada',forma_pagamento:'presencial'
@@ -3410,7 +3489,7 @@ async function salvarCompraCliente(){
         perfil_codigo:pf,produto_id:parseInt(item.prodId),tipo:'saida',
         quantidade:item.qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,
         motivo:'Venda — Cliente ID '+compraClienteId+(item.obs?' | '+item.obs:''),
-        genero:item.genero,tamanho:item.tamanho,criado_por:currentUser.usuario
+        genero:item.genero,tamanho:item.tamanho,cor:item.cor||null,criado_por:currentUser.usuario
       })});
       // 3. Atualizar saldo
       if(saldoId){await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});}
@@ -3584,13 +3663,14 @@ async function carregarEstoqueDisponivel(prodId){
   if(!infoBox)return;
   try{
     // Buscar todos os saldos deste produto com saldo > 0
-    const saldos=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&quantidade=gt.0&select=genero,tamanho,quantidade&order=genero.asc,tamanho.asc');
+    const saldos=await api('estoque_saldo?produto_id=eq.'+prodId+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&quantidade=gt.0&select=genero,tamanho,cor,quantidade&order=genero.asc,tamanho.asc');
     // Descontar itens já no carrinho para este produto
     const saldosAjustados=(saldos||[]).map(s=>{
       const jaCarrinho=(carrinhoItens||[]).filter(i=>
         String(i.prodId)===String(prodId)&&
         (i.genero||null)===(s.genero||null)&&
-        (i.tamanho||null)===(s.tamanho||null)
+        (i.tamanho||null)===(s.tamanho||null)&&
+        (i.cor||null)===(s.cor||null)
       ).reduce((acc,i)=>acc+i.qtd,0);
       return {...s,quantidade:Math.max(0,parseFloat(s.quantidade||0)-jaCarrinho),_estoque_real:parseFloat(s.quantidade||0),_no_carrinho:jaCarrinho};
     }).filter(s=>true); // manter todos, inclusive zerados (para mostrar info)
@@ -3616,9 +3696,10 @@ async function carregarEstoqueDisponivel(prodId){
     const linhas=saldosAjustados.map(s=>{
       const g=s.genero?s.genero.charAt(0).toUpperCase()+s.genero.slice(1):'';
       const t=s.tamanho||'';
-      const label=(g?g+' ':'')+t;
+      const c=s.cor||'';
+      const label=[(g||''),(t||''),(c||'')].filter(Boolean).join(' ');
       const noCarrinhoStr=s._no_carrinho>0?' ('+s._no_carrinho+' no carrinho)':'';
-      return label+': '+s.quantidade+' un.'+noCarrinhoStr;
+      return (label||'Único')+': '+s.quantidade+' un.'+noCarrinhoStr;
     });
     infoBox.style.display='block';
     infoBox.style.background='rgba(76,175,125,.08)';
@@ -3664,6 +3745,7 @@ function limparProdutoCompra(){
   const st=document.getElementById('compra-tamanho');
   if(sg){sg.disabled=false;sg.innerHTML='<option value="">Não especificado</option><option value="masculino">Masculino</option><option value="feminino">Feminino</option><option value="infantil">Infantil</option><option value="unissex">Unissex</option>';}
   if(st){st.disabled=false;popularSelectTamanhos('compra-tamanho','adulto','');}
+  const sc=document.getElementById('compra-cor');if(sc){sc.disabled=false;sc.innerHTML='<option value="">Não especificado</option>';}
 }
 
 function calcularTotalCompra(){
@@ -4980,7 +5062,7 @@ function renderEstoque(){
     +'<select id="est-filtro-status" onchange="filtrarEstoque()" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none">'
     +'<option value="">Todos</option><option value="critico">⚠️ Crítico</option><option value="ok">✅ OK</option><option value="sem">Zerado</option></select>'
     +'<button class="btn-search" onclick="filtrarEstoque()">Filtrar</button></div>'
-    +'<div class="tbl-wrap"><table><thead><tr><th>Produto</th><th>Gênero</th><th>Tamanho / Medida</th><th>Saldo Atual</th><th>Mínimo</th><th>Máximo</th><th>Situação</th><th>Ações</th></tr></thead>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Produto</th><th>Gênero</th><th>Tamanho / Medida</th><th>Cor</th><th>Saldo Atual</th><th>Mínimo</th><th>Máximo</th><th>Situação</th><th>Ações</th></tr></thead>'
     +'<tbody id="tbl-estoque"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table></div>'
     +'<div style="margin-top:24px"><div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
     +'<span id="hist-titulo">📋 Histórico de Movimentações</span>'
@@ -5371,24 +5453,49 @@ async function salvarFornecedor(){
 
 // ─── MÓDULO: PRODUTOS ─────────────────────────────────────────────
 
-let prodFotosArray=[];
+let prodFotosArray=[]; // [{src, cor}]
+let _prodCoresParaFotos=[]; // lista de cores disponíveis para atribuir às fotos
+
+function _coresDisponiveisProduto(){
+  // CORES_PADRAO + cores_custom do produto em edição (se houver)
+  const extra=normalizarMedidasCustom(window._prodCoresCustomAtual||null);
+  const removidas=new Set(extra.remove);
+  let lista=CORES_PADRAO.filter(c=>!removidas.has(c));
+  extra.add.forEach(c=>{if(!lista.includes(c))lista.push(c);});
+  return lista;
+}
 
 function onProdFotosChange(event){
   const files=Array.from(event.target.files);const restante=10-prodFotosArray.length;
   if(restante<=0){alert('Limite de 10 fotos atingido.');return;}
   files.slice(0,restante).forEach(file=>{
     if(file.size>2*1024*1024){alert(file.name+' excede 2MB.');return;}
-    const reader=new FileReader();reader.onload=e=>{prodFotosArray.push(e.target.result);renderProdFotosGrid();};reader.readAsDataURL(file);
+    const reader=new FileReader();reader.onload=e=>{prodFotosArray.push({src:e.target.result,cor:''});renderProdFotosGrid();};reader.readAsDataURL(file);
   });
   event.target.value='';
 }
 function renderProdFotosGrid(){
   const grid=document.getElementById('prod-fotos-grid');if(!grid)return;
-  grid.innerHTML=prodFotosArray.map((src,i)=>'<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:2px solid '+(i===0?'var(--accent)':'var(--border)')+'">'
-    +'<img src="'+src+'" style="width:100%;height:100%;object-fit:cover">'
-    +(i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(107,127,215,.8);font-size:9px;text-align:center;color:#fff;padding:2px">CAPA</div>':'')
-    +'<button data-idx="'+i+'" onclick="removeProdFoto(parseInt(this.dataset.idx))" style="position:absolute;top:2px;right:2px;background:rgba(224,85,85,.9);border:none;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:18px;padding:0">✕</button>'
-    +'</div>').join('');
+  const cores=_coresDisponiveisProduto();
+  grid.innerHTML=prodFotosArray.map((foto,i)=>{
+    const src=typeof foto==='string'?foto:foto.src;
+    const corAtual=typeof foto==='string'?'':(foto.cor||'');
+    const opts='<option value="">Sem cor</option>'+cores.map(c=>'<option value="'+c+'"'+(corAtual===c?' selected':'')+'>'+c+'</option>').join('')+(corAtual&&!cores.includes(corAtual)?'<option value="'+corAtual+'" selected>'+corAtual+'</option>':'');
+    return '<div style="position:relative;width:90px;border-radius:8px;border:2px solid '+(i===0?'var(--accent)':'var(--border)')+';padding:0;overflow:hidden">'
+      +'<div style="position:relative;width:100%;height:80px">'
+      +'<img src="'+src+'" style="width:100%;height:100%;object-fit:cover">'
+      +(i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(107,127,215,.8);font-size:9px;text-align:center;color:#fff;padding:2px">CAPA</div>':'')
+      +'<button data-idx="'+i+'" onclick="removeProdFoto(parseInt(this.dataset.idx))" style="position:absolute;top:2px;right:2px;background:rgba(224,85,85,.9);border:none;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:18px;padding:0">✕</button>'
+      +'</div>'
+      +'<select data-idx="'+i+'" onchange="setProdFotoCor(parseInt(this.dataset.idx),this.value)" title="Cor desta foto" style="width:100%;border:none;border-top:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:10px;padding:3px 4px;outline:none;cursor:pointer">'+opts+'</select>'
+      +'</div>';
+  }).join('');
+}
+function setProdFotoCor(idx,cor){
+  if(prodFotosArray[idx]){
+    if(typeof prodFotosArray[idx]==='string')prodFotosArray[idx]={src:prodFotosArray[idx],cor:cor};
+    else prodFotosArray[idx].cor=cor;
+  }
 }
 function removeProdFoto(idx){prodFotosArray.splice(idx,1);renderProdFotosGrid();}
 
@@ -5478,6 +5585,7 @@ async function openModalProduto(mode,id){
     campos.forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     const pu=document.getElementById('prod-unidade');if(pu)pu.value='un';
     if(selForn)selForn.value='';
+    window._prodCoresCustomAtual=null;
     const wrapEst=document.getElementById('prod-estoque-atual-wrap');if(wrapEst)wrapEst.style.display='none';
     const wrapViews=document.getElementById('prod-visualizacoes-wrap');if(wrapViews)wrapViews.style.display='none';
   } else {
@@ -5520,8 +5628,15 @@ async function openModalProduto(mode,id){
         dispEst.innerHTML='<span style="color:var(--text3)">'+(p.estoque_atual!=null?p.estoque_atual+' '+(p.unidade||'un'):'—')+'</span>';
       }
     }
-    if(p.imagens_base64&&p.imagens_base64.length){prodFotosArray=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');}
-    else if(p.imagem_base64){prodFotosArray=[p.imagem_base64];}
+    // Guarda cores_custom do produto para popular o seletor de cor das fotos
+    window._prodCoresCustomAtual=p.cores_custom||null;
+    // Monta fotos como {src,cor} cruzando imagens_base64 com imagens_cores
+    let fotosSrc=[];
+    if(p.imagens_base64&&p.imagens_base64.length){fotosSrc=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');}
+    else if(p.imagem_base64){fotosSrc=[p.imagem_base64];}
+    let fotosCores=[];
+    try{fotosCores=Array.isArray(p.imagens_cores)?p.imagens_cores:(p.imagens_cores?JSON.parse(p.imagens_cores):[]);}catch(e){fotosCores=[];}
+    prodFotosArray=fotosSrc.map((src,i)=>({src,cor:fotosCores[i]||''}));
     renderProdFotosGrid();
     // Visualizações no site (somente leitura)
     const wrapViews=document.getElementById('prod-visualizacoes-wrap');
@@ -5545,7 +5660,9 @@ async function salvarProduto(){
   const descontoPix=parseFloat(document.getElementById('prod-desconto-pix')?.value||0)||0;
   if(obsSite&&descontoPix<=0){showMM('modal-prod-msg','Informe o valor do Desconto PIX quando "Observações Site" estiver preenchido.','error');return;}
   const fornId=document.getElementById('prod-fornecedor')?.value;
-  const imagens=prodFotosArray.length?prodFotosArray:null;
+  const fotosNorm=prodFotosArray.map(f=>typeof f==='string'?{src:f,cor:''}:f);
+  const imagensSrc=fotosNorm.length?fotosNorm.map(f=>f.src):null;
+  const imagensCores=fotosNorm.length?fotosNorm.map(f=>f.cor||''):null;
   const body={nome,perfil_codigo:currentUser.perfil||'master',
     codigo:document.getElementById('prod-codigo')?.value?.trim()||null,
     descricao:document.getElementById('prod-desc')?.value?.trim()||null,
@@ -5556,8 +5673,9 @@ async function salvarProduto(){
     estoque_minimo:document.getElementById('prod-est-min')?.value||0,
     estoque_maximo:document.getElementById('prod-est-max')?.value||null,
     fornecedor_id:fornId?parseInt(fornId):null,
-    imagem_base64:imagens?imagens[0]:null,
-    imagens_base64:imagens,
+    imagem_base64:imagensSrc?imagensSrc[0]:null,
+    imagens_base64:imagensSrc,
+    imagens_cores:imagensCores,
     obs_site:document.getElementById('prod-obs-site')?.value?.trim()||null,
     desconto_pix:parseFloat(document.getElementById('prod-desconto-pix')?.value||0)||0,
     alterado_em:new Date().toISOString()};
@@ -5565,7 +5683,20 @@ async function salvarProduto(){
     if(!editingProdutoId){await api('produtos',{method:'POST',body:JSON.stringify({...body,ativo:true})});showMM('modal-prod-msg','Produto cadastrado!','success');}
     else{await api('produtos?id=eq.'+editingProdutoId,{method:'PATCH',body:JSON.stringify(body)});showMM('modal-prod-msg','Produto atualizado!','success');}
     setTimeout(()=>{closeModal('modal-produto');carregarProdutos(document.getElementById('prod-busca')?.value||'');},900);
-  }catch(e){showMM('modal-prod-msg','Erro: '+e.message,'error');}
+  }catch(e){
+    // Se a coluna imagens_cores ainda não existir, tenta salvar sem ela
+    if((e.message||'').toLowerCase().includes('imagens_cores')){
+      try{
+        delete body.imagens_cores;
+        if(!editingProdutoId){await api('produtos',{method:'POST',body:JSON.stringify({...body,ativo:true})});}
+        else{await api('produtos?id=eq.'+editingProdutoId,{method:'PATCH',body:JSON.stringify(body)});}
+        showMM('modal-prod-msg','Produto salvo (sem cor por foto — crie a coluna imagens_cores para habilitar).','success');
+        setTimeout(()=>{closeModal('modal-produto');carregarProdutos(document.getElementById('prod-busca')?.value||'');},1200);
+        return;
+      }catch(e2){showMM('modal-prod-msg','Erro: '+e2.message,'error');return;}
+    }
+    showMM('modal-prod-msg','Erro: '+e.message,'error');
+  }
 }
 
 // ─── MÓDULO: SERVIÇOS ─────────────────────────────────────────────
@@ -5645,6 +5776,8 @@ let _estUnidadeAtual='un';
 let _estProdutoId=null;
 // medidas_custom no banco (jsonb): { add:[...], remove:[...] }
 let _estMedidasCustom={add:[],remove:[]};
+// cores_custom no banco (jsonb): { add:[...], remove:[...] }
+let _estCoresCustom={add:[],remove:[]};
 
 function normalizarMedidasCustom(raw){
   // Aceita objeto {add,remove}, array (tratado como add) ou nulo.
@@ -5661,6 +5794,14 @@ function medidasDisponiveis(unidade,custom){
   c.add.forEach(m=>{ if(!lista.includes(m)) lista.push(m); });
   return lista;
 }
+// Lista final de cores para o produto, aplicando add/remove sobre as cores padrão.
+function coresDisponiveis(custom){
+  const c=normalizarMedidasCustom(custom);
+  const removidas=new Set(c.remove);
+  const lista=CORES_PADRAO.filter(cor=>!removidas.has(cor));
+  c.add.forEach(cor=>{ if(!lista.includes(cor)) lista.push(cor); });
+  return lista;
+}
 
 function popularSelectTamanhos(selectId,genero,tamanhoSalvo){
   const sel=document.getElementById(selectId);if(!sel)return;
@@ -5675,10 +5816,11 @@ function _toggleBotoesMedida(mostrar){
   if(del)del.style.display=mostrar?'block':'none';
 }
 
-function configurarVariacaoPorUnidade(unidade,medidaSalva,generoSalvo,produtoId,medidasCustom){
+function configurarVariacaoPorUnidade(unidade,medidaSalva,generoSalvo,produtoId,medidasCustom,coresCustom,corSalva){
   _estUnidadeAtual=(unidade||'un').toLowerCase();
   _estProdutoId=produtoId||null;
   _estMedidasCustom=normalizarMedidasCustom(medidasCustom);
+  _estCoresCustom=normalizarMedidasCustom(coresCustom);
   const generoWrap=document.getElementById('est-genero-wrap');
   const tamLabel=document.getElementById('est-tamanho-label');
   const selGenero=document.getElementById('est-genero');
@@ -5697,6 +5839,17 @@ function configurarVariacaoPorUnidade(unidade,medidaSalva,generoSalvo,produtoId,
     _toggleBotoesMedida(true);
     popularSelectMedidas('est-tamanho',_estUnidadeAtual,medidaSalva||'');
   }
+  // Cor (vale para qualquer unidade)
+  popularSelectCores('est-cor',corSalva||'');
+}
+function popularSelectCores(selectId,corSalva){
+  const sel=document.getElementById(selectId);if(!sel)return;
+  const lista=coresDisponiveis(_estCoresCustom);
+  let html='<option value="">Não especificado</option>'+lista.map(c=>'<option value="'+c+'"'+(corSalva===c?' selected':'')+'>'+c+'</option>').join('');
+  if(corSalva && !lista.includes(corSalva)){
+    html+='<option value="'+corSalva+'" selected>'+corSalva+' (fora da lista)</option>';
+  }
+  sel.innerHTML=html;
 }
 function popularSelectMedidas(selectId,unidade,medidaSalva){
   const sel=document.getElementById(selectId);if(!sel)return;
@@ -5756,6 +5909,57 @@ async function salvarMedidasCustomProduto(produtoId,custom){
   }catch(e){return false;}
 }
 
+// ── Incluir/excluir cor do produto atual ──────────────────────────
+function _toggleBotoesCor(mostrar){
+  const add=document.getElementById('est-cor-add');
+  const del=document.getElementById('est-cor-del');
+  if(add)add.style.display=mostrar?'block':'none';
+  if(del)del.style.display=mostrar?'block':'none';
+}
+function abrirAddCor(){
+  if(!_estProdutoId){showMM('modal-est-msg','Selecione um produto antes de incluir uma cor.','error');return;}
+  const v=document.getElementById('add-cor-valor');if(v)v.value='';
+  const m=document.getElementById('modal-add-cor-msg');if(m)m.style.display='none';
+  openModal('modal-add-cor');
+  setTimeout(()=>{const el=document.getElementById('add-cor-valor');if(el)el.focus();},50);
+}
+async function confirmarAddCor(){
+  const valorRaw=(document.getElementById('add-cor-valor')?.value||'').trim();
+  if(!valorRaw){showMM('modal-add-cor-msg','Informe a cor.','error');return;}
+  // Padroniza: primeira letra maiúscula de cada palavra
+  const valor=valorRaw.replace(/\s+/g,' ').replace(/\b\p{L}/gu,c=>c.toUpperCase());
+  const lista=coresDisponiveis(_estCoresCustom);
+  if(lista.some(c=>c.toLowerCase()===valor.toLowerCase())){showMM('modal-add-cor-msg','Esta cor já existe na lista.','error');return;}
+  const c=normalizarMedidasCustom(_estCoresCustom);
+  c.remove=c.remove.filter(x=>x.toLowerCase()!==valor.toLowerCase());
+  if(!c.add.some(x=>x.toLowerCase()===valor.toLowerCase()))c.add.push(valor);
+  const ok=await salvarCoresCustomProduto(_estProdutoId,c);
+  if(!ok){showMM('modal-add-cor-msg','Erro ao salvar. Verifique se a coluna cores_custom existe na tabela produtos.','error');return;}
+  _estCoresCustom=c;
+  popularSelectCores('est-cor',valor);
+  closeModal('modal-add-cor');
+}
+async function excluirCorSelecionada(){
+  const sel=document.getElementById('est-cor');if(!sel)return;
+  const valor=sel.value;
+  if(!valor){showMM('modal-est-msg','Selecione a cor que deseja excluir.','error');return;}
+  if(!_estProdutoId){showMM('modal-est-msg','Selecione um produto.','error');return;}
+  if(!confirm('Excluir a cor "'+valor+'" da lista deste produto?\n\nIsso só remove a opção da lista; o estoque já existente nessa cor não é apagado.'))return;
+  const c=normalizarMedidasCustom(_estCoresCustom);
+  c.add=c.add.filter(x=>x.toLowerCase()!==valor.toLowerCase());
+  if(CORES_PADRAO.includes(valor)&&!c.remove.includes(valor))c.remove.push(valor);
+  const ok=await salvarCoresCustomProduto(_estProdutoId,c);
+  if(!ok){showMM('modal-est-msg','Erro ao salvar. Verifique se a coluna cores_custom existe na tabela produtos.','error');return;}
+  _estCoresCustom=c;
+  popularSelectCores('est-cor','');
+}
+async function salvarCoresCustomProduto(produtoId,custom){
+  try{
+    await api('produtos?id=eq.'+produtoId,{method:'PATCH',body:JSON.stringify({cores_custom:custom})});
+    return true;
+  }catch(e){return false;}
+}
+
 function calcularCustoTotal(){
   const qtd=parseFloat(document.getElementById('est-quantidade')?.value)||0;
   const custo=parseFloat(document.getElementById('est-valor-custo')?.value)||0;
@@ -5784,6 +5988,7 @@ function onEstGeneroChange(){
   if(document.getElementById('est-produto')?.value)onEstProdutoChange();
 }
 function onEstTamanhoChange(){if(document.getElementById('est-produto')?.value)onEstProdutoChange();}
+function onEstCorChange(){if(document.getElementById('est-produto')?.value)onEstProdutoChange();}
 
 function onEstQtdChange(){
   const tipo=document.querySelector('input[name="est-tipo"]:checked')?.value||'entrada';
@@ -5832,9 +6037,9 @@ async function selecionarProdutoEstoque(id,nome,unidade){
   document.getElementById('est-produto-nome').textContent=nome;
   document.getElementById('est-produto-selecionado').style.display='flex';
   const lbl=document.getElementById('est-qtd-label');if(lbl)lbl.innerHTML='Quantidade ('+(unidade||'un')+') <span class="req">*</span>';
-  let medidasCustom=null;
-  try{const pr=await api('produtos?id=eq.'+id+'&select=medidas_custom');medidasCustom=pr&&pr[0]?pr[0].medidas_custom:null;}catch(e){}
-  configurarVariacaoPorUnidade(unidade||'un','','',id,medidasCustom);
+  let medidasCustom=null,coresCustom=null;
+  try{const pr=await api('produtos?id=eq.'+id+'&select=medidas_custom,cores_custom');if(pr&&pr[0]){medidasCustom=pr[0].medidas_custom;coresCustom=pr[0].cores_custom;}}catch(e){}
+  configurarVariacaoPorUnidade(unidade||'un','','',id,medidasCustom,coresCustom,'');
   await onEstProdutoChange();
 }
 function limparProdutoEstoque(){
@@ -5862,9 +6067,10 @@ async function onEstProdutoChange(){
     const pf=currentUser.perfil||'master';
     const genero=document.getElementById('est-genero')?.value||null;
     const tamanho=document.getElementById('est-tamanho')?.value||null;
-    const todosRows=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho');
-    const gN=genero||null;const tN=tamanho||null;
-    const reg=(todosRows||[]).find(r=>(r.genero||null)===gN&&(r.tamanho||null)===tN);
+    const cor=document.getElementById('est-cor')?.value||null;
+    const todosRows=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho,cor');
+    const gN=genero||null;const tN=tamanho||null;const cN=cor||null;
+    const reg=(todosRows||[]).find(r=>(r.genero||null)===gN&&(r.tamanho||null)===tN&&(r.cor||null)===cN);
     const saldo=reg?parseFloat(reg.quantidade||0):0;
     const el=document.getElementById('est-saldo-atual');if(el)el.textContent=saldo;
     if(wrap)wrap.style.display='block';
@@ -5887,15 +6093,15 @@ async function onEstProdutoChange(){
 async function carregarEstoque(){
   const pf=currentUser.perfil||'master';
   try{
-    const saldos=await api('estoque_saldo?select=id,produto_id,quantidade,genero,tamanho,produtos(id,nome,unidade,estoque_minimo,estoque_maximo,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=produto_id.asc');
+    const saldos=await api('estoque_saldo?select=id,produto_id,quantidade,genero,tamanho,cor,produtos(id,nome,unidade,estoque_minimo,estoque_maximo,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=produto_id.asc');
     produtosEstoqueCache=(saldos||[])
       .filter(s=>s.produtos&&s.produtos.ativo!==false)
-      .map(s=>({saldo_id:s.id,id:s.produtos.id,nome:s.produtos.nome,unidade:s.produtos.unidade,estoque_minimo:s.produtos.estoque_minimo,estoque_maximo:s.produtos.estoque_maximo,saldo:parseFloat(s.quantidade)||0,genero:s.genero||null,tamanho:s.tamanho||null}));
-    produtosEstoqueCache.sort((a,b)=>a.nome.localeCompare(b.nome)||(a.genero||'').localeCompare(b.genero||'')||(a.tamanho||'').localeCompare(b.tamanho||''));
+      .map(s=>({saldo_id:s.id,id:s.produtos.id,nome:s.produtos.nome,unidade:s.produtos.unidade,estoque_minimo:s.produtos.estoque_minimo,estoque_maximo:s.produtos.estoque_maximo,saldo:parseFloat(s.quantidade)||0,genero:s.genero||null,tamanho:s.tamanho||null,cor:s.cor||null}));
+    produtosEstoqueCache.sort((a,b)=>a.nome.localeCompare(b.nome)||(a.genero||'').localeCompare(b.genero||'')||(a.tamanho||'').localeCompare(b.tamanho||'')||(a.cor||'').localeCompare(b.cor||''));
     renderTabelaEstoque(produtosEstoqueCache);
     const selHist=document.getElementById('hist-filtro-produto');
     if(selHist){const prods=[...new Map(produtosEstoqueCache.map(p=>[p.id,p])).values()];selHist.innerHTML='<option value="">Todos os produtos</option>'+prods.map(p=>'<option value="'+p.id+'">'+p.nome+'</option>').join('');}
-  }catch(e){const tbody=document.getElementById('tbl-estoque');if(tbody)tbody.innerHTML='<tr><td colspan="7" class="empty">Erro: '+e.message+'</td></tr>';}
+  }catch(e){const tbody=document.getElementById('tbl-estoque');if(tbody)tbody.innerHTML='<tr><td colspan="9" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 
 function renderTabelaEstoque(lista){
@@ -5908,7 +6114,7 @@ function renderTabelaEstoque(lista){
   if(countTotal)countTotal.textContent=lista.length;
   if(countCritico)countCritico.textContent=criticos.length;
   if(alertas){if(criticos.length>0){alertas.innerHTML='<div style="background:rgba(224,85,85,.1);border:1px solid var(--danger);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">⚠️</span><div><div style="font-size:13px;font-weight:600;color:var(--danger)">'+criticos.length+' produto(s) abaixo do mínimo</div><div style="font-size:12px;color:var(--text3);margin-top:2px">'+criticos.map(p=>p.nome).join(', ')+'</div></div></div>';}else{alertas.innerHTML='';}}
-  if(!lista.length){tbody.innerHTML='<tr><td colspan="8" class="empty">Nenhum produto com movimentação registrada.</td></tr>';return;}
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="9" class="empty">Nenhum produto com movimentação registrada.</td></tr>';return;}
   const LINK='style="cursor:pointer;color:var(--text);font-weight:500;text-decoration:underline;text-decoration-color:transparent" onmouseover="this.style.color=\'var(--accent)\'" onmouseout="this.style.color=\'var(--text)\'"';
   tbody.innerHTML=lista.map(p=>{
     const min=p.estoque_minimo!=null?p.estoque_minimo:null;const max=p.estoque_maximo!=null?p.estoque_maximo:null;
@@ -5919,14 +6125,15 @@ function renderTabelaEstoque(lista){
     else{situacao='✅ Normal';badgeStyle='background:rgba(76,175,125,.15);color:var(--success)';}
     const saldoColor=min!=null&&p.saldo<min?'color:var(--danger);font-weight:700':'color:var(--text);font-weight:600';
     return '<tr>'
-      +'<td><span '+LINK+' data-pid="'+p.id+'" data-pnome="'+p.nome+'" data-pgenero="'+(p.genero||'')+'" data-ptamanho="'+(p.tamanho||'')+'" onclick="selecionarProdutoHistoricoVariacao(this.dataset)">'+p.nome+(p.genero?' <small style="color:var(--text3)">('+p.genero+(p.tamanho?' / '+p.tamanho:'')+')</small>':'')+'</span></td>'
+      +'<td><span '+LINK+' data-pid="'+p.id+'" data-pnome="'+p.nome+'" data-pgenero="'+(p.genero||'')+'" data-ptamanho="'+(p.tamanho||'')+'" onclick="selecionarProdutoHistoricoVariacao(this.dataset)">'+p.nome+(p.genero?' <small style="color:var(--text3)">('+p.genero+(p.tamanho?' / '+p.tamanho:'')+(p.cor?' / '+p.cor:'')+')</small>':'')+'</span></td>'
       +'<td style="font-size:12px;color:var(--text2)">'+(p.genero?p.genero.charAt(0).toUpperCase()+p.genero.slice(1):'—')+'</td>'
       +'<td style="font-size:12px;font-weight:'+(p.tamanho?'600':'400')+';color:var(--accent)">'+(p.tamanho||'—')+'</td>'
+      +'<td style="font-size:12px;color:var(--text2)">'+(p.cor||'—')+'</td>'
       +'<td style="'+saldoColor+';font-size:16px">'+p.saldo+'</td>'
       +'<td style="color:var(--text3)">'+(min??'-')+'</td>'
       +'<td style="color:var(--text3)">'+(max??'-')+'</td>'
       +'<td><span class="badge" style="'+badgeStyle+'">'+situacao+'</span></td>'
-      +'<td><div class="action-btns"><button class="btn-sm btn-edit" data-pid="'+p.id+'" data-pnome="'+p.nome+'" data-punidade="'+(p.unidade||'un')+'" data-pgenero="'+(p.genero||'')+'" data-ptamanho="'+(p.tamanho||'')+'" onclick="openModalMovimentoExistente(this.dataset)">Movimentar</button></div></td></tr>';
+      +'<td><div class="action-btns"><button class="btn-sm btn-edit" data-pid="'+p.id+'" data-pnome="'+p.nome+'" data-punidade="'+(p.unidade||'un')+'" data-pgenero="'+(p.genero||'')+'" data-ptamanho="'+(p.tamanho||'')+'" data-pcor="'+(p.cor||'')+'" onclick="openModalMovimentoExistente(this.dataset)">Movimentar</button></div></td></tr>';
   }).join('');
 }
 
@@ -5983,7 +6190,7 @@ async function carregarHistorico(){
     const tipoLabel={entrada:'Entrada',saida:'Saída',ajuste:'Ajuste',transferencia:'Transferência'};
     const tipoColor={entrada:'var(--success)',saida:'var(--danger)',ajuste:'var(--warn)',transferencia:'var(--accent)'};
     const capG=g=>g?g.charAt(0).toUpperCase()+g.slice(1):'—';
-    wrap.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Tipo</th><th>Qtd</th><th>Saldo Ant.</th><th>Saldo Post.</th><th>Motivo</th></tr></thead><tbody>'
+    wrap.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Produto</th><th>Gênero</th><th>Tamanho</th><th>Cor</th><th>Tipo</th><th>Qtd</th><th>Saldo Ant.</th><th>Saldo Post.</th><th>Motivo</th></tr></thead><tbody>'
       +movs.map(m=>{
         const dtObj=m.criado_em?new Date(m.criado_em):null;
         const dtStr=dtObj?dtObj.toLocaleDateString('pt-BR'):'—';
@@ -5994,6 +6201,7 @@ async function carregarHistorico(){
           +'<td style="font-weight:500;color:var(--text)">'+(m.produtos?.nome||'—')+'</td>'
           +'<td style="font-size:12px;color:var(--text2)">'+capG(m.genero)+'</td>'
           +'<td style="font-size:12px;font-weight:'+(m.tamanho?'600':'400')+';color:var(--accent)">'+(m.tamanho||'—')+'</td>'
+          +'<td style="font-size:12px;color:var(--text2)">'+(m.cor||'—')+'</td>'
           +'<td><span style="color:'+tipoColor[m.tipo]+';font-weight:600">'+tipoIcon[m.tipo]+' '+tipoLabel[m.tipo]+'</span></td>'
           +'<td style="color:'+tipoColor[m.tipo]+';font-weight:700">'+sinal+m.quantidade+' '+(m.produtos?.unidade||'un')+'</td>'
           +'<td style="color:var(--text3)">'+(m.quantidade_anterior??'—')+'</td>'
@@ -6019,7 +6227,7 @@ async function openModalMovimento(){
   const st=document.getElementById('est-tamanho');if(st)st.disabled=false;
   // Estado inicial: sem produto selecionado, exibe Gênero + Tamanho (padrão vestuário).
   // Ao escolher um produto, a função selecionarProdutoEstoque ajusta para a unidade correta.
-  configurarVariacaoPorUnidade('un','','',null,null);
+  configurarVariacaoPorUnidade('un','','',null,null,null,'');
   // Limpa campos de custo/venda (ainda não há produto selecionado)
   const vc=document.getElementById('est-valor-custo');if(vc){vc.value='';vc.readOnly=false;vc.style.opacity='';vc.style.cursor='';}
   const vv=document.getElementById('est-valor-venda');if(vv){vv.value='';vv.readOnly=false;vv.style.opacity='';vv.style.cursor='';}
@@ -6030,6 +6238,7 @@ async function openModalMovimento(){
 async function openModalMovimentoExistente(dataset){
   const pid=dataset.pid;const nome=dataset.pnome||'';
   const genero=dataset.pgenero||'';const tamanho=dataset.ptamanho||'';
+  const cor=dataset.pcor||'';
   const unidade=dataset.punidade||'un';
   const msg=document.getElementById('modal-est-msg');if(msg)msg.style.display='none';
   const qtd=document.getElementById('est-quantidade');if(qtd)qtd.value='';
@@ -6043,13 +6252,14 @@ async function openModalMovimentoExistente(dataset){
   document.getElementById('est-produto-selecionado').style.display='flex';
   const lblQ=document.getElementById('est-qtd-label');if(lblQ)lblQ.innerHTML='Quantidade ('+(unidade||'un')+') <span class="req">*</span>';
   // Buscar preços do produto e preencher campos bloqueados
-  let medidasCustom=null;
+  let medidasCustom=null,coresCustom=null;
   try{
     const pf=currentUser.perfil||'master';
-    const prodInfo=await api('produtos?id=eq.'+pid+'&select=preco_custo,preco_venda,medidas_custom');
+    const prodInfo=await api('produtos?id=eq.'+pid+'&select=preco_custo,preco_venda,medidas_custom,cores_custom');
     const custoProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_custo||0):0;
     const vendaProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_venda||0):0;
     medidasCustom=prodInfo&&prodInfo[0]?prodInfo[0].medidas_custom:null;
+    coresCustom=prodInfo&&prodInfo[0]?prodInfo[0].cores_custom:null;
     const vc=document.getElementById('est-valor-custo');
     const vv=document.getElementById('est-valor-venda');
     if(vc){vc.value=custoProd?custoProd.toFixed(2):'';vc.readOnly=true;vc.style.opacity='.7';vc.style.cursor='not-allowed';}
@@ -6058,10 +6268,11 @@ async function openModalMovimentoExistente(dataset){
     const vc=document.getElementById('est-valor-custo');if(vc)vc.value='';
     const vv=document.getElementById('est-valor-venda');if(vv)vv.value='';
   }
-  // Configura Gênero/Tamanho ou Medida conforme a unidade do produto, já com a variação selecionada
-  configurarVariacaoPorUnidade(unidade,tamanho,genero,pid,medidasCustom);
+  // Configura Gênero/Tamanho ou Medida + Cor conforme a unidade do produto, já com a variação selecionada
+  configurarVariacaoPorUnidade(unidade,tamanho,genero,pid,medidasCustom,coresCustom,cor);
   const selG=document.getElementById('est-genero');if(selG)selG.disabled=true;
   const selT=document.getElementById('est-tamanho');if(selT){selT.value=tamanho;selT.disabled=true;}
+  const selC=document.getElementById('est-cor');if(selC){selC.value=cor;selC.disabled=true;}
   onEstTipoChangeExtra();onEstTipoChange();
   // Buscar saldo
   const pf=currentUser.perfil||'master';
@@ -6071,9 +6282,9 @@ async function openModalMovimentoExistente(dataset){
   document.getElementById('est-produto').dataset.max=max!=null?max:'';
   document.getElementById('est-produto').dataset.min=min!=null?min:'';
   try{
-    const todosRows=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade,genero,tamanho');
-    const gN=genero||null;const tN=tamanho||null;
-    const reg=(todosRows||[]).find(r=>(r.genero||null)===gN&&(r.tamanho||null)===tN);
+    const todosRows=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade,genero,tamanho,cor');
+    const gN=genero||null;const tN=tamanho||null;const cN=cor||null;
+    const reg=(todosRows||[]).find(r=>(r.genero||null)===gN&&(r.tamanho||null)===tN&&(r.cor||null)===cN);
     const saldo=reg?parseFloat(reg.quantidade||0):0;
     const el=document.getElementById('est-saldo-atual');if(el)el.textContent=saldo;
     const wrap=document.getElementById('est-saldo-atual-wrap');if(wrap)wrap.style.display='block';
@@ -6089,6 +6300,7 @@ async function salvarMovimento(){
   if(!qtd||qtd<=0){showMM('modal-est-msg','Informe uma quantidade válida','error');return;}
   const estGenero=document.getElementById('est-genero')?.value||'';
   const estTamanho=document.getElementById('est-tamanho')?.value||'';
+  const estCor=document.getElementById('est-cor')?.value||'';
   const estMotivo=document.getElementById('est-motivo')?.value?.trim()||'';
   const ehVest=unidadeEhVestuario(_estUnidadeAtual);
   if(!estGenero){showMM('modal-est-msg','Informe o Gênero','error');return;}
@@ -6096,9 +6308,9 @@ async function salvarMovimento(){
   if(!estMotivo){showMM('modal-est-msg','Informe o Motivo / Descrição','error');return;}
   const pf=currentUser.perfil||'master';
   try{
-    const todosRowsMov=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho');
-    const gN=estGenero||null;const tN=estTamanho||null;
-    const reg=(todosRowsMov||[]).find(r=>(r.genero||null)===gN&&(r.tamanho||null)===tN);
+    const todosRowsMov=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=id,quantidade,genero,tamanho,cor');
+    const gN=estGenero||null;const tN=estTamanho||null;const cN=estCor||null;
+    const reg=(todosRowsMov||[]).find(r=>(r.genero||null)===gN&&(r.tamanho||null)===tN&&(r.cor||null)===cN);
     const saldoAtual=reg?parseFloat(reg.quantidade||0):0;const saldoId=reg?reg.id:null;
     const prodData=await api('produtos?id=eq.'+pid+'&select=estoque_maximo,estoque_minimo,nome');
     const estoqueMax=prodData&&prodData[0]&&prodData[0].estoque_maximo!=null?parseFloat(prodData[0].estoque_maximo):null;
@@ -6116,9 +6328,9 @@ async function salvarMovimento(){
       if(estoqueMin!=null&&novoSaldo<estoqueMin){showMM('modal-est-msg','Ficaria abaixo do mínimo ('+estoqueMin+'). Máximo que pode sair: '+(saldoAtual-estoqueMin)+'.','error');return;}
       if(novoSaldo<0){showMM('modal-est-msg','Saldo insuficiente. Disponível: '+saldoAtual+'.','error');return;}
     }
-    await api('estoque_movimentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),tipo,quantidade:qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,motivo:document.getElementById('est-motivo')?.value?.trim()||null,observacoes:document.getElementById('est-obs')?.value?.trim()||null,genero:estGenero,tamanho:estTamanho,criado_por:currentUser.usuario})});
+    await api('estoque_movimentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),tipo,quantidade:qtd,quantidade_anterior:saldoAtual,quantidade_posterior:novoSaldo,motivo:document.getElementById('est-motivo')?.value?.trim()||null,observacoes:document.getElementById('est-obs')?.value?.trim()||null,genero:estGenero,tamanho:estTamanho,cor:estCor||null,criado_por:currentUser.usuario})});
     if(saldoId){await api('estoque_saldo?id=eq.'+saldoId,{method:'PATCH',body:JSON.stringify({quantidade:novoSaldo,atualizado_em:new Date().toISOString()})});}
-    else{await api('estoque_saldo',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),quantidade:novoSaldo,genero:estGenero||null,tamanho:estTamanho||null})});}
+    else{await api('estoque_saldo',{method:'POST',body:JSON.stringify({perfil_codigo:pf,produto_id:parseInt(pid),quantidade:novoSaldo,genero:estGenero||null,tamanho:estTamanho||null,cor:estCor||null})});}
     // Atualizar estoque_atual no cadastro do produto
     try{
       const todosRegMov=await api('estoque_saldo?produto_id=eq.'+pid+'&perfil_codigo=eq.'+encodeURIComponent(pf)+'&select=quantidade');
@@ -6133,7 +6345,7 @@ async function salvarMovimento(){
       if(valorCusto>0){
         const custoTotal=valorCusto*qtd;
         if(valorVenda>0)await api('produtos?id=eq.'+pid,{method:'PATCH',body:JSON.stringify({preco_custo:valorCusto,preco_venda:valorVenda})}).catch(()=>{});
-        await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,tipo:'despesa',descricao:'Reposição: '+nomeProd+(estGenero?' '+estGenero:'')+(estTamanho?' /'+estTamanho:'')+' ('+qtd+' un.)',valor:custoTotal,data_vencimento:hojeLocalStr(),data_pagamento:hojeLocalStr(),status:'pago',observacoes:'Criado automaticamente pela movimentação de estoque'})}).catch(()=>{});
+        await api('financeiro_lancamentos',{method:'POST',body:JSON.stringify({perfil_codigo:pf,tipo:'despesa',descricao:'Reposição: '+nomeProd+(estGenero?' '+estGenero:'')+(estTamanho?' /'+estTamanho:'')+(estCor?' /'+estCor:'')+' ('+qtd+' un.)',valor:custoTotal,data_vencimento:hojeLocalStr(),data_pagamento:hojeLocalStr(),status:'pago',observacoes:'Criado automaticamente pela movimentação de estoque'})}).catch(()=>{});
       }
     }
     showMM('modal-est-msg','Movimentação registrada!','success');
