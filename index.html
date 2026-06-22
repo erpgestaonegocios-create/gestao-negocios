@@ -6482,7 +6482,7 @@ function renderTabelaEstoque(lista){
     else{situacao='✅ Normal';badgeStyle='background:rgba(76,175,125,.15);color:var(--success)';}
     const saldoColor=min!=null&&p.saldo<min?'color:var(--danger);font-weight:700':'color:var(--text);font-weight:600';
     return '<tr>'
-      +'<td><span '+LINK+' data-pid="'+p.id+'" data-pnome="'+p.nome+'" data-pgenero="'+(p.genero||'')+'" data-ptamanho="'+(p.tamanho||'')+'" onclick="selecionarProdutoHistoricoVariacao(this.dataset)">'+p.nome+(p.genero?' <small style="color:var(--text3)">('+p.genero+(p.tamanho?' / '+p.tamanho:'')+(p.cor?' / '+p.cor:'')+')</small>':'')+'</span></td>'
+      +'<td><span '+LINK+' data-pid="'+p.id+'" data-pnome="'+p.nome+'" data-pgenero="'+(p.genero||'')+'" data-ptamanho="'+(p.tamanho||'')+'" data-pcor="'+(p.cor||'')+'" onclick="selecionarProdutoHistoricoVariacao(this.dataset)">'+p.nome+(p.genero?' <small style="color:var(--text3)">('+p.genero+(p.tamanho?' / '+p.tamanho:'')+(p.cor?' / '+p.cor:'')+')</small>':'')+'</span></td>'
       +'<td style="font-size:12px;color:var(--text2)">'+(p.genero?p.genero.charAt(0).toUpperCase()+p.genero.slice(1):'—')+'</td>'
       +'<td style="font-size:12px;font-weight:'+(p.tamanho?'600':'400')+';color:var(--accent)">'+(p.tamanho||'—')+'</td>'
       +'<td style="font-size:12px;color:var(--text2)">'+(p.cor||'—')+'</td>'
@@ -6507,9 +6507,9 @@ function filtrarEstoque(){
 
 function selecionarProdutoHistoricoVariacao(dataset){
   const prodId=dataset.pid;const prodNome=dataset.pnome||'';
-  const genero=dataset.pgenero||'';const tamanho=dataset.ptamanho||'';
-  const varLabel=genero?(' — '+genero+(tamanho?' / '+tamanho:'')):'';
-  window._histGenero=genero||null;window._histTamanho=tamanho||null;
+  const genero=dataset.pgenero||'';const tamanho=dataset.ptamanho||'';const cor=dataset.pcor||'';
+  const varLabel=genero?(' — '+genero+(tamanho?' / '+tamanho:'')+(cor?' / '+cor:'')):'';
+  window._histGenero=genero||null;window._histTamanho=tamanho||null;window._histCor=cor||null;
   const sel=document.getElementById('hist-filtro-produto');if(sel)sel.value=prodId;
   const titulo=document.getElementById('hist-titulo');if(titulo)titulo.textContent='📋 Histórico — '+prodNome+varLabel;
   carregarHistorico();
@@ -6518,15 +6518,15 @@ function selecionarProdutoHistoricoVariacao(dataset){
 function selecionarProdutoHistoricoSelect(){
   const sel=document.getElementById('hist-filtro-produto');
   const opt=sel?.options[sel.selectedIndex];
-  window._histGenero=null;window._histTamanho=null;
+  window._histGenero=null;window._histTamanho=null;window._histCor=null;
   const titulo=document.getElementById('hist-titulo');
   if(sel?.value&&opt){if(titulo)titulo.textContent='📋 Histórico — '+opt.text;}
   else{if(titulo)titulo.textContent='📋 Histórico de Movimentações';}
   carregarHistorico();
 }
 async function selecionarProdutoHistorico(prodId,prodNome){
-  window._histGenero=null;window._histTamanho=null;
-  selecionarProdutoHistoricoVariacao({pid:prodId,pnome:prodNome,pgenero:'',ptamanho:''});
+  window._histGenero=null;window._histTamanho=null;window._histCor=null;
+  selecionarProdutoHistoricoVariacao({pid:prodId,pnome:prodNome,pgenero:'',ptamanho:'',pcor:''});
 }
 
 async function carregarHistorico(){
@@ -6537,9 +6537,10 @@ async function carregarHistorico(){
     let q='estoque_movimentos?select=*,produtos(nome,unidade)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=criado_em.desc,id.desc&limit=200';
     if(prodFiltro){
       q+='&produto_id=eq.'+prodFiltro;
-      const hg=window._histGenero;const ht=window._histTamanho;
+      const hg=window._histGenero;const ht=window._histTamanho;const hc=window._histCor;
       if(hg!=null)q+='&genero=eq.'+encodeURIComponent(hg);
       if(ht!=null)q+='&tamanho=eq.'+encodeURIComponent(ht);
+      if(hc!=null)q+='&cor=eq.'+encodeURIComponent(hc);
     }
     const movs=await api(q);
     if(!movs||!movs.length){const msg=prodFiltro?'Nenhuma movimentação para este produto/variação.':'Clique no nome de um produto para ver o histórico.';wrap.innerHTML='<div class="empty" style="padding:20px;color:var(--text3)">'+msg+'</div>';return;}
