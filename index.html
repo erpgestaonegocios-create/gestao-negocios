@@ -5391,7 +5391,15 @@ async function confirmarDevolucaoRecebida(compraId){
       cancelamento_concluido_em:new Date().toISOString()
     })});
 
-    alert('✅ Devolução concluída!\n\n• Estoque devolvido (+'+qtd+' un.)\n• Estorno de R$ '+valorEstorno.toFixed(2).replace('.',',')+' lançado no financeiro\n\n⚠️ NÃO ESQUEÇA: faça a devolução do valor ao cliente no painel do Mercado Pago.');
+    // 5. E-mail de devolução finalizada
+    try{
+      if(c.cliente_id){
+        const cli=await api('clientes?id=eq.'+c.cliente_id+'&select=nome,email');
+        if(cli&&cli[0]?.email) await emailCancelamentoFinalizado(cli[0].nome,cli[0].email,nomeProd);
+      }
+    }catch(eMail){console.warn('email finalizado:',eMail);}
+
+    alert('✅ Devolução concluída!\n\n• Estoque devolvido (+'+qtd+' un.)\n• Estorno de R$ '+valorEstorno.toFixed(2).replace('.',',')+' lançado no financeiro\n• E-mail de finalização enviado ao cliente\n\n⚠️ NÃO ESQUEÇA: faça a devolução do valor ao cliente no painel do Mercado Pago.');
     carregarCancelamentos();
   }catch(e){alert('Erro ao processar devolução: '+e.message);}
 }
@@ -5414,8 +5422,18 @@ async function abrirCancelamentoManual(compraId){
       motivo_cancelamento:(motivo.trim()||'Aberto pelo sistema'),
       cancelamento_solicitado_em:new Date().toISOString()
     })});
-    alert('✅ Solicitação de cancelamento aberta. Veja na aba "Cancelamentos/Devoluções".');
-    if(typeof carregarHistoricoCompras==='function'){} // não força reload do modal
+    // Disparar e-mail de cancelamento recebido + instruções (conforme forma de entrega)
+    try{
+      const det=await api('cliente_compras?id=eq.'+compraId+'&select=forma_entrega,codigo_rastreio,cliente_id,produtos(nome)');
+      if(det&&det[0]){
+        const forma=det[0].forma_entrega||'correios';
+        const codR=det[0].codigo_rastreio||'';
+        const nomeProd=det[0].produtos?.nome||'Produto';
+        const cli=await api('clientes?id=eq.'+det[0].cliente_id+'&select=nome,email');
+        if(cli&&cli[0]?.email) await emailCancelamentoRecebido(cli[0].nome,cli[0].email,nomeProd,forma,codR);
+      }
+    }catch(eMail){console.warn('email cancelamento:',eMail);}
+    alert('✅ Solicitação de cancelamento aberta e e-mail enviado ao cliente. Veja na aba "Cancelamentos/Devoluções".');
   }catch(e){alert('Erro: '+e.message);}
 }
 
@@ -7697,6 +7715,25 @@ async function emailProntoRetirada(nomeCliente, emailCliente, nomeProduto){
     nome_cliente: nomeCliente,
     nome_produto: nomeProduto
   };
+  return dispararEmail(emailCliente, aplicarVariaveis(tpl.assunto, vars), aplicarVariaveis(tpl.corpo_html, vars));
+}
+
+// E-mail de cancelamento recebido + instruções (escolhe template por forma de entrega)
+async function emailCancelamentoRecebido(nomeCliente, emailCliente, nomeProduto, formaEntrega, codigoRastreio){
+  await carregarTemplates();
+  const tipo = (formaEntrega==='correios') ? 'cancelamento_correios' : 'cancelamento_presencial';
+  const tpl = _emailTemplates[tipo];
+  if(!tpl){ console.warn('Template '+tipo+' nao encontrado'); return; }
+  const vars = { nome_cliente: nomeCliente, nome_produto: nomeProduto, codigo_rastreio: codigoRastreio||'—' };
+  return dispararEmail(emailCliente, aplicarVariaveis(tpl.assunto, vars), aplicarVariaveis(tpl.corpo_html, vars));
+}
+
+// E-mail de devolução finalizada (estorno feito)
+async function emailCancelamentoFinalizado(nomeCliente, emailCliente, nomeProduto){
+  await carregarTemplates();
+  const tpl = _emailTemplates['cancelamento_finalizado'];
+  if(!tpl){ console.warn('Template cancelamento_finalizado nao encontrado'); return; }
+  const vars = { nome_cliente: nomeCliente, nome_produto: nomeProduto };
   return dispararEmail(emailCliente, aplicarVariaveis(tpl.assunto, vars), aplicarVariaveis(tpl.corpo_html, vars));
 }
 
