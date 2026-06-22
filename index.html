@@ -638,14 +638,19 @@
       <div class="mfield col-2"><label>Descrição</label><textarea id="prod-desc" placeholder="Descrição do produto..." style="min-height:60px"></textarea></div>
       <div class="mfield col-1"><label>Categoria / Grupo</label><input type="text" id="prod-categoria" placeholder="ex: Vestuário, Calçados..."></div>
       <div class="mfield col-1"><label>Unidade de Medida</label>
-        <div style="display:flex;gap:6px;align-items:stretch">
-          <select id="prod-unidade" style="flex:1"></select>
-          <button type="button" onclick="abrirAddUnidade()" title="Incluir unidade de medida"
-            style="flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">+</button>
-          <button type="button" onclick="excluirUnidadeSelecionada()" title="Excluir unidade personalizada selecionada"
-            style="flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--danger);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">−</button>
-        </div>
-        <div class="field-hint" id="prod-unidade-hint">Use + para incluir uma unidade que não esteja na lista.</div>
+        <select id="prod-unidade">
+          <option value="un">un — Unidade</option>
+          <option value="kg">kg — Quilograma</option>
+          <option value="g">g — Grama</option>
+          <option value="lt">lt — Litro</option>
+          <option value="ml">ml — Mililitro</option>
+          <option value="m">m — Metro</option>
+          <option value="m2">m² — Metro quadrado</option>
+          <option value="cx">cx — Caixa</option>
+          <option value="pc">pc — Peça</option>
+          <option value="par">par — Par</option>
+          <option value="outro">outro</option>
+        </select>
       </div>
 
       <div class="form-section">Preços</div>
@@ -688,24 +693,21 @@
   </div>
 </div>
 
-<!-- MODAL INCLUIR UNIDADE DE MEDIDA -->
-<div class="modal-overlay" id="modal-add-unidade">
+<!-- MODAL INCLUIR MEDIDA (na movimentação de estoque) -->
+<div class="modal-overlay" id="modal-add-medida">
   <div class="modal modal-sm" style="max-width:420px">
-    <div class="modal-title">Incluir Unidade de Medida</div>
-    <div class="modal-sub">Adicione uma unidade que não esteja na lista.</div>
+    <div class="modal-title">Incluir Medida</div>
+    <div class="modal-sub" id="modal-add-medida-sub">Adicione uma medida para este produto.</div>
     <div class="form-grid">
-      <div class="mfield col-2"><label>Sigla / Código <span class="req">*</span></label>
-        <input type="text" id="add-unidade-codigo" placeholder="ex: dz, fr, amp" maxlength="10">
-        <div class="field-hint">Abreviação curta usada nas listas (ex: dz = dúzia).</div>
-      </div>
-      <div class="mfield col-2"><label>Descrição</label>
-        <input type="text" id="add-unidade-desc" placeholder="ex: Dúzia">
+      <div class="mfield col-2"><label>Medida <span class="req">*</span></label>
+        <input type="text" id="add-medida-valor" placeholder="ex: 2 ml" maxlength="20">
+        <div class="field-hint" id="add-medida-hint">Digite a quantidade com a unidade (ex: 2 ml, 25 ml).</div>
       </div>
     </div>
-    <div class="modal-msg" id="modal-add-unidade-msg"></div>
+    <div class="modal-msg" id="modal-add-medida-msg"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('modal-add-unidade')">Cancelar</button>
-      <button class="btn-save" onclick="confirmarAddUnidade()">Incluir</button>
+      <button class="btn-cancel" onclick="closeModal('modal-add-medida')">Cancelar</button>
+      <button class="btn-save" onclick="confirmarAddMedida()">Incluir</button>
     </div>
   </div>
 </div>
@@ -813,9 +815,15 @@
       </div>
       <div class="mfield col-1" id="est-tamanho-wrap">
         <label id="est-tamanho-label">Tamanho</label>
-        <select id="est-tamanho" onchange="onEstTamanhoChange()">
-          <option value="">Não especificado</option>
-        </select>
+        <div style="display:flex;gap:6px;align-items:stretch">
+          <select id="est-tamanho" onchange="onEstTamanhoChange()" style="flex:1">
+            <option value="">Não especificado</option>
+          </select>
+          <button type="button" id="est-medida-add" onclick="abrirAddMedida()" title="Incluir medida para este produto"
+            style="display:none;flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">+</button>
+          <button type="button" id="est-medida-del" onclick="excluirMedidaSelecionada()" title="Excluir a medida selecionada deste produto"
+            style="display:none;flex-shrink:0;width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--danger);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s">−</button>
+        </div>
       </div>
       <div class="mfield col-2">
         <label id="est-qtd-label">Quantidade <span class="req">*</span></label>
@@ -1078,25 +1086,12 @@ const FIN_STATUS={pendente:{label:'Pendente',icon:'⏳',cls:'badge-empresa'},pag
 const TAMANHOS_ADULTO=['PP','P','M','G','GG','XGG','XGGG','34','36','38','40','42','44','46','48','50','Único'];
 const TAMANHOS_INFANTIL=['RN','P','M','G','1 ano','2 anos','4 anos','6 anos','8 anos','10 anos','12 anos','14 anos','16 anos'];
 
-// ── Unidades de medida (cadastro de produtos) ─────────────────────
-// Lista base de unidades exibidas no select do cadastro de produto.
-const UNIDADES_BASE=[
-  {value:'un', label:'un — Unidade'},
-  {value:'kg', label:'kg — Quilograma'},
-  {value:'g',  label:'g — Grama'},
-  {value:'lt', label:'lt — Litro'},
-  {value:'ml', label:'ml — Mililitro'},
-  {value:'m',  label:'m — Metro'},
-  {value:'m2', label:'m² — Metro quadrado'},
-  {value:'cx', label:'cx — Caixa'},
-  {value:'pc', label:'pc — Peça'},
-  {value:'par',label:'par — Par'},
-  {value:'outro',label:'outro'}
-];
+// ── Unidades de medida e variação de estoque ──────────────────────
 // Unidades que se comportam como vestuário (variam por Gênero + Tamanho P/M/G...).
 const UNIDADES_VESTUARIO=['un','pc','par'];
 // Medidas padrão por unidade. Quando o produto usa uma destas unidades,
 // a movimentação de estoque oferece estas medidas em vez de tamanhos de roupa.
+// O usuário pode incluir/excluir medidas por produto (salvas em produtos.medidas_custom).
 const MEDIDAS_POR_UNIDADE={
   ml:['5 ml','10 ml','15 ml','20 ml','30 ml','50 ml','60 ml','80 ml','100 ml','120 ml','150 ml','180 ml','200 ml'],
   lt:['0,25 lt','0,5 lt','1 lt','2 lt','5 lt'],
@@ -1110,14 +1105,6 @@ function unidadeLabelCurto(u){
   u=(u||'un').toLowerCase();
   const map={un:'un',kg:'kg',g:'g',lt:'lt',ml:'ml',m:'m',m2:'m²',cx:'cx',pc:'pc',par:'par'};
   return map[u]||u;
-}
-// ── Unidades personalizadas (incluídas pelo usuário) ──────────────
-function _chaveUnidadesCustom(){return 'unidadesCustom_'+(currentUser?.perfil||'master');}
-function carregarUnidadesCustom(){
-  try{const raw=localStorage.getItem(_chaveUnidadesCustom());return raw?JSON.parse(raw):[];}catch(e){return [];}
-}
-function salvarUnidadesCustom(arr){
-  try{localStorage.setItem(_chaveUnidadesCustom(),JSON.stringify(arr||[]));}catch(e){}
 }
 
 // ── Constantes e helpers globais ──────────────────────────────────
@@ -1173,7 +1160,9 @@ function closeModal(id){
     if(st)st.disabled=false;
     const gw=document.getElementById('est-genero-wrap');if(gw)gw.style.display='';
     const tl=document.getElementById('est-tamanho-label');if(tl)tl.textContent='Tamanho';
-    _estUnidadeAtual='un';
+    const ba=document.getElementById('est-medida-add');if(ba)ba.style.display='none';
+    const bd=document.getElementById('est-medida-del');if(bd)bd.style.display='none';
+    _estUnidadeAtual='un';_estProdutoId=null;_estMedidasCustom={add:[],remove:[]};
   }
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
@@ -5487,7 +5476,7 @@ async function openModalProduto(mode,id){
   if(mode==='new'){
     document.getElementById('modal-prod-titulo').textContent=getLabel('produtos_novo','Novo Produto');
     campos.forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
-    const pu=document.getElementById('prod-unidade');if(pu)popularSelectProdUnidade('un');
+    const pu=document.getElementById('prod-unidade');if(pu)pu.value='un';
     if(selForn)selForn.value='';
     const wrapEst=document.getElementById('prod-estoque-atual-wrap');if(wrapEst)wrapEst.style.display='none';
     const wrapViews=document.getElementById('prod-visualizacoes-wrap');if(wrapViews)wrapViews.style.display='none';
@@ -5496,7 +5485,7 @@ async function openModalProduto(mode,id){
     const data=await api('produtos?id=eq.'+id+'&select=*');if(!data||!data.length)return;const p=data[0];
     const set=(i,v)=>{const el=document.getElementById(i);if(el)el.value=v!=null?v:'';};
     set('prod-codigo',p.codigo);set('prod-nome',p.nome);set('prod-desc',p.descricao);set('prod-categoria',p.categoria);
-    const pu=document.getElementById('prod-unidade');if(pu)popularSelectProdUnidade(p.unidade||'un');
+    const pu=document.getElementById('prod-unidade');if(pu)pu.value=p.unidade||'un';
     set('prod-custo',p.preco_custo);set('prod-venda',p.preco_venda);set('prod-est-min',p.estoque_minimo);set('prod-est-max',p.estoque_maximo);set('prod-obs-site',p.obs_site);set('prod-desconto-pix',p.desconto_pix||0);
     if(selForn)selForn.value=p.fornecedor_id||'';
     // Mostrar estoque atual (leitura de estoque_saldo para garantir dado atualizado)
@@ -5647,65 +5636,49 @@ let produtosEstoqueCache=[];
 
 
 
+// ── Variação na movimentação de estoque, adaptada à unidade ───────
+// Para unidades de vestuário (un/pc/par): usa Gênero + Tamanho (P,M,G...).
+// Para unidades com medida (ml, lt, g, kg, m, m²...): esconde Gênero e
+// preenche o campo "Medida" com as medidas daquela unidade. O usuário pode
+// incluir/excluir medidas POR PRODUTO (persistido em produtos.medidas_custom).
+let _estUnidadeAtual='un';
+let _estProdutoId=null;
+// medidas_custom no banco (jsonb): { add:[...], remove:[...] }
+let _estMedidasCustom={add:[],remove:[]};
+
+function normalizarMedidasCustom(raw){
+  // Aceita objeto {add,remove}, array (tratado como add) ou nulo.
+  if(!raw)return {add:[],remove:[]};
+  if(Array.isArray(raw))return {add:raw.slice(),remove:[]};
+  return {add:Array.isArray(raw.add)?raw.add.slice():[],remove:Array.isArray(raw.remove)?raw.remove.slice():[]};
+}
+// Lista final de medidas para a unidade do produto, aplicando add/remove.
+function medidasDisponiveis(unidade,custom){
+  const base=MEDIDAS_POR_UNIDADE[(unidade||'').toLowerCase()]||[];
+  const c=normalizarMedidasCustom(custom);
+  const removidas=new Set(c.remove);
+  const lista=base.filter(m=>!removidas.has(m));
+  c.add.forEach(m=>{ if(!lista.includes(m)) lista.push(m); });
+  return lista;
+}
+
 function popularSelectTamanhos(selectId,genero,tamanhoSalvo){
   const sel=document.getElementById(selectId);if(!sel)return;
   const lista=(genero==='infantil')?TAMANHOS_INFANTIL:TAMANHOS_ADULTO;
   sel.innerHTML='<option value="">Não especificado</option>'+lista.map(t=>'<option value="'+t+'"'+(tamanhoSalvo===t?' selected':'')+'>'+t+'</option>').join('');
 }
 
-// ── Unidade de medida: select do cadastro de produto ──────────────
-function popularSelectProdUnidade(valorSelecionado){
-  const sel=document.getElementById('prod-unidade');if(!sel)return;
-  const custom=carregarUnidadesCustom(); // [{value,label}]
-  const todas=UNIDADES_BASE.slice();
-  custom.forEach(c=>{ if(!todas.some(u=>u.value===c.value)) todas.push({value:c.value,label:c.label,custom:true}); });
-  const val=valorSelecionado||sel.value||'un';
-  // Garante que um valor salvo desconhecido continue aparecendo
-  if(val && !todas.some(u=>u.value===val)) todas.push({value:val,label:val,custom:true});
-  sel.innerHTML=todas.map(u=>'<option value="'+u.value+'"'+(u.custom?' data-custom="1"':'')+(u.value===val?' selected':'')+'>'+u.label+'</option>').join('');
-}
-function abrirAddUnidade(){
-  const c=document.getElementById('add-unidade-codigo');if(c)c.value='';
-  const d=document.getElementById('add-unidade-desc');if(d)d.value='';
-  const m=document.getElementById('modal-add-unidade-msg');if(m)m.style.display='none';
-  openModal('modal-add-unidade');
-  setTimeout(()=>{const el=document.getElementById('add-unidade-codigo');if(el)el.focus();},50);
-}
-function confirmarAddUnidade(){
-  const cod=(document.getElementById('add-unidade-codigo')?.value||'').trim();
-  const desc=(document.getElementById('add-unidade-desc')?.value||'').trim();
-  if(!cod){showMM('modal-add-unidade-msg','Informe a sigla da unidade.','error');return;}
-  const value=cod.toLowerCase();
-  const jaExiste=UNIDADES_BASE.some(u=>u.value===value)||carregarUnidadesCustom().some(u=>u.value===value);
-  if(jaExiste){showMM('modal-add-unidade-msg','Esta unidade já existe na lista.','error');return;}
-  const label=desc?(cod+' — '+desc):cod;
-  const custom=carregarUnidadesCustom();
-  custom.push({value,label});
-  salvarUnidadesCustom(custom);
-  popularSelectProdUnidade(value);
-  closeModal('modal-add-unidade');
-}
-function excluirUnidadeSelecionada(){
-  const sel=document.getElementById('prod-unidade');if(!sel)return;
-  const val=sel.value;
-  const opt=sel.options[sel.selectedIndex];
-  if(!opt||opt.dataset.custom!=='1'){
-    showMM('modal-prod-msg','Só é possível excluir unidades incluídas por você. As unidades padrão não podem ser removidas.','error');
-    return;
-  }
-  if(!confirm('Excluir a unidade "'+val+'" da lista?'))return;
-  const custom=carregarUnidadesCustom().filter(u=>u.value!==val);
-  salvarUnidadesCustom(custom);
-  popularSelectProdUnidade('un');
+function _toggleBotoesMedida(mostrar){
+  const add=document.getElementById('est-medida-add');
+  const del=document.getElementById('est-medida-del');
+  if(add)add.style.display=mostrar?'block':'none';
+  if(del)del.style.display=mostrar?'block':'none';
 }
 
-// ── Variação na movimentação de estoque, adaptada à unidade ───────
-// Para unidades de vestuário (un/pc/par): usa Gênero + Tamanho (P,M,G...).
-// Para unidades com medida (ml, lt, g, kg, m, m²...): esconde Gênero e
-// preenche o campo "Medida" com as medidas daquela unidade.
-let _estUnidadeAtual='un';
-function configurarVariacaoPorUnidade(unidade,medidaSalva,generoSalvo){
+function configurarVariacaoPorUnidade(unidade,medidaSalva,generoSalvo,produtoId,medidasCustom){
   _estUnidadeAtual=(unidade||'un').toLowerCase();
+  _estProdutoId=produtoId||null;
+  _estMedidasCustom=normalizarMedidasCustom(medidasCustom);
   const generoWrap=document.getElementById('est-genero-wrap');
   const tamLabel=document.getElementById('est-tamanho-label');
   const selGenero=document.getElementById('est-genero');
@@ -5714,24 +5687,73 @@ function configurarVariacaoPorUnidade(unidade,medidaSalva,generoSalvo){
     if(generoWrap)generoWrap.style.display='';
     if(tamLabel)tamLabel.textContent='Tamanho';
     if(selGenero)selGenero.value=generoSalvo||'';
+    _toggleBotoesMedida(false);
     popularSelectTamanhos('est-tamanho',(generoSalvo==='infantil'?'infantil':'adulto'),medidaSalva||'');
   } else {
-    // Esconde gênero (não se aplica a perfume, etc.)
+    // Esconde gênero (não se aplica a perfume, etc.) e mostra botões de medida
     if(generoWrap)generoWrap.style.display='none';
     if(selGenero)selGenero.value='';
     if(tamLabel)tamLabel.textContent='Medida ('+unidadeLabelCurto(_estUnidadeAtual)+')';
+    _toggleBotoesMedida(true);
     popularSelectMedidas('est-tamanho',_estUnidadeAtual,medidaSalva||'');
   }
 }
 function popularSelectMedidas(selectId,unidade,medidaSalva){
   const sel=document.getElementById(selectId);if(!sel)return;
-  const lista=MEDIDAS_POR_UNIDADE[(unidade||'').toLowerCase()]||[];
+  const lista=medidasDisponiveis(unidade,_estMedidasCustom);
   let html='<option value="">Não especificado</option>'+lista.map(m=>'<option value="'+m+'"'+(medidaSalva===m?' selected':'')+'>'+m+'</option>').join('');
-  // Mantém uma medida salva que não esteja na lista padrão
+  // Mantém uma medida salva que não esteja na lista (ex: já usada em estoque mas removida da lista)
   if(medidaSalva && !lista.includes(medidaSalva)){
-    html+='<option value="'+medidaSalva+'" selected>'+medidaSalva+'</option>';
+    html+='<option value="'+medidaSalva+'" selected>'+medidaSalva+' (fora da lista)</option>';
   }
   sel.innerHTML=html;
+}
+
+// ── Incluir/excluir medida do produto atual ───────────────────────
+function abrirAddMedida(){
+  if(!_estProdutoId){showMM('modal-est-msg','Selecione um produto antes de incluir uma medida.','error');return;}
+  const v=document.getElementById('add-medida-valor');if(v)v.value='';
+  const m=document.getElementById('modal-add-medida-msg');if(m)m.style.display='none';
+  const sub=document.getElementById('modal-add-medida-sub');
+  if(sub)sub.textContent='Adicione uma medida (em '+unidadeLabelCurto(_estUnidadeAtual)+') para este produto.';
+  openModal('modal-add-medida');
+  setTimeout(()=>{const el=document.getElementById('add-medida-valor');if(el)el.focus();},50);
+}
+async function confirmarAddMedida(){
+  const valor=(document.getElementById('add-medida-valor')?.value||'').trim();
+  if(!valor){showMM('modal-add-medida-msg','Informe a medida.','error');return;}
+  const lista=medidasDisponiveis(_estUnidadeAtual,_estMedidasCustom);
+  if(lista.includes(valor)){showMM('modal-add-medida-msg','Esta medida já existe na lista.','error');return;}
+  // Atualiza estrutura: tira de "remove" se estava lá; senão adiciona em "add"
+  const c=normalizarMedidasCustom(_estMedidasCustom);
+  c.remove=c.remove.filter(m=>m!==valor);
+  if(!c.add.includes(valor))c.add.push(valor);
+  const ok=await salvarMedidasCustomProduto(_estProdutoId,c);
+  if(!ok){showMM('modal-add-medida-msg','Erro ao salvar. Verifique se a coluna medidas_custom existe na tabela produtos.','error');return;}
+  _estMedidasCustom=c;
+  popularSelectMedidas('est-tamanho',_estUnidadeAtual,valor);
+  closeModal('modal-add-medida');
+}
+async function excluirMedidaSelecionada(){
+  const sel=document.getElementById('est-tamanho');if(!sel)return;
+  const valor=sel.value;
+  if(!valor){showMM('modal-est-msg','Selecione a medida que deseja excluir.','error');return;}
+  if(!_estProdutoId){showMM('modal-est-msg','Selecione um produto.','error');return;}
+  if(!confirm('Excluir a medida "'+valor+'" da lista deste produto?\n\nIsso só remove a opção da lista; o estoque já existente nessa medida não é apagado.'))return;
+  const c=normalizarMedidasCustom(_estMedidasCustom);
+  c.add=c.add.filter(m=>m!==valor);
+  const base=MEDIDAS_POR_UNIDADE[_estUnidadeAtual]||[];
+  if(base.includes(valor)&&!c.remove.includes(valor))c.remove.push(valor); // remove medida padrão
+  const ok=await salvarMedidasCustomProduto(_estProdutoId,c);
+  if(!ok){showMM('modal-est-msg','Erro ao salvar. Verifique se a coluna medidas_custom existe na tabela produtos.','error');return;}
+  _estMedidasCustom=c;
+  popularSelectMedidas('est-tamanho',_estUnidadeAtual,'');
+}
+async function salvarMedidasCustomProduto(produtoId,custom){
+  try{
+    await api('produtos?id=eq.'+produtoId,{method:'PATCH',body:JSON.stringify({medidas_custom:custom})});
+    return true;
+  }catch(e){return false;}
 }
 
 function calcularCustoTotal(){
@@ -5810,7 +5832,9 @@ async function selecionarProdutoEstoque(id,nome,unidade){
   document.getElementById('est-produto-nome').textContent=nome;
   document.getElementById('est-produto-selecionado').style.display='flex';
   const lbl=document.getElementById('est-qtd-label');if(lbl)lbl.innerHTML='Quantidade ('+(unidade||'un')+') <span class="req">*</span>';
-  configurarVariacaoPorUnidade(unidade||'un','','');
+  let medidasCustom=null;
+  try{const pr=await api('produtos?id=eq.'+id+'&select=medidas_custom');medidasCustom=pr&&pr[0]?pr[0].medidas_custom:null;}catch(e){}
+  configurarVariacaoPorUnidade(unidade||'un','','',id,medidasCustom);
   await onEstProdutoChange();
 }
 function limparProdutoEstoque(){
@@ -5995,7 +6019,7 @@ async function openModalMovimento(){
   const st=document.getElementById('est-tamanho');if(st)st.disabled=false;
   // Estado inicial: sem produto selecionado, exibe Gênero + Tamanho (padrão vestuário).
   // Ao escolher um produto, a função selecionarProdutoEstoque ajusta para a unidade correta.
-  configurarVariacaoPorUnidade('un','','');
+  configurarVariacaoPorUnidade('un','','',null,null);
   // Limpa campos de custo/venda (ainda não há produto selecionado)
   const vc=document.getElementById('est-valor-custo');if(vc){vc.value='';vc.readOnly=false;vc.style.opacity='';vc.style.cursor='';}
   const vv=document.getElementById('est-valor-venda');if(vv){vv.value='';vv.readOnly=false;vv.style.opacity='';vv.style.cursor='';}
@@ -6019,11 +6043,13 @@ async function openModalMovimentoExistente(dataset){
   document.getElementById('est-produto-selecionado').style.display='flex';
   const lblQ=document.getElementById('est-qtd-label');if(lblQ)lblQ.innerHTML='Quantidade ('+(unidade||'un')+') <span class="req">*</span>';
   // Buscar preços do produto e preencher campos bloqueados
+  let medidasCustom=null;
   try{
     const pf=currentUser.perfil||'master';
-    const prodInfo=await api('produtos?id=eq.'+pid+'&select=preco_custo,preco_venda');
+    const prodInfo=await api('produtos?id=eq.'+pid+'&select=preco_custo,preco_venda,medidas_custom');
     const custoProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_custo||0):0;
     const vendaProd=prodInfo&&prodInfo[0]?parseFloat(prodInfo[0].preco_venda||0):0;
+    medidasCustom=prodInfo&&prodInfo[0]?prodInfo[0].medidas_custom:null;
     const vc=document.getElementById('est-valor-custo');
     const vv=document.getElementById('est-valor-venda');
     if(vc){vc.value=custoProd?custoProd.toFixed(2):'';vc.readOnly=true;vc.style.opacity='.7';vc.style.cursor='not-allowed';}
@@ -6033,7 +6059,7 @@ async function openModalMovimentoExistente(dataset){
     const vv=document.getElementById('est-valor-venda');if(vv)vv.value='';
   }
   // Configura Gênero/Tamanho ou Medida conforme a unidade do produto, já com a variação selecionada
-  configurarVariacaoPorUnidade(unidade,tamanho,genero);
+  configurarVariacaoPorUnidade(unidade,tamanho,genero,pid,medidasCustom);
   const selG=document.getElementById('est-genero');if(selG)selG.disabled=true;
   const selT=document.getElementById('est-tamanho');if(selT){selT.value=tamanho;selT.disabled=true;}
   onEstTipoChangeExtra();onEstTipoChange();
