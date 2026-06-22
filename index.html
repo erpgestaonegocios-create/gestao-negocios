@@ -1490,18 +1490,20 @@ async function renderManutencaoSite(){
 
 async function ativarManutencao(){
   const retorno=document.getElementById('manutencao-retorno').value;
-  if(!retorno){alert('Selecione a data e hora de retorno.');return;}
-  if(!confirm('Confirma? O site ficará inacessível para os clientes até '+new Date(retorno).toLocaleString('pt-BR')))return;
+  if(!retorno){toast('Selecione a data e hora de retorno.','error');return;}
+  const ok=await confirmarAcao('O site ficará inacessível para os clientes até '+new Date(retorno).toLocaleString('pt-BR')+'.',{titulo:'Colocar site em manutenção',textoSim:'Sim, colocar em manutenção',textoNao:'Voltar',perigo:true});
+  if(!ok)return;
   const valor=JSON.stringify({ativo:true,retorno});
   await salvarConfigSistema('manutencao_site',valor);
-  alert('✅ Site em manutenção até '+new Date(retorno).toLocaleString('pt-BR'));
+  toast('Site em manutenção até '+new Date(retorno).toLocaleString('pt-BR')+'.','success');
   renderManutencaoSite();
 }
 
 async function desativarManutencao(){
-  if(!confirm('Reativar o site agora?'))return;
+  const ok=await confirmarAcao('Reativar o site agora? Ele voltará a ficar acessível para os clientes.',{titulo:'Reativar o site',textoSim:'Sim, reativar',textoNao:'Voltar'});
+  if(!ok)return;
   await salvarConfigSistema('manutencao_site',JSON.stringify({ativo:false,retorno:''}));
-  alert('✅ Site reativado!');
+  toast('Site reativado! Já está no ar para os clientes.','success');
   renderManutencaoSite();
 }
 
