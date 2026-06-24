@@ -1239,7 +1239,7 @@ function _resolverConfirm(valor){
   if(_confirmResolver){const r=_confirmResolver;_confirmResolver=null;r(valor);}
 }
 
-// ── Toast / notificação no padrão do sistema (substitui o alert() de sucesso) ──
+// ── Toast / notificação no padrão do sistema (substitui o toast(,'info') de sucesso) ──
 function toast(mensagem,tipo){
   const cont=document.getElementById('toast-container');
   if(!cont){alert(mensagem);return;}
@@ -1403,7 +1403,7 @@ function onLogoChange(event){
   const file = event.target.files[0];
   if(!file) return;
   if(file.size > 2*1024*1024){
-    alert('Imagem muito grande. Use uma imagem menor que 2MB.');
+    toast('Imagem muito grande. Use uma imagem menor que 2MB.','error');
     return;
   }
   const reader = new FileReader();
@@ -1604,7 +1604,7 @@ async function salvarFaqItem(){
   const id=document.getElementById('faq-editando-id').value;
   const pergunta=document.getElementById('faq-input-pergunta').value.trim().toUpperCase();
   const resposta=document.getElementById('faq-input-resposta').value.trim();
-  if(!pergunta||!resposta){alert('Preencha a pergunta e a resposta antes de confirmar.');return;}
+  if(!pergunta||!resposta){toast('Preencha a pergunta e a resposta antes de confirmar.','error');return;}
   const pf=currentUser?.perfil||'lojista';
   const btn=document.querySelector('#modal-faq button[onclick="salvarFaqItem()"]');
   if(btn){btn.textContent='Salvando...';btn.disabled=true;}
@@ -1619,17 +1619,17 @@ async function salvarFaqItem(){
     fecharModalFaq();
     await renderFaqAdmin();
   }catch(e){
-    alert('Erro ao salvar: '+e.message);
+    toast('Erro ao salvar: '+e.message,'error');
     if(btn){btn.textContent='✅ Confirmar';btn.disabled=false;}
   }
 }
 
 async function excluirFaqItem(id){
-  if(!confirm('Excluir esta pergunta? Ela sumirá do site imediatamente.'))return;
+  if(!await confirmarAcao('Esta pergunta sumirá do site imediatamente.',{titulo:'Excluir pergunta',textoSim:'Excluir',perigo:true}))return;
   try{
     await api('faq_site?id=eq.'+id,{method:'DELETE'});
     await renderFaqAdmin();
-  }catch(e){alert('Erro ao excluir: '+e.message);}
+  }catch(e){toast('Erro ao excluir: '+e.message,'error');}
 }
 
 // ── SHA-256 global (usado no login e no cadastro de usuários) ────
@@ -2030,7 +2030,7 @@ async function toggleAtivo(id,ativo){
   try{
     await api('usuarios?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});
     recarregarUsuarios();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 // ─── MODAL USUÁRIO ────────────────────────────────────────────────
@@ -2197,12 +2197,12 @@ async function salvarUsuario(){
 // ─── PAINEL: GESTÃO DE ACESSOS ────────────────────────────────────
 
 async function excluirPerfil(codigo, nome){
-  if(!confirm('⚠️ Confirma a exclusão do perfil "'+nome+'"?\n\nATENÇÃO: Esta ação não pode ser desfeita.\nCertifique-se de que não há usuários vinculados a este perfil.'))return;
+  if(!await confirmarAcao('Confirma a exclusão do perfil "'+nome+'"?\n\nEsta ação não pode ser desfeita. Certifique-se de que não há usuários vinculados a este perfil.',{titulo:'Excluir perfil',textoSim:'Excluir',perigo:true}))return;
   try{
     // Verificar se há usuários neste perfil
     const usrs=await api('usuarios?perfil=eq.'+encodeURIComponent(codigo)+'&select=id&limit=1');
     if(usrs&&usrs.length){
-      alert('Não é possível excluir. Existem usuários cadastrados com este perfil.\nRemova os usuários primeiro.');
+      toast('Não é possível excluir. Existem usuários cadastrados com este perfil.\nRemova os usuários primeiro.','error');
       return;
     }
     // Excluir funcionalidades do perfil
@@ -2223,7 +2223,7 @@ async function excluirPerfil(codigo, nome){
     msg.textContent='✅ Perfil "'+nome+'" excluído com sucesso!';
     document.body.appendChild(msg);
     setTimeout(()=>msg.remove(),3000);
-  }catch(e){alert('Erro ao excluir: '+e.message);}
+  }catch(e){toast('Erro ao excluir: '+e.message,'error');}
 }
 
 function renderAcessos(){
@@ -2286,7 +2286,7 @@ async function toggleFuncPerfil(perfil,func,adicionar,labelFunc){
     }
     await carregarFuncCache();
     renderTabelaAcessos();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 function abrirModalNovoPerfil(){
@@ -2441,11 +2441,11 @@ async function editarConfigEmpresa(perfil){
 }
 
 async function deletarConfigEmpresa(perfil){
-  if(!confirm('Remover configuração de '+perfilNome(perfil)+'?')) return;
+  if(!await confirmarAcao('Remover configuração de '+perfilNome(perfil)+'?',{titulo:'Remover configuração',textoSim:'Remover',perigo:true})) return;
   try{
     await api('empresa_config?perfil_codigo=eq.'+encodeURIComponent(perfil),{method:'DELETE',headers:{...hdrs,'Prefer':''}});
     carregarListaEmpresas();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 function renderConfigEmpresaPanel(){
@@ -2622,7 +2622,7 @@ async function deletarLabel(id,perfil){
     await api('perfil_labels?id=eq.'+id,{method:'DELETE',headers:{...hdrs,'Prefer':''}});
     await carregarLabelsExistentes(perfil);
     await carregarLabels();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 async function salvarLabelGuiado(){
@@ -2758,7 +2758,7 @@ const IMPORT_CONFIGS = {
 function openModalImportacao(modulo){
   window._importEstoqueMode=false;
   const cfg=IMPORT_CONFIGS[modulo];
-  if(!cfg){alert('Módulo de importação não configurado: '+modulo);return;}
+  if(!cfg){toast('Módulo de importação não configurado: '+modulo,'error');return;}
   importConfig=cfg;
   importConfig.modulo=modulo;
   importDados=[];
@@ -2796,7 +2796,7 @@ function openModalImportacao(modulo){
 function baixarModeloImportacao(){
   if(!importConfig)return;
   if(typeof XLSX==='undefined'){
-    alert('Biblioteca de Excel ainda carregando. Aguarde alguns segundos e tente novamente.');return;
+    toast('Biblioteca de Excel ainda carregando. Aguarde alguns segundos e tente novamente.','error');return;
   }
   const cabecalho=importConfig.campos.map(f=>f.col);
   const ws=XLSX.utils.aoa_to_sheet([cabecalho]);
@@ -4137,10 +4137,10 @@ async function gerarDadosRelatorio(){
   } else {
     ini=document.getElementById('rel-filtro-ini')?.value;
     fim=document.getElementById('rel-filtro-fim')?.value;
-    if(!ini||!fim){alert('Informe as datas de início e fim.');return;}
+    if(!ini||!fim){toast('Informe as datas de início e fim.','error');return;}
     const diffDias=Math.round((new Date(fim)-new Date(ini))/(1000*60*60*24));
-    if(diffDias<0){alert('A data final deve ser posterior à data inicial.');return;}
-    if(diffDias>30){alert('O período máximo é de 30 dias. Período selecionado: '+diffDias+' dias.');return;}
+    if(diffDias<0){toast('A data final deve ser posterior à data inicial.','error');return;}
+    if(diffDias>30){toast('O período máximo é de 30 dias. Período selecionado: '+diffDias+' dias.','error');return;}
     nomePeriodo=new Date(ini+'T12:00').toLocaleDateString('pt-BR')+' a '+new Date(fim+'T12:00').toLocaleDateString('pt-BR');
   }
   wrap.innerHTML='<div class="loading">Gerando relatório...</div>';
@@ -4234,7 +4234,7 @@ async function gerarDadosRelatorio(){
 // ── WhatsApp enviar mensagem ──────────────────────────────────────
 function enviarWhatsApp(modeloId){
   const modelo=document.getElementById(modeloId);
-  if(!modelo){alert('Modelo não encontrado.');return;}
+  if(!modelo){toast('Modelo não encontrado.','error');return;}
   wppModeloAtual=modeloId;
   wppTextoModelo=modelo.value;
   wppClientesSelecionados=new Set();
@@ -4411,7 +4411,7 @@ async function enviarMsgCliente(dataset){
   const nome=dataset.cnome||'';
   const tel=dataset.ctel||'';
   const obs=dataset.cobs||'';
-  if(!tel){alert('Cliente sem telefone cadastrado.');return;}
+  if(!tel){toast('Cliente sem telefone cadastrado.','error');return;}
   const categoria=window._wppCategoriaAtual;
   const anoAtual=new Date().getFullYear();
   const hoje=new Date().toLocaleDateString('pt-BR');
@@ -4457,7 +4457,7 @@ async function enviarMsgCliente(dataset){
 
 function editarModeloWpp(modeloId){
   const textarea=document.getElementById(modeloId);
-  if(!textarea){alert('Modelo não encontrado.');return;}
+  if(!textarea){toast('Modelo não encontrado.','error');return;}
   // Salvar texto atual no localStorage com prefixo wpp_
   // Tornar o textarea editável com destaque
   textarea.style.border='2px solid var(--accent)';
@@ -4504,7 +4504,7 @@ function cancelarEdicaoWpp(modeloId){
 
 
 async function excluirUsuario(id, nome){
-  if(!confirm('⚠️ Confirma a exclusão do usuário "'+nome+'"?\n\nEsta ação não pode ser desfeita.'))return;
+  if(!await confirmarAcao('Confirma a exclusão do usuário "'+nome+'"?\n\nEsta ação não pode ser desfeita.',{titulo:'Excluir usuário',textoSim:'Excluir',perigo:true}))return;
   try{
     // Remover acessos do usuário
     await api('usuario_acessos?usuario_id=eq.'+id,{method:'DELETE'}).catch(()=>{});
@@ -4517,7 +4517,7 @@ async function excluirUsuario(id, nome){
     document.body.appendChild(msg);
     setTimeout(()=>msg.remove(),3000);
     recarregarUsuarios();
-  }catch(e){alert('Erro ao excluir: '+e.message);}
+  }catch(e){toast('Erro ao excluir: '+e.message,'error');}
 }
 
 async function openModalAcessos(userId, perfil, nomeUsuario){
@@ -4634,8 +4634,8 @@ function salvarNovoModelo(){
   setTimeout(()=>{closeModal('modal-novo-modelo-wpp');carregarWhatsApp();},800);
 }
 
-function excluirModeloCustom(id){
-  if(!confirm('Excluir este modelo?'))return;
+async function excluirModeloCustom(id){
+  if(!await confirmarAcao('Deseja excluir este modelo?',{titulo:'Excluir modelo',textoSim:'Excluir',perigo:true}))return;
   localStorage.removeItem(id);
   const lista=JSON.parse(localStorage.getItem('wpp_custom_ids')||'[]').filter(x=>x.id!==id);
   localStorage.setItem('wpp_custom_ids',JSON.stringify(lista));
@@ -4746,17 +4746,17 @@ function abrirConfiguracaoIA(){
   const novo=prompt(msg,'');
   if(novo===null)return;
   const chave=novo.trim();
-  if(!chave){alert('Chave não pode ser vazia.');return;}
+  if(!chave){toast('Chave não pode ser vazia.','error');return;}
   localStorage.setItem('groq_api_key', chave);
-  alert('✅ Chave Groq salva! ('+chave.length+' chars)\nPrimeiros 8: '+chave.substring(0,8));
+  toast('✅ Chave Groq salva! ('+chave.length+' chars)\nPrimeiros 8: '+chave.substring(0,8),'success');
   carregarAnaliseIA();
 }
 
 function salvarApiKeyIA(){
   const key=document.getElementById('ia-api-key-input')?.value?.trim();
-  if(!key||!key.startsWith('sk-ant-')){alert('Chave inválida. Deve começar com sk-ant-');return;}
+  if(!key||!key.startsWith('sk-ant-')){toast('Chave inválida. Deve começar com sk-ant-','error');return;}
   localStorage.setItem('anthropic_api_key',key);
-  alert('Chave salva com sucesso!');
+  toast('Chave salva com sucesso!','success');
   carregarAnaliseIA();
 }
 
@@ -4809,8 +4809,8 @@ function renderHistoricoIA(){
   hist.scrollTop=hist.scrollHeight;
 }
 
-function limparHistoricoIA(){
-  if(!confirm('Limpar o histórico da conversa e começar uma nova?'))return;
+async function limparHistoricoIA(){
+  if(!await confirmarAcao('Limpar o histórico da conversa e começar uma nova?',{titulo:'Limpar histórico',textoSim:'Limpar'}))return;
   window._iaChatHistory=[];
   renderHistoricoIA();
   const res=document.getElementById('ia-resultado');if(res)res.innerHTML='';
@@ -4818,7 +4818,7 @@ function limparHistoricoIA(){
 
 async function executarPerguntaIA(){
   const pergunta=document.getElementById('ia-pergunta-livre')?.value?.trim();
-  if(!pergunta){alert('Digite uma pergunta antes de enviar.');return;}
+  if(!pergunta){toast('Digite uma pergunta antes de enviar.','error');return;}
   const resultado=document.getElementById('ia-resultado');
   const pf=currentUser.perfil||'master';
   // Adicionar pergunta ao histórico
@@ -4938,7 +4938,7 @@ function _fmtV(v){return v!=null?'R$ '+parseFloat(v).toFixed(2).replace('.',',')
 function _fmtD(s){if(!s)return '-';return new Date(s+'T12:00').toLocaleDateString('pt-BR');}
 function _fmtDT(s){if(!s)return '-';return new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 
-function _checkDados(){const d=window._relDadosPDF;if(!d){alert('Gere o relatório primeiro.');return null;}return d;}
+function _checkDados(){const d=window._relDadosPDF;if(!d){toast('Gere o relatório primeiro.','error');return null;}return d;}
 
 function _pdfBase(titulo,periodo,emp,conteudo){
   const emissao=new Date().toLocaleString('pt-BR');
@@ -5331,25 +5331,25 @@ async function carregarPostagemPedidos(){
 
 async function salvarRastreioPost(compraId, nomeProduto, clienteId){
   const codigo=document.getElementById('rastreio-post-'+compraId)?.value?.trim();
-  if(!codigo){alert('Informe o código de rastreio.');return;}
+  if(!codigo){toast('Informe o código de rastreio.','error');return;}
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({codigo_rastreio:codigo,status_entrega:'postado',rastreio_atualizado_em:new Date().toISOString()})});
     const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email');
     if(cli&&cli[0]?.email) await emailPedidoPostado(cli[0].nome,cli[0].email,nomeProduto,codigo);
-    alert('✅ Código salvo e email enviado para o cliente!');
+    toast('✅ Código salvo e email enviado para o cliente!','success');
     carregarPostagemPedidos();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 async function marcarProntoRetiradaPost(compraId, nomeProduto, clienteId){
-  if(!confirm('Marcar pedido como pronto para retirada?'))return;
+  if(!await confirmarAcao('Marcar pedido como pronto para retirada?',{titulo:'Pronto para retirada',textoSim:'Marcar'}))return;
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({status_entrega:'pronto_retirada'})});
     const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email');
     if(cli&&cli[0]?.email) await emailProntoRetirada(cli[0].nome,cli[0].email,nomeProduto);
-    alert('✅ Cliente notificado!');
+    toast('✅ Cliente notificado!','success');
     carregarPostagemPedidos();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 async function marcarEntregue(compraId){
@@ -5565,7 +5565,7 @@ async function carregarClientes(filtro=''){
 }
 function buscarClientes(){carregarClientes(document.getElementById('cli-busca')?.value?.trim()||'');}
 function limparBuscaCli(){const el=document.getElementById('cli-busca');if(el)el.value='';carregarClientes();}
-async function toggleCliente(id,ativo){try{await api('clientes?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});carregarClientes(document.getElementById('cli-busca')?.value||'');}catch(e){alert('Erro: '+e.message);}}
+async function toggleCliente(id,ativo){try{await api('clientes?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});carregarClientes(document.getElementById('cli-busca')?.value||'');}catch(e){toast('Erro: '+e.message,'error');}}
 
 async function openModalCliente(mode,id){
   editingClienteId=null;
@@ -5672,7 +5672,7 @@ async function carregarFornecedores(filtro=''){
 }
 function buscarFornecedores(){carregarFornecedores(document.getElementById('forn-busca')?.value?.trim()||'');}
 function limparBuscaForn(){const el=document.getElementById('forn-busca');if(el)el.value='';carregarFornecedores();}
-async function toggleFornecedor(id,ativo){try{await api('fornecedores?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});carregarFornecedores(document.getElementById('forn-busca')?.value||'');}catch(e){alert('Erro: '+e.message);}}
+async function toggleFornecedor(id,ativo){try{await api('fornecedores?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});carregarFornecedores(document.getElementById('forn-busca')?.value||'');}catch(e){toast('Erro: '+e.message,'error');}}
 
 async function openModalFornecedor(mode,id){
   editingFornecedorId=null;
@@ -5802,9 +5802,9 @@ function removerMedidaProduto(valor){
 
 function onProdFotosChange(event){
   const files=Array.from(event.target.files);const restante=10-prodFotosArray.length;
-  if(restante<=0){alert('Limite de 10 fotos atingido.');return;}
+  if(restante<=0){toast('Limite de 10 fotos atingido.','info');return;}
   files.slice(0,restante).forEach(file=>{
-    if(file.size>2*1024*1024){alert(file.name+' excede 2MB.');return;}
+    if(file.size>2*1024*1024){toast(file.name+' excede 2MB.','error');return;}
     const reader=new FileReader();reader.onload=e=>{prodFotosArray.push({src:e.target.result,cor:''});renderProdFotosGrid();};reader.readAsDataURL(file);
   });
   event.target.value='';
@@ -5874,9 +5874,9 @@ async function abrirGaleriaFromProd(id,nome){
     let fotos=[];
     if(p.imagens_base64&&p.imagens_base64.length)fotos=Array.isArray(p.imagens_base64)?p.imagens_base64:JSON.parse(p.imagens_base64||'[]');
     else if(p.imagem_base64)fotos=[p.imagem_base64];
-    if(!fotos.length){alert('Este produto não tem fotos.');return;}
+    if(!fotos.length){toast('Este produto não tem fotos.','info');return;}
     abrirGaleria(fotos,nome);
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 async function carregarProdutos(filtro=''){
@@ -5920,7 +5920,7 @@ async function carregarProdutos(filtro=''){
 }
 function buscarProdutos(){carregarProdutos(document.getElementById('prod-busca')?.value?.trim()||'');}
 function limparBuscaProd(){const el=document.getElementById('prod-busca');if(el)el.value='';carregarProdutos();}
-async function toggleProduto(id,ativo){try{await api('produtos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});carregarProdutos(document.getElementById('prod-busca')?.value||'');}catch(e){alert('Erro: '+e.message);}}
+async function toggleProduto(id,ativo){try{await api('produtos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});carregarProdutos(document.getElementById('prod-busca')?.value||'');}catch(e){toast('Erro: '+e.message,'error');}}
 
 async function openModalProduto(mode,id){
   editingProdutoId=null;prodFotosArray=[];
@@ -6085,7 +6085,7 @@ async function carregarServicos(filtro=''){
 }
 function buscarServicos(){carregarServicos(document.getElementById('serv-busca')?.value?.trim()||'');}
 function limparBuscaServ(){const el=document.getElementById('serv-busca');if(el)el.value='';carregarServicos();}
-async function toggleServico(id,ativo){try{await api('servicos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});carregarServicos(document.getElementById('serv-busca')?.value||'');}catch(e){alert('Erro: '+e.message);}}
+async function toggleServico(id,ativo){try{await api('servicos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({ativo,alterado_em:new Date().toISOString()})});carregarServicos(document.getElementById('serv-busca')?.value||'');}catch(e){toast('Erro: '+e.message,'error');}}
 async function openModalServico(mode,id){
   editingServicoId=null;const msg=document.getElementById('modal-serv-msg');if(msg)msg.style.display='none';
   const hint=document.getElementById('serv-duracao-hint');if(hint)hint.textContent='';
@@ -6249,7 +6249,7 @@ async function excluirMedidaSelecionada(){
   const valor=sel.value;
   if(!valor){showMM('modal-est-msg','Selecione a medida que deseja excluir.','error');return;}
   if(!_estProdutoId){showMM('modal-est-msg','Selecione um produto.','error');return;}
-  if(!confirm('Excluir a medida "'+valor+'" da lista deste produto?\n\nIsso só remove a opção da lista; o estoque já existente nessa medida não é apagado.'))return;
+  if(!await confirmarAcao('Excluir a medida "'+valor+'" da lista deste produto?\n\nIsso só remove a opção da lista; o estoque já existente nessa medida não é apagado.',{titulo:'Excluir medida',textoSim:'Excluir',perigo:true}))return;
   const c=normalizarMedidasCustom(_estMedidasCustom);
   c.add=c.add.filter(m=>m!==valor);
   const base=MEDIDAS_POR_UNIDADE[_estUnidadeAtual]||[];
@@ -6301,7 +6301,7 @@ async function excluirCorSelecionada(){
   const valor=sel.value;
   if(!valor){showMM('modal-est-msg','Selecione a cor que deseja excluir.','error');return;}
   if(!_estProdutoId){showMM('modal-est-msg','Selecione um produto.','error');return;}
-  if(!confirm('Excluir a cor "'+valor+'" da lista deste produto?\n\nIsso só remove a opção da lista; o estoque já existente nessa cor não é apagado.'))return;
+  if(!await confirmarAcao('Excluir a cor "'+valor+'" da lista deste produto?\n\nIsso só remove a opção da lista; o estoque já existente nessa cor não é apagado.',{titulo:'Excluir cor',textoSim:'Excluir',perigo:true}))return;
   const c=normalizarMedidasCustom(_estCoresCustom);
   c.add=c.add.filter(x=>x.toLowerCase()!==valor.toLowerCase());
   if(CORES_PADRAO.includes(valor)&&!c.remove.includes(valor))c.remove.push(valor);
@@ -6722,8 +6722,8 @@ async function exportarEstoqueExcel(){
   const pf=currentUser.perfil||'master';
   try{
     const rows=await api('estoque_saldo?select=quantidade,genero,tamanho,produtos(nome,codigo,estoque_minimo,estoque_maximo,unidade,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=produtos(nome).asc');
-    if(!rows||!rows.length){alert('Nenhum dado de estoque para exportar.');return;}
-    const XLSX=window.XLSX;if(!XLSX){alert('Biblioteca XLSX não carregada.');return;}
+    if(!rows||!rows.length){toast('Nenhum dado de estoque para exportar.','info');return;}
+    const XLSX=window.XLSX;if(!XLSX){toast('Biblioteca XLSX não carregada.','info');return;}
     const ws_data=[['Produto','Código','Gênero','Tamanho','Saldo Atual','Estoque Mín.','Estoque Máx.','Unidade','Ativo']];
     rows.forEach(r=>{
       const p=r.produtos||{};
@@ -6732,14 +6732,14 @@ async function exportarEstoqueExcel(){
     const ws=XLSX.utils.aoa_to_sheet(ws_data);
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Estoque');
     XLSX.writeFile(wb,'estoque_atual_'+hojeLocalStr()+'.xlsx');
-  }catch(e){alert('Erro ao exportar: '+e.message);}
+  }catch(e){toast('Erro ao exportar: '+e.message,'error');}
 }
 
 async function exportarEstoquePDF(){
   const pf=currentUser.perfil||'master';
   try{
     const rows=await api('estoque_saldo?select=quantidade,genero,tamanho,produtos(nome,codigo,estoque_minimo,ativo)&perfil_codigo=eq.'+encodeURIComponent(pf)+'&order=produtos(nome).asc');
-    if(!rows||!rows.length){alert('Nenhum dado de estoque para exportar.');return;}
+    if(!rows||!rows.length){toast('Nenhum dado de estoque para exportar.','info');return;}
     const emp=empresaConfig?.nome_empresa||perfilNome(pf)||'Gestão de Negócios';
     const hoje=new Date().toLocaleDateString('pt-BR');
     const total=rows.reduce((s,r)=>s+parseFloat(r.quantidade||0),0);
@@ -6759,7 +6759,7 @@ async function exportarEstoquePDF(){
       +'<div style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:10px 24px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">🖨️ Imprimir</button></div>'
       +'</body></html>';
     const win=window.open('','_blank');win.document.write(html);win.document.close();
-  }catch(e){alert('Erro ao exportar PDF: '+e.message);}
+  }catch(e){toast('Erro ao exportar PDF: '+e.message,'error');}
 }
 
 function openModalImportacaoEstoque(){
@@ -6892,7 +6892,7 @@ async function carregarAgendamentos(filtro=''){
 }
 function buscarAgendamentos(){carregarAgendamentos(document.getElementById('ag-busca')?.value?.trim()||'');}
 function limparBuscaAg(){const el=document.getElementById('ag-busca');if(el)el.value='';const es=document.getElementById('ag-filtro-status');if(es)es.value='';carregarAgendamentos();}
-async function alterarStatusAg(id,status){try{await api('agendamentos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status,alterado_em:new Date().toISOString()})});carregarAgendamentos(document.getElementById('ag-busca')?.value||'');if(agVistaAtual==='calendario')renderCalendario();}catch(e){alert('Erro: '+e.message);}}
+async function alterarStatusAg(id,status){try{await api('agendamentos?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status,alterado_em:new Date().toISOString()})});carregarAgendamentos(document.getElementById('ag-busca')?.value||'');if(agVistaAtual==='calendario')renderCalendario();}catch(e){toast('Erro: '+e.message,'error');}}
 
 function agModoVista(modo){
   agVistaAtual=modo;
@@ -7348,7 +7348,7 @@ async function editarGasto(id){
   // Buscar dados atuais do registro
   try{
     const rows=await api('financeiro_lancamentos?id=eq.'+id+'&select=id,descricao,valor,data_vencimento,observacoes');
-    if(!rows||!rows.length){alert('Registro não encontrado.');return;}
+    if(!rows||!rows.length){toast('Registro não encontrado.','error');return;}
     const l=rows[0];
     const obs=String(l.observacoes||'');
     const cat=obs.startsWith('GASTO_LOJA:')?obs.slice('GASTO_LOJA:'.length).split('|')[0].trim():'';
@@ -7361,7 +7361,7 @@ async function editarGasto(id){
     document.getElementById('edit-gasto-msg').style.display='none';
     modal._editId=id;
     modal.style.display='flex';
-  }catch(e){alert('Erro ao carregar gasto: '+e.message);}
+  }catch(e){toast('Erro ao carregar gasto: '+e.message,'error');}
 }
 
 function fecharModalGasto(){
@@ -7399,11 +7399,11 @@ async function salvarEdicaoGasto(){
   }catch(e){showMsg('Erro: '+e.message,'error');}
 }
 async function cancelarGasto(id){
-  if(!confirm('Excluir este gasto? Ele será removido dos lançamentos financeiros.'))return;
+  if(!await confirmarAcao('Este gasto será removido dos lançamentos financeiros.',{titulo:'Excluir gasto',textoSim:'Excluir',perigo:true}))return;
   try{
     await api('financeiro_lancamentos?id=eq.'+id,{method:'DELETE'});
     carregarGastos(window._gastosMesFiltro);carregarDashboard();
-  }catch(e){alert('Erro ao excluir: '+e.message);}
+  }catch(e){toast('Erro ao excluir: '+e.message,'error');}
 }
 
 // ── FRETES (controle de gastos com frete por venda do site) ────────
@@ -7494,11 +7494,11 @@ function onFretesFiltroDiaChange(){
 }
 
 async function cancelarFrete(id){
-  if(!confirm('Excluir este registro de frete?'))return;
+  if(!await confirmarAcao('Deseja excluir este registro de frete?',{titulo:'Excluir frete',textoSim:'Excluir',perigo:true}))return;
   try{
     await api('fretes_pedidos?id=eq.'+id,{method:'DELETE'});
     carregarFretes(window._fretesMesFiltro,window._fretesDiaFiltro);carregarDashboard();
-  }catch(e){alert('Erro ao excluir: '+e.message);}
+  }catch(e){toast('Erro ao excluir: '+e.message,'error');}
 }
 
 // ── TAXAS MP ─────────────────────────────────────────────────────
@@ -7649,7 +7649,7 @@ async function carregarLancamentos(){
 }
 
 async function mudarStatusLan(id,status){
-  try{const body={status,alterado_em:new Date().toISOString()};if(status==='pago')body.data_pagamento=hojeLocalStr();await api('financeiro_lancamentos?id=eq.'+id,{method:'PATCH',body:JSON.stringify(body)});carregarLancamentos();carregarDashboard();}catch(e){alert('Erro: '+e.message);}
+  try{const body={status,alterado_em:new Date().toISOString()};if(status==='pago')body.data_pagamento=hojeLocalStr();await api('financeiro_lancamentos?id=eq.'+id,{method:'PATCH',body:JSON.stringify(body)});carregarLancamentos();carregarDashboard();}catch(e){toast('Erro: '+e.message,'error');}
 }
 
 async function carregarCaixa(){
@@ -7684,7 +7684,7 @@ async function carregarCaixa(){
   }catch(e){tbody.innerHTML='<tr><td colspan="6" class="empty">Erro: '+e.message+'</td></tr>';}
 }
 
-async function deletarMovCaixa(id){if(!confirm('Remover este movimento?'))return;try{await api('caixa_movimentos?id=eq.'+id,{method:'DELETE'});carregarCaixa();}catch(e){alert('Erro: '+e.message);}}
+async function deletarMovCaixa(id){if(!await confirmarAcao('Deseja remover este movimento?',{titulo:'Remover movimento',textoSim:'Remover',perigo:true}))return;try{await api('caixa_movimentos?id=eq.'+id,{method:'DELETE'});carregarCaixa();}catch(e){toast('Erro: '+e.message,'error');}}
 
 async function popularSelectCategorias(elId,tipo){
   const sel=document.getElementById(elId);if(!sel)return;
@@ -7832,7 +7832,7 @@ async function gerarComprovante(id){
       +'<div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 24px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">🖨️ Imprimir</button></div>'
       +'</body></html>';
     const win=window.open('','_blank');win.document.write(html);win.document.close();
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 
@@ -7929,7 +7929,7 @@ async function emailCancelamentoFinalizado(nomeCliente, emailCliente, nomeProdut
 
 // ── CONFIRMAR PAGAMENTO (temporário — remover na integração Mercado Pago) ──
 async function confirmarPagamentoCompra(compraId, nomeProduto, clienteId){
-  if(!confirm('Confirmar pagamento deste pedido?')) return;
+  if(!await confirmarAcao('Confirmar pagamento deste pedido?',{titulo:'Confirmar pagamento',textoSim:'Confirmar'})) return;
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({pagamento_confirmado:true})});
     // Buscar dados do cliente para disparar email
@@ -7939,9 +7939,9 @@ async function confirmarPagamentoCompra(compraId, nomeProduto, clienteId){
     }
     const sub=document.getElementById('hist-compras-sub')?.textContent?.replace('Cliente: ','');
     if(cli&&cli[0]?.email){
-      alert('✅ Pagamento confirmado e email enviado para '+cli[0].email);
+      toast('✅ Pagamento confirmado e email enviado para '+cli[0].email,'success');
     } else {
-      alert('✅ Pagamento confirmado!');
+      toast('✅ Pagamento confirmado!','success');
     }
     consultarHistoricoCompras(clienteId, sub||'');
   }catch(e){ showToast('Erro: '+e.message,'error'); }
@@ -7958,7 +7958,7 @@ async function emailPagamentoConfirmado(nomeCliente, emailCliente, nomeProduto){
 async function verDadosPostagem(compraId){
   try{
     const rows=await api('cliente_compras?id=eq.'+compraId+'&select=*,produtos(nome),clientes(nome,telefone,cep,endereco,numero,complemento,bairro,cidade,estado)');
-    if(!rows||!rows.length){alert('Compra não encontrada.');return;}
+    if(!rows||!rows.length){toast('Compra não encontrada.','error');return;}
     const c=rows[0];
     const cli=c.clientes||{};
     const prod=c.produtos?.nome||'—';
@@ -8000,12 +8000,12 @@ Qtd: ${c.quantidade||1} | Tam: ${c.tamanho||'—'} | ${c.genero||''}
     document.getElementById('btn-copiar-postagem').addEventListener('click',function(){
       navigator.clipboard.writeText(msg).then(()=>{this.textContent='✅ Copiado!';}).catch(()=>{});
     });
-  }catch(e){alert('Erro ao buscar dados: '+e.message);}
+  }catch(e){toast('Erro ao buscar dados: '+e.message,'error');}
 }
 
 async function salvarRastreio(compraId, nomeProduto, clienteId){
   const codigo=document.getElementById('rastreio-'+compraId)?.value?.trim();
-  if(!codigo){alert('Informe o código de rastreio.');return;}
+  if(!codigo){toast('Informe o código de rastreio.','error');return;}
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({
       codigo_rastreio:codigo,
@@ -8015,13 +8015,13 @@ async function salvarRastreio(compraId, nomeProduto, clienteId){
     const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email').catch(()=>[]);
     if(cli&&cli[0]&&cli[0].email){
       await emailPedidoPostado(cli[0].nome,cli[0].email,nomeProduto,codigo);
-      alert('✅ Rastreio salvo e email enviado para '+cli[0].email);
+      toast('✅ Rastreio salvo e email enviado para '+cli[0].email,'success');
     } else {
-      alert('✅ Rastreio salvo! (cliente sem email cadastrado)');
+      toast('✅ Rastreio salvo! (cliente sem email cadastrado)','success');
     }
     const sub=document.getElementById('hist-compras-sub').textContent.replace('Cliente: ','');
     consultarHistoricoCompras(clienteId,sub);
-  }catch(e){alert('Erro ao salvar: '+e.message);}
+  }catch(e){toast('Erro ao salvar: '+e.message,'error');}
 }
 
 
@@ -8034,7 +8034,7 @@ async function emailPedidoEntregue(nomeCliente, emailCliente, nomeProduto){
 }
 
 async function marcarProntoRetirada(compraId, nomeProduto, clienteId){
-  if(!confirm('Confirmar que o produto está pronto para retirada?'))return;
+  if(!await confirmarAcao('Confirmar que o produto está pronto para retirada?',{titulo:'Pronto para retirada',textoSim:'Confirmar'}))return;
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({
       status_entrega:'pronto_retirada',
@@ -8043,13 +8043,13 @@ async function marcarProntoRetirada(compraId, nomeProduto, clienteId){
     const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email').catch(()=>[]);
     if(cli&&cli[0]&&cli[0].email){
       await emailProntoRetirada(cli[0].nome,cli[0].email,nomeProduto);
-      alert('✅ Status atualizado e email enviado para '+cli[0].email);
+      toast('✅ Status atualizado e email enviado para '+cli[0].email,'success');
     } else {
-      alert('✅ Status atualizado! (cliente sem email cadastrado)');
+      toast('✅ Status atualizado! (cliente sem email cadastrado)','success');
     }
     const sub=document.getElementById('hist-compras-sub').textContent.replace('Cliente: ','');
     consultarHistoricoCompras(clienteId,sub);
-  }catch(e){alert('Erro: '+e.message);}
+  }catch(e){toast('Erro: '+e.message,'error');}
 }
 
 </script>
