@@ -776,6 +776,19 @@
   </div>
 </div>
 
+<!-- MODAL INPUT DE TEXTO (padrão do sistema — substitui o prompt() do navegador) -->
+<div class="modal-overlay" id="modal-prompt" style="z-index:400">
+  <div class="modal modal-sm" style="max-width:440px">
+    <div class="modal-title" id="prompt-titulo">Informe um valor</div>
+    <div id="prompt-corpo" style="font-size:14px;color:var(--text2);line-height:1.7;margin:10px 0 8px;white-space:pre-line"></div>
+    <input type="text" id="prompt-input" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();_resolverPrompt(true);}else if(event.key==='Escape'){_resolverPrompt(false);}">
+    <div class="modal-actions">
+      <button class="btn-cancel" id="prompt-btn-nao" onclick="_resolverPrompt(false)">Cancelar</button>
+      <button class="btn-save" id="prompt-btn-sim" onclick="_resolverPrompt(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST / NOTIFICAÇÃO (padrão do sistema) -->
 <div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:10px;pointer-events:none"></div>
 
@@ -1237,6 +1250,33 @@ function confirmarAcao(mensagem,opcoes){
 function _resolverConfirm(valor){
   closeModal('modal-confirmacao');
   if(_confirmResolver){const r=_confirmResolver;_confirmResolver=null;r(valor);}
+}
+
+// ── Input de texto no padrão do sistema (substitui o prompt() do navegador) ──
+let _promptResolver=null;
+function pedirTexto(mensagem,opcoes){
+  opcoes=opcoes||{};
+  return new Promise(resolve=>{
+    _promptResolver=resolve;
+    const tit=document.getElementById('prompt-titulo');
+    const corpo=document.getElementById('prompt-corpo');
+    const inp=document.getElementById('prompt-input');
+    const btnSim=document.getElementById('prompt-btn-sim');
+    const btnNao=document.getElementById('prompt-btn-nao');
+    if(tit)tit.textContent=opcoes.titulo||'Informe um valor';
+    if(corpo){corpo.textContent=mensagem||'';corpo.style.display=mensagem?'':'none';}
+    if(inp){inp.value=opcoes.valorInicial||'';inp.placeholder=opcoes.placeholder||'';}
+    if(btnSim)btnSim.textContent=opcoes.textoSim||'Confirmar';
+    if(btnNao)btnNao.textContent=opcoes.textoNao||'Cancelar';
+    openModal('modal-prompt');
+    setTimeout(()=>{if(inp){inp.focus();inp.select();}},50);
+  });
+}
+function _resolverPrompt(ok){
+  const inp=document.getElementById('prompt-input');
+  const valor=ok&&inp?inp.value:null;
+  closeModal('modal-prompt');
+  if(_promptResolver){const r=_promptResolver;_promptResolver=null;r(valor);}
 }
 
 // ── Toast / notificação no padrão do sistema (substitui o toast(,'info') de sucesso) ──
@@ -4738,12 +4778,12 @@ function carregarAnaliseIA(){
 }
 
 
-function abrirConfiguracaoIA(){
+async function abrirConfiguracaoIA(){
   const keyAtual=localStorage.getItem('groq_api_key')||'';
   const msg=keyAtual
     ?'Chave atual: '+keyAtual.substring(0,8)+'... ('+keyAtual.length+' chars)\n\nCole a nova chave abaixo:'
     :'Cole sua API Key do Groq (começa com gsk_):\n\nObtida gratuitamente em console.groq.com';
-  const novo=prompt(msg,'');
+  const novo=await pedirTexto(msg,{titulo:'Configuração da IA',placeholder:'gsk_...'});
   if(novo===null)return;
   const chave=novo.trim();
   if(!chave){toast('Chave não pode ser vazia.','error');return;}
@@ -5829,11 +5869,11 @@ function renderProdFotosGrid(){
       +'</div>';
   }).join('');
 }
-function setProdFotoCor(idx,cor){
+async function setProdFotoCor(idx,cor){
   if(!prodFotosArray[idx])return;
   // Opção "Nova cor..." → pede o nome e cadastra
   if(cor==='__nova__'){
-    const nova=prompt('Nome da nova cor:');
+    const nova=await pedirTexto('Digite o nome da cor que deseja adicionar à lista deste produto.',{titulo:'Nova cor',placeholder:'Ex.: Verde Militar'});
     if(!nova||!nova.trim()){renderProdFotosGrid();return;}
     const valor=nova.trim().replace(/\s+/g,' ').replace(/\b\p{L}/gu,c=>c.toUpperCase());
     // Adiciona às cores personalizadas do produto (em memória; salva junto com o produto)
