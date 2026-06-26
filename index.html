@@ -88,6 +88,77 @@
   .btn-deact{border-color:var(--warn);color:var(--warn);background:transparent;}
   .btn-deact:hover{background:rgba(212,168,67,.15);}
   .btn-react{border-color:var(--success);color:var(--success);background:transparent;}
+
+  /* ─── BOTÃO HAMBÚRGUER (oculto no desktop) ─── */
+  .btn-hamburger{display:none;background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;flex-shrink:0;}
+
+  /* ─── OVERLAY DO MENU MOBILE ─── */
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;}
+  .sidebar-overlay.open{display:block;}
+
+  /* ─── MEDIA QUERY MOBILE ─── */
+  @media(max-width:768px){
+
+    /* Hambúrguer visível */
+    .btn-hamburger{display:block;}
+
+    /* Topbar compacta */
+    .topbar{padding:0 14px;gap:10px;}
+    .topbar-title{font-size:11px;letter-spacing:1px;}
+    .topbar-user{gap:6px;}
+    #top-username{display:none;}
+    .btn-logout{font-size:10px;padding:4px 8px;}
+    #btn-diag{font-size:9px;padding:3px 6px;}
+
+    /* Sidebar vira gaveta lateral */
+    .sidebar{
+      position:fixed;top:0;left:0;height:100vh;
+      width:260px;z-index:200;
+      transform:translateX(-100%);
+      transition:transform .25s ease;
+      overflow-y:auto;
+      padding-top:64px;
+    }
+    .sidebar.mobile-open{transform:translateX(0);}
+
+    /* Layout empilha sidebar e conteúdo */
+    .layout{flex-direction:column;}
+
+    /* Área de conteúdo ocupa tudo */
+    .content{padding:14px;overflow-x:hidden;}
+
+    /* Formulários: 1 coluna */
+    .form-grid{grid-template-columns:1fr!important;}
+    .col-1,.col-2{grid-column:span 1!important;}
+
+    /* Cabeçalho dos painéis */
+    .panel-header{flex-direction:column;align-items:flex-start;gap:8px;}
+    .panel-actions{flex-wrap:wrap;gap:6px;}
+    .panel-title{font-size:15px;}
+
+    /* Barra de busca empilha */
+    .search-bar{flex-direction:column;}
+    .search-bar input{width:100%;}
+
+    /* Barra de filtros empilha */
+    .filtro-bar{flex-direction:column;align-items:flex-start;gap:8px;}
+    .filtro-bar select{min-width:100%!important;width:100%;}
+
+    /* Tabelas: scroll horizontal */
+    .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    table{min-width:520px;}
+
+    /* Modais: tela cheia no mobile */
+    .modal{width:96vw!important;max-width:96vw!important;padding:20px 16px;}
+    .modal-actions{flex-direction:column-reverse;gap:8px;}
+    .modal-actions button{width:100%;}
+
+    /* Cards de info */
+    .info-card{flex-direction:column;gap:10px;}
+
+    /* Botões de ação menores */
+    .btn-new,.btn-secondary{font-size:11px;padding:7px 12px;}
+  }
   .btn-react:hover{background:rgba(76,175,125,.15);}
   .btn-access{border-color:#a78bfa;color:#a78bfa;background:transparent;}
   .btn-access:hover{background:rgba(167,139,250,.15);}
@@ -210,6 +281,7 @@
 <!-- MAIN -->
 <div id="screen-main">
   <div class="topbar">
+    <button class="btn-hamburger" id="btn-hamburger" onclick="toggleSidebarMobile()" aria-label="Menu">☰</button>
     <span class="topbar-title" id="topbar-title">Gestão de Negócios</span>
     <div class="topbar-user">
       <div class="avatar" id="top-avatar">M</div>
@@ -219,6 +291,7 @@
     </div>
   </div>
   <div id="diag-bar" style="display:none;background:#1a1200;border-bottom:1px solid #d4a843;padding:6px 24px;font-size:11px;color:#d4a843;font-family:monospace"></div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebarMobile()"></div>
   <div class="layout">
     <nav class="sidebar" id="sidebar"></nav>
     <div class="content" id="content-area"></div>
@@ -1919,6 +1992,7 @@ function showPanel(name){
   if(name==='clientes'){ carregarClientes(); carregarPostagemPedidos(); }
   if(name==='labels')   carregarLabelsTabela();
   if(name==='config-empresa') carregarListaEmpresas();
+  closeSidebarMobile();
 }
 
 // ─── PAINEL: GESTÃO DE USUÁRIOS ───────────────────────────────────
@@ -5345,11 +5419,11 @@ async function carregarPostagemPedidos(){
         acaoHtml=`
           <div style="font-size:12px;font-weight:700;color:var(--accent)">📦 ${c.codigo_rastreio}</div>
           <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${c.codigo_rastreio}" target="_blank" style="display:inline-block;margin-top:4px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Rastrear</a>
-          <button onclick="marcarEntregue(${c.id},'${prod.replace(/'/g,'').slice(0,40)}',${c.cliente_id})" style="margin-top:6px;display:block;padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>`;
+          <button onclick="marcarEntregue(${c.id})" style="margin-top:6px;display:block;padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>`;
       } else if(c.status_entrega==='pronto_retirada'){
         acaoHtml=`<div style="display:flex;flex-direction:column;gap:6px">
           <span style="font-size:12px;font-weight:700;color:var(--success)">🏪 Pronto p/ Retirada</span>
-          <button onclick="marcarEntregue(${c.id},'${prod.replace(/'/g,'').slice(0,40)}',${c.cliente_id})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>
+          <button onclick="marcarEntregue(${c.id})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>
         </div>`;
       } else {
         acaoHtml=`<button onclick="marcarProntoRetiradaPost(${c.id},'${prod.replace(/'/g,'').slice(0,40)}',${c.cliente_id})" style="padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>`;
@@ -5392,22 +5466,12 @@ async function marcarProntoRetiradaPost(compraId, nomeProduto, clienteId){
   }catch(e){toast('Erro: '+e.message,'error');}
 }
 
-async function marcarEntregue(compraId, nomeProduto, clienteId){
+async function marcarEntregue(compraId){
   const ok=await confirmarAcao('Confirmar entrega do pedido?',{titulo:'Confirmar entrega',textoSim:'Sim, entregue',textoNao:'Voltar'});
   if(!ok)return;
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({status_entrega:'entregue'})});
-    if(clienteId){
-      const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email').catch(()=>[]);
-      if(cli&&cli[0]?.email){
-        await emailPedidoEntregue(cli[0].nome,cli[0].email,nomeProduto||'');
-        toast('✅ Pedido marcado como entregue e e-mail enviado para '+cli[0].email,'success');
-      } else {
-        toast('✅ Pedido marcado como entregue! (cliente sem e-mail cadastrado)','success');
-      }
-    } else {
-      toast('Pedido marcado como entregue!','success');
-    }
+    toast('Pedido marcado como entregue!','success');
     carregarPostagemPedidos();
   }catch(e){toast('Erro: '+e.message,'error');}
 }
@@ -8149,5 +8213,30 @@ async function marcarProntoRetirada(compraId, nomeProduto, clienteId){
   </div>
 </div>
 
+
+<script>
+/* ─── MOBILE SIDEBAR ─── */
+function toggleSidebarMobile(){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sidebar-overlay');
+  if(!sb||!ov)return;
+  const isOpen=sb.classList.contains('mobile-open');
+  if(isOpen){ closeSidebarMobile(); } else { openSidebarMobile(); }
+}
+function openSidebarMobile(){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sidebar-overlay');
+  if(sb)sb.classList.add('mobile-open');
+  if(ov)ov.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeSidebarMobile(){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sidebar-overlay');
+  if(sb)sb.classList.remove('mobile-open');
+  if(ov)ov.classList.remove('open');
+  document.body.style.overflow='';
+}
+</script>
 </body>
 </html>
