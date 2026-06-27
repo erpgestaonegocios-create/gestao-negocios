@@ -5419,11 +5419,11 @@ async function carregarPostagemPedidos(){
         acaoHtml=`
           <div style="font-size:12px;font-weight:700;color:var(--accent)">📦 ${c.codigo_rastreio}</div>
           <a href="https://rastreamento.correios.com.br/app/index.php?objetos=${c.codigo_rastreio}" target="_blank" style="display:inline-block;margin-top:4px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;text-decoration:none">🔍 Rastrear</a>
-          <button onclick="marcarEntregue(${c.id})" style="margin-top:6px;display:block;padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>`;
+          <button onclick="marcarEntregue(${c.id},'${prod.replace(/'/g,'').slice(0,40)}',${c.cliente_id})" style="margin-top:6px;display:block;padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>`;
       } else if(c.status_entrega==='pronto_retirada'){
         acaoHtml=`<div style="display:flex;flex-direction:column;gap:6px">
           <span style="font-size:12px;font-weight:700;color:var(--success)">🏪 Pronto p/ Retirada</span>
-          <button onclick="marcarEntregue(${c.id})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>
+          <button onclick="marcarEntregue(${c.id},'${prod.replace(/'/g,'').slice(0,40)}',${c.cliente_id})" style="padding:6px 12px;background:#1e3f7a;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Marcar como Entregue</button>
         </div>`;
       } else {
         acaoHtml=`<button onclick="marcarProntoRetiradaPost(${c.id},'${prod.replace(/'/g,'').slice(0,40)}',${c.cliente_id})" style="padding:6px 12px;background:var(--success);border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">✅ Pronto p/ Retirada</button>`;
@@ -5466,12 +5466,22 @@ async function marcarProntoRetiradaPost(compraId, nomeProduto, clienteId){
   }catch(e){toast('Erro: '+e.message,'error');}
 }
 
-async function marcarEntregue(compraId){
+async function marcarEntregue(compraId, nomeProduto, clienteId){
   const ok=await confirmarAcao('Confirmar entrega do pedido?',{titulo:'Confirmar entrega',textoSim:'Sim, entregue',textoNao:'Voltar'});
   if(!ok)return;
   try{
     await api('cliente_compras?id=eq.'+compraId,{method:'PATCH',body:JSON.stringify({status_entrega:'entregue'})});
-    toast('Pedido marcado como entregue!','success');
+    if(clienteId){
+      const cli=await api('clientes?id=eq.'+clienteId+'&select=nome,email').catch(()=>[]);
+      if(cli&&cli[0]&&cli[0].email){
+        await emailPedidoEntregue(cli[0].nome,cli[0].email,nomeProduto||'');
+        toast('✅ Pedido marcado como entregue e e-mail enviado para '+cli[0].email,'success');
+      } else {
+        toast('✅ Pedido marcado como entregue! (cliente sem e-mail cadastrado)','success');
+      }
+    } else {
+      toast('Pedido marcado como entregue!','success');
+    }
     carregarPostagemPedidos();
   }catch(e){toast('Erro: '+e.message,'error');}
 }
